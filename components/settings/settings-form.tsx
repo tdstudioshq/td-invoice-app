@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { updateSettingsAction } from "@/app/actions/settings";
 import { initialActionState } from "@/app/actions/types";
@@ -22,6 +22,11 @@ export function SettingsForm({
     initialActionState,
   );
 
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+    else if (state.success) toast.success("Settings saved");
+  }, [state]);
+
   return (
     <form action={formAction}>
       <input type="hidden" name="id" value={settings?.id ?? ""} />
@@ -30,12 +35,6 @@ export function SettingsForm({
           {state.error ? (
             <p className="bg-destructive/10 text-destructive border-destructive/30 border px-3 py-2 text-sm">
               {state.error}
-            </p>
-          ) : null}
-          {state.success ? (
-            <p className="flex items-center gap-2 border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-400">
-              <CheckCircle2 className="size-4" />
-              Settings saved.
             </p>
           ) : null}
 

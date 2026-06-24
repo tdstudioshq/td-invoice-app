@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { toast } from "sonner";
 
 import { initialActionState, type ActionState } from "@/app/actions/types";
 import { SubmitButton } from "@/components/shared/submit-button";
@@ -29,6 +30,10 @@ export function ClientForm({
   cancelHref?: string;
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
+
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+  }, [state]);
 
   return (
     <form action={formAction}>

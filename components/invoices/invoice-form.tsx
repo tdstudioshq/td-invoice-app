@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { initialActionState, type ActionState } from "@/app/actions/types";
 import { SubmitButton } from "@/components/shared/submit-button";
@@ -66,6 +67,10 @@ export function InvoiceForm({
   submitLabel?: string;
 }) {
   const [state, formAction] = useActionState(action, initialActionState);
+
+  useEffect(() => {
+    if (state.error) toast.error(state.error);
+  }, [state]);
 
   const [clientName, setClientName] = useState<string>(
     invoice?.client?.company_name ?? defaultClientName,
