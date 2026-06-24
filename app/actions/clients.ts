@@ -60,7 +60,13 @@ export async function createClientAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
   const { error } = await supabase.from("clients").insert({
+    owner_id: user.id,
     company_name: parsed.data.company_name,
     contact_name: nullify(parsed.data.contact_name),
     email: nullify(parsed.data.email),
@@ -89,6 +95,12 @@ export async function updateClientAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  // RLS scopes this update to rows the user owns; owner_id is left unchanged.
   const { error } = await supabase
     .from("clients")
     .update({

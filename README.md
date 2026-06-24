@@ -148,12 +148,20 @@ tax_amount      = (subtotal − discount_amount) × tax_rate / 100
 total           = subtotal − discount_amount + tax_amount
 ```
 
-## Security note
+## Security
 
-This app currently ships **without authentication**. Row Level Security is
-enabled with permissive policies so the anon key works out of the box. Before
-going live with real data, add authentication and scope the RLS policies to the
-authenticated user (see the `TODO(auth)` note at the top of the migration).
+The app uses **Supabase Auth** (email/password). All `app/(app)` routes are
+gated by `proxy.ts` (session refresh + redirect) and re-checked in the route
+group layout. Every table has an `owner_id` and **Row Level Security scoped to
+`auth.uid()`** (migration `0002`), so the public anon key cannot read or write
+data and users only ever see their own records. Server Actions and the PDF route
+run through the cookie-scoped client — no service-role/RLS bypass.
+
+## Install as an app (PWA)
+
+The app ships a Web App Manifest (`app/manifest.ts`) and maskable icons, so it's
+installable from a supported browser ("Add to Home Screen" / install icon). It
+launches standalone to `/dashboard`.
 
 ## Roadmap (not yet implemented)
 
@@ -161,11 +169,40 @@ Stubbed with `TODO` comments in the codebase:
 
 - **Stripe** — collect payments and reconcile them against invoices
   (`app/actions/invoices.ts`, `.env.example`).
-- **Resend** — email invoices to clients and flip status to "Sent"
-  (`app/actions/invoices.ts`, `.env.example`).
+- **Resend** — email invoices to clients (intentionally not wired).
 
-## Deploy
+## Deploy to Vercel
 
-Deploys to [Vercel](https://vercel.com) with zero config. Add the
-`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` environment
-variables in your Vercel project settings.
+### Deployment checklist
+
+1. **Database** — apply migrations to your Supabase project (in order):
+   - `supabase/migrations/0001_initial_schema.sql`
+   - `supabase/migrations/0002_auth_and_owner_scoping.sql`
+
+   via the SQL Editor, or `supabase db push` if linked. Verify `owner_id` exists
+   on all tables and policies are owner-scoped (no `*_all_access`).
+2. **Create a user** — Supabase dashboard → Authentication → Users → Add user
+   (check *Auto Confirm*). Self-serve sign-up is intentionally disabled.
+3. **Environment variables** — set these in the Vercel project (Production +
+   Preview):
+
+   | Variable | Required | Notes |
+   | --- | --- | --- |
+   | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | SSR client |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | SSR client (public) |
+   | `SUPABASE_URL` | ✅ | API route handlers |
+   | `SUPABASE_PUBLISHABLE_KEY` | ✅ | API route handlers |
+   | `SUPABASE_SECRET_KEY` | ✅ | **server-only**, never expose |
+   | `SUPABASE_JWKS_URL` | ✅ | JWT verification |
+   | `NEXT_PUBLIC_SITE_URL` | optional | custom domain; otherwise `VERCEL_URL` is used |
+
+4. **Build settings** — defaults work: build `next build`, output auto-detected,
+   Node.js 20+. No `vercel.json` needed.
+5. **Deploy**, then smoke-test:
+   - `/login` loads and authenticates → redirects to `/dashboard`
+   - create a client/invoice; confirm it's scoped to your user
+   - **Download PDF** on an invoice returns `TD-INV-####.pdf`
+   - sign out → returns to `/login`; visiting `/dashboard` redirects to `/login`
+
+> Tip: keep `SUPABASE_SECRET_KEY` out of any `NEXT_PUBLIC_*` variable — only the
+> anon key is safe to expose to the browser.

@@ -57,8 +57,10 @@ function toFieldErrors(error: z.ZodError): Record<string, string> {
 function buildInvoiceRow(
   data: z.infer<typeof invoiceSchema>,
   clientId: string | null,
+  ownerId?: string,
 ) {
   return {
+    ...(ownerId ? { owner_id: ownerId } : {}),
     client_id: clientId,
     status: data.status as InvoiceStatus,
     issue_date: data.issue_date,
@@ -76,6 +78,7 @@ function buildInvoiceRow(
 async function resolveClientId(
   supabase: Awaited<ReturnType<typeof createClient>>,
   name: string,
+  ownerId: string,
 ): Promise<{ id: string | null; error?: string }> {
   const trimmed = name.trim();
   if (!trimmed) return { id: null };
@@ -90,7 +93,7 @@ async function resolveClientId(
 
   const { data: created, error } = await supabase
     .from("clients")
-    .insert({ company_name: trimmed })
+    .insert({ company_name: trimmed, owner_id: ownerId })
     .select("id")
     .single();
   if (error || !created) {
@@ -102,11 +105,13 @@ async function resolveClientId(
 function buildItemRows(
   invoiceId: string,
   items: z.infer<typeof itemSchema>[],
+  ownerId: string,
 ) {
   return items
     .filter((item) => item.description.trim() !== "" || item.unit_price > 0)
     .map((item, index) => ({
       invoice_id: invoiceId,
+      owner_id: ownerId,
       description: item.description.trim(),
       quantity: item.quantity,
       unit_price: item.unit_price,
@@ -127,13 +132,17 @@ export async function createInvoiceAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name);
+  const client = await resolveClientId(supabase, parsed.data.client_name, user.id);
   if (client.error) return { error: client.error };
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .insert(buildInvoiceRow(parsed.data, client.id))
+    .insert(buildInvoiceRow(parsed.data, client.id, user.id))
     .select("id")
     .single();
 
@@ -141,7 +150,7 @@ export async function createInvoiceAction(
     return { error: invoiceError?.message ?? "Could not create invoice" };
   }
 
-  const itemRows = buildItemRows(invoice.id, parsed.data.items);
+  const itemRows = buildItemRows(invoice.id, parsed.data.items, user.id);
   if (itemRows.length > 0) {
     const { error: itemsError } = await supabase
       .from("invoice_items")
@@ -168,10 +177,15 @@ export async function updateInvoiceAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name);
+  const client = await resolveClientId(supabase, parsed.data.client_name, user.id);
   if (client.error) return { error: client.error };
 
+  // owner_id intentionally omitted on update; RLS scopes this to the owner.
   const { error: invoiceError } = await supabase
     .from("invoices")
     .update(buildInvoiceRow(parsed.data, client.id))
@@ -185,7 +199,7 @@ export async function updateInvoiceAction(
     .eq("invoice_id", id);
   if (deleteError) return { error: deleteError.message };
 
-  const itemRows = buildItemRows(id, parsed.data.items);
+  const itemRows = buildItemRows(id, parsed.data.items, user.id);
   if (itemRows.length > 0) {
     const { error: itemsError } = await supabase
       .from("invoice_items")
@@ -257,10 +271,16 @@ export async function addPaymentAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
   const { invoice_id } = parsed.data;
 
   const { error } = await supabase.from("payments").insert({
     invoice_id,
+    owner_id: user.id,
     amount: parsed.data.amount,
     payment_date: parsed.data.payment_date,
     method: parsed.data.method ? parsed.data.method.trim() : null,

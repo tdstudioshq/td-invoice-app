@@ -20,6 +20,7 @@ export interface Database {
       clients: {
         Row: {
           id: string;
+          owner_id: string | null;
           company_name: string;
           contact_name: string | null;
           email: string | null;
@@ -31,6 +32,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          owner_id?: string | null;
           company_name: string;
           contact_name?: string | null;
           email?: string | null;
@@ -46,6 +48,7 @@ export interface Database {
       company_settings: {
         Row: {
           id: string;
+          owner_id: string | null;
           company_name: string;
           address: string | null;
           email: string | null;
@@ -57,6 +60,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          owner_id?: string | null;
           company_name?: string;
           address?: string | null;
           email?: string | null;
@@ -74,6 +78,7 @@ export interface Database {
       invoices: {
         Row: {
           id: string;
+          owner_id: string | null;
           invoice_number: string;
           client_id: string | null;
           status: InvoiceStatus;
@@ -91,6 +96,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          owner_id?: string | null;
           invoice_number?: string;
           client_id?: string | null;
           status?: InvoiceStatus;
@@ -119,6 +125,7 @@ export interface Database {
       invoice_items: {
         Row: {
           id: string;
+          owner_id: string | null;
           invoice_id: string;
           description: string;
           quantity: number;
@@ -128,6 +135,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          owner_id?: string | null;
           invoice_id: string;
           description?: string;
           quantity?: number;
@@ -150,6 +158,7 @@ export interface Database {
       payments: {
         Row: {
           id: string;
+          owner_id: string | null;
           invoice_id: string;
           amount: number;
           payment_date: string;
@@ -159,6 +168,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
+          owner_id?: string | null;
           invoice_id: string;
           amount?: number;
           payment_date?: string;

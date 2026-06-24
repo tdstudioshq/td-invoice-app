@@ -129,3 +129,54 @@
     @apply font-mono;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Print: produce a clean, white, single-page invoice.
+   The app is dark by default (.dark on <html>); for print we flip those tokens
+   back to the light palette so the document prints as black-on-white paper.
+   App chrome (sidebar, toolbars, action buttons) is hidden via `.no-print`
+   or Tailwind's `print:hidden` variant.
+--------------------------------------------------------------------------- */
+@media print {
+  /* Restore the light theme tokens used across the invoice document. */
+  .dark {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.45 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --border: oklch(0.85 0 0);
+    --input: oklch(0.85 0 0);
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color-scheme: light;
+  }
+
+  /* Print background colors/badges accurately (logo block, status pill). */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hard hide for anything tagged no-print (in addition to print:hidden). */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Tighten the page so the invoice fits a single sheet. */
+  @page {
+    margin: 14mm;
+  }
+}

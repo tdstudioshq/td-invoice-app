@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Download, Pencil } from "lucide-react";
 
 import {
   deleteInvoiceAction,
   updateInvoiceAction,
+  updateInvoiceStatusAction,
 } from "@/app/actions/invoices";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceStatusControl } from "@/components/invoices/invoice-status-control";
+import { PrintButton } from "@/components/invoices/print-button";
 import { RecordPaymentDialog } from "@/components/invoices/record-payment-dialog";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
@@ -82,6 +84,8 @@ export default async function InvoiceDetailPage(
   }
 
   const settings = await getCompanySettings();
+  const companyName = settings?.company_name ?? "TD Studios";
+  const status = effectiveStatus(invoice);
   const items = invoice.invoice_items
     .slice()
     .sort((a, b) => a.position - b.position);
@@ -92,19 +96,37 @@ export default async function InvoiceDetailPage(
   const balance = Number(invoice.total) - totalPaid;
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <Button asChild variant="ghost" size="sm" className="mb-4">
-        <Link href="/invoices">
-          <ArrowLeft />
-          Back to invoices
-        </Link>
-      </Button>
+    <div className="mx-auto max-w-3xl print:max-w-none">
+      {/* Toolbar — never printed */}
+      <div className="mb-4 flex items-center justify-between print:hidden">
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/invoices">
+            <ArrowLeft />
+            Back to invoices
+          </Link>
+        </Button>
+      </div>
 
-      <PageHeader title={invoice.invoice_number}>
-        <InvoiceStatusControl
-          invoiceId={invoice.id}
-          status={invoice.status}
-        />
+      <div className="mb-6 flex flex-wrap items-center gap-2 print:hidden">
+        <InvoiceStatusControl invoiceId={invoice.id} status={invoice.status} />
+        {status !== "paid" ? (
+          <form action={updateInvoiceStatusAction}>
+            <input type="hidden" name="id" value={invoice.id} />
+            <input type="hidden" name="status" value="paid" />
+            <Button type="submit">
+              <Check />
+              Mark paid
+            </Button>
+          </form>
+        ) : null}
+        <PrintButton />
+        <Button asChild variant="outline">
+          <a href={`/api/invoices/${invoice.id}/pdf`}>
+            <Download />
+            Download PDF
+          </a>
+        </Button>
+        <RecordPaymentDialog invoiceId={invoice.id} balanceDue={balance} />
         <Button asChild variant="outline">
           <Link href={`/invoices/${invoice.id}?edit=1`}>
             <Pencil />
@@ -117,33 +139,52 @@ export default async function InvoiceDetailPage(
           title="Delete invoice?"
           description="This permanently deletes the invoice and its line items."
         />
-      </PageHeader>
+      </div>
 
-      <Card>
-        <CardContent className="space-y-8 pt-6">
-          {/* From / To */}
+      {/* Invoice document — the printable area */}
+      <Card className="print:rounded-none print:border-0 print:shadow-none">
+        <CardContent className="space-y-8 px-6 py-8 sm:px-10 print:px-0 print:py-0">
+          {/* Branded header */}
+          <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center text-base font-bold tracking-tight">
+                TD
+              </span>
+              <div className="leading-tight">
+                <p className="text-base font-semibold">{companyName}</p>
+                <p className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">
+                  Invoicing
+                </p>
+              </div>
+            </div>
+            <div className="sm:text-right">
+              <h1 className="text-3xl font-bold tracking-tight">Invoice</h1>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {invoice.invoice_number}
+              </p>
+              <div className="mt-2 sm:flex sm:justify-end">
+                <StatusBadge status={status} />
+              </div>
+            </div>
+          </header>
+
+          {/* From / Bill to */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <p className="text-muted-foreground mb-1 text-xs uppercase">
                 From
               </p>
-              <p className="font-medium">
-                {settings?.company_name ?? "TD Studios"}
-              </p>
+              <p className="font-medium">{companyName}</p>
               {settings?.address ? (
                 <p className="text-muted-foreground text-sm whitespace-pre-line">
                   {settings.address}
                 </p>
               ) : null}
               {settings?.email ? (
-                <p className="text-muted-foreground text-sm">
-                  {settings.email}
-                </p>
+                <p className="text-muted-foreground text-sm">{settings.email}</p>
               ) : null}
               {settings?.phone ? (
-                <p className="text-muted-foreground text-sm">
-                  {settings.phone}
-                </p>
+                <p className="text-muted-foreground text-sm">{settings.phone}</p>
               ) : null}
             </div>
             <div className="sm:text-right">
@@ -155,7 +196,7 @@ export default async function InvoiceDetailPage(
                   <p className="font-medium">
                     <Link
                       href={`/clients/${invoice.client.id}`}
-                      className="hover:underline"
+                      className="hover:underline print:no-underline"
                     >
                       {invoice.client.company_name}
                     </Link>
@@ -182,17 +223,17 @@ export default async function InvoiceDetailPage(
             </div>
           </div>
 
-          {/* Meta */}
-          <div className="border-border grid gap-4 border-y py-4 text-sm sm:grid-cols-4">
-            <Meta label="Status">
-              <StatusBadge status={effectiveStatus(invoice)} />
-            </Meta>
+          {/* Meta strip */}
+          <div className="border-border grid grid-cols-2 gap-4 border-y py-4 text-sm sm:grid-cols-4">
             <Meta label="Issued">{formatDate(invoice.issue_date)}</Meta>
             <Meta label="Due">{formatDate(invoice.due_date)}</Meta>
             <Meta label="Total">
               <span className="font-semibold">
                 {formatCurrency(invoice.total)}
               </span>
+            </Meta>
+            <Meta label="Balance due">
+              <span className="font-semibold">{formatCurrency(balance)}</span>
             </Meta>
           </div>
 
@@ -240,7 +281,7 @@ export default async function InvoiceDetailPage(
           </div>
 
           {/* Totals */}
-          <div className="ml-auto w-full max-w-xs space-y-2 text-sm">
+          <div className="ml-auto w-full space-y-2 text-sm sm:max-w-xs">
             <TotalRow label="Subtotal" value={invoice.subtotal} />
             <TotalRow
               label={`Discount (${formatPercent(invoice.discount_rate)})`}
@@ -256,12 +297,11 @@ export default async function InvoiceDetailPage(
                 {formatCurrency(invoice.total)}
               </span>
             </div>
-            {totalPaid > 0 ? (
-              <>
-                <TotalRow label="Paid" value={-totalPaid} />
-                <TotalRow label="Balance due" value={balance} />
-              </>
-            ) : null}
+            <TotalRow label="Amount paid" value={-totalPaid} />
+            <div className="border-border flex items-center justify-between border-t pt-2 font-semibold">
+              <span>Balance due</span>
+              <span className="tabular-nums">{formatCurrency(balance)}</span>
+            </div>
           </div>
 
           {invoice.notes ? (
@@ -286,11 +326,10 @@ export default async function InvoiceDetailPage(
         </CardContent>
       </Card>
 
-      {/* Payments */}
-      <Card className="mt-6">
-        <CardHeader className="flex-row items-center justify-between">
+      {/* Payments log — management only, never printed */}
+      <Card className="mt-6 print:hidden">
+        <CardHeader>
           <CardTitle>Payments</CardTitle>
-          <RecordPaymentDialog invoiceId={invoice.id} balanceDue={balance} />
         </CardHeader>
         <CardContent>
           {invoice.payments.length === 0 ? (

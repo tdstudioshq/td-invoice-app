@@ -47,6 +47,11 @@ export async function updateSettingsAction(
   }
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
   const id = String(formData.get("id") ?? "");
 
   const values = {
@@ -60,7 +65,9 @@ export async function updateSettingsAction(
 
   const { error } = id
     ? await supabase.from("company_settings").update(values).eq("id", id)
-    : await supabase.from("company_settings").insert(values);
+    : await supabase
+        .from("company_settings")
+        .insert({ ...values, owner_id: user.id });
 
   if (error) return { error: error.message };
 
