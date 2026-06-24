@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/invoices";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceStatusControl } from "@/components/invoices/invoice-status-control";
+import { RecordPaymentDialog } from "@/components/invoices/record-payment-dialog";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
@@ -287,14 +288,14 @@ export default async function InvoiceDetailPage(
 
       {/* Payments */}
       <Card className="mt-6">
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between">
           <CardTitle>Payments</CardTitle>
+          <RecordPaymentDialog invoiceId={invoice.id} balanceDue={balance} />
         </CardHeader>
         <CardContent>
           {invoice.payments.length === 0 ? (
             <p className="text-muted-foreground text-sm">
               No payments recorded yet.
-              {/* TODO(stripe): record payments via Stripe and reconcile here. */}
             </p>
           ) : (
             <Table>

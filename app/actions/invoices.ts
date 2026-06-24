@@ -227,7 +227,65 @@ export async function deleteInvoiceAction(formData: FormData): Promise<void> {
   redirect("/invoices");
 }
 
-// TODO(stripe): addPaymentAction — record a Stripe payment against an invoice
-// and flip status to "paid" once the balance is settled.
+const paymentSchema = z.object({
+  invoice_id: z.string().uuid(),
+  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  payment_date: z.string().min(1, "Date is required"),
+  method: z.string().trim().optional().or(z.literal("")),
+  notes: z.string().trim().optional().or(z.literal("")),
+});
+
+// Record a payment against an invoice. When total payments cover the invoice
+// total, the invoice is automatically marked "paid".
+// TODO(stripe): also create payments automatically from Stripe webhooks.
+export async function addPaymentAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const parsed = paymentSchema.safeParse({
+    invoice_id: formData.get("invoice_id"),
+    amount: formData.get("amount"),
+    payment_date: formData.get("payment_date"),
+    method: formData.get("method"),
+    notes: formData.get("notes"),
+  });
+  if (!parsed.success) {
+    return { fieldErrors: toFieldErrors(parsed.error) };
+  }
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. See README setup." };
+  }
+
+  const supabase = await createClient();
+  const { invoice_id } = parsed.data;
+
+  const { error } = await supabase.from("payments").insert({
+    invoice_id,
+    amount: parsed.data.amount,
+    payment_date: parsed.data.payment_date,
+    method: parsed.data.method ? parsed.data.method.trim() : null,
+    notes: parsed.data.notes ? parsed.data.notes.trim() : null,
+  });
+  if (error) return { error: error.message };
+
+  // Auto-mark the invoice paid once payments cover the total.
+  const [{ data: invoice }, { data: payments }] = await Promise.all([
+    supabase.from("invoices").select("total, status").eq("id", invoice_id).single(),
+    supabase.from("payments").select("amount").eq("invoice_id", invoice_id),
+  ]);
+  const totalPaid = (payments ?? []).reduce(
+    (sum, p) => sum + Number(p.amount),
+    0,
+  );
+  if (invoice && invoice.status !== "paid" && totalPaid >= Number(invoice.total)) {
+    await supabase.from("invoices").update({ status: "paid" }).eq("id", invoice_id);
+  }
+
+  revalidatePath(`/invoices/${invoice_id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 // TODO(resend): sendInvoiceAction — email the invoice PDF/link to the client
 // via Resend, then set status to "sent".
