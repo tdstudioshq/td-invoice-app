@@ -12,8 +12,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // in `requireUser()` inside Server Components/Actions — never trust the proxy
 // alone (see Next.js "Data Security" guidance).
 
-// Public paths that do not require a session.
-const PUBLIC_PATHS = new Set<string>(["/", "/login"]);
+// Public paths that do not require a session. `/reset-password` must be public:
+// the recovery link arrives with the session in the URL hash (not a cookie), so
+// the page has to load client-side to read it — redirecting would strip it.
+const PUBLIC_PATHS = new Set<string>(["/", "/login", "/reset-password"]);
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

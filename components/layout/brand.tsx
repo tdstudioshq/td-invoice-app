@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
@@ -9,9 +10,13 @@ export function Brand({ className }: { className?: string }) {
       href="/dashboard"
       className={cn("flex items-center gap-2.5 select-none", className)}
     >
-      <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center text-sm font-bold tracking-tight">
-        TD
-      </span>
+      <Image
+        src="/logo.png"
+        alt="TD Studios — TNT Printing, New York City"
+        width={36}
+        height={36}
+        className="size-9 shrink-0"
+      />
       <span className="flex flex-col leading-none">
         <span className="text-sm font-semibold tracking-tight">
           TD Studios

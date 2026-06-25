@@ -9,7 +9,13 @@ import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm({ redirectTo }: { redirectTo?: string }) {
+export function LoginForm({
+  redirectTo,
+  onForgot,
+}: {
+  redirectTo?: string;
+  onForgot: () => void;
+}) {
   const [state, formAction] = useActionState(signInAction, initialActionState);
 
   useEffect(() => {
@@ -38,7 +44,16 @@ export function LoginForm({ redirectTo }: { redirectTo?: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <button
+            type="button"
+            onClick={onForgot}
+            className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </button>
+        </div>
         <Input
           id="password"
           name="password"
