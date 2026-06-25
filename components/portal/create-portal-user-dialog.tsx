@@ -71,7 +71,20 @@ export function CreatePortalUserDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {credentials ? (
+        {credentials && credentials.invited === "email" ? (
+          <div className="space-y-4">
+            <p className="text-sm">
+              Invite sent to{" "}
+              <span className="font-medium">{credentials.email}</span>. They&apos;ll
+              receive an email with a link to set their password and sign in.
+            </p>
+            <DialogFooter>
+              <Button type="button" onClick={close}>
+                Done
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : credentials ? (
           <div className="space-y-4">
             <p className="text-sm">
               Account created for{" "}

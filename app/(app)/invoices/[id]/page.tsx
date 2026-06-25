@@ -12,6 +12,7 @@ import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { InvoiceStatusControl } from "@/components/invoices/invoice-status-control";
 import { PrintButton } from "@/components/invoices/print-button";
 import { RecordPaymentDialog } from "@/components/invoices/record-payment-dialog";
+import { SendInvoiceDialog } from "@/components/invoices/send-invoice-dialog";
 import { StatusBadge } from "@/components/invoices/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { ConfirmDeleteDialog } from "@/components/shared/confirm-delete-dialog";
@@ -127,6 +128,12 @@ export default async function InvoiceDetailPage(
             Download PDF
           </a>
         </Button>
+        {invoice.client?.email ? (
+          <SendInvoiceDialog
+            invoiceId={invoice.id}
+            recipientEmail={invoice.client.email}
+          />
+        ) : null}
         <RecordPaymentDialog invoiceId={invoice.id} balanceDue={balance} />
         <Button asChild variant="outline">
           <Link href={`/invoices/${invoice.id}?edit=1`}>

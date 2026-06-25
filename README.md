@@ -233,6 +233,35 @@ layout, and `signInAction` routes each user to the right home on login.
 - Cross-tenant: requesting another client's `fileId` or invoice id returns 404.
 - Revoke access → that user can no longer sign in to the portal.
 
+## Email (Resend)
+
+Transactional email is sent via [Resend](https://resend.com) for two flows:
+
+- **Email an invoice** — the "Email to client" button on an invoice sends the
+  client the PDF and marks a `draft` invoice as `sent`
+  (`sendInvoiceAction` in `app/actions/invoices.ts`).
+- **Portal invites** — creating a portal login emails the client a
+  set-password link instead of the admin sharing a temporary password
+  (`createPortalUserAction` in `app/actions/portal.ts`).
+
+Setup:
+
+1. **Verify a sender domain** in Resend (add the DNS records it provides) — e.g.
+   `invoices.tdstudiosny.com`.
+2. Set the env vars (locally in `.env.local`, and in **Vercel** for production):
+
+   ```
+   RESEND_API_KEY=re_...
+   RESEND_FROM_EMAIL=TD Studios <invoices@invoices.tdstudiosny.com>
+   ```
+
+   `RESEND_FROM_EMAIL` must be an address on the verified domain.
+
+**Graceful degradation:** with these unset the app still builds and runs — the
+invoice-email button reports email isn't configured, and portal invites fall
+back to a one-time temp password shown to the admin. Both env vars are
+**server-only** (never `NEXT_PUBLIC_`).
+
 ## Install as an app (PWA)
 
 The app ships a Web App Manifest (`app/manifest.ts`) and maskable icons, so it's
@@ -245,7 +274,6 @@ Stubbed with `TODO` comments in the codebase:
 
 - **Stripe** — collect payments and reconcile them against invoices
   (`app/actions/invoices.ts`, `.env.example`).
-- **Resend** — email invoices to clients (intentionally not wired).
 
 ## Deploy to Vercel
 

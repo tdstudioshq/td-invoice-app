@@ -6,11 +6,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth";
+import { getCompanySettings } from "@/lib/data";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   createAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/admin";
+import {
+  EMAIL_FROM,
+  getResend,
+  getSiteUrl,
+  isResendConfigured,
+} from "@/lib/email/client";
+import { portalInviteEmail } from "@/lib/email/templates";
 import {
   FILE_CATEGORIES,
   MAX_UPLOAD_BYTES,
@@ -136,6 +144,44 @@ export async function createPortalUserAction(
 
   revalidatePath("/client-portals");
   revalidatePath(`/client-portals/${parsed.data.client_id}`);
+
+  // Preferred path: email the client a set-password link so the admin never has
+  // to hand over a password. Falls back to revealing a one-time temp password
+  // when email isn't configured or sending fails.
+  if (isResendConfigured()) {
+    const { data: link, error: linkError } =
+      await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: parsed.data.email,
+        options: { redirectTo: `${getSiteUrl()}/reset-password` },
+      });
+    const actionUrl = link?.properties?.action_link;
+    if (!linkError && actionUrl) {
+      const settings = await getCompanySettings();
+      const message = portalInviteEmail({
+        companyName: settings?.company_name ?? "TD Studios",
+        actionUrl,
+      });
+      try {
+        const { error: sendError } = await getResend().emails.send({
+          from: EMAIL_FROM,
+          to: parsed.data.email,
+          subject: message.subject,
+          html: message.html,
+          text: message.text,
+        });
+        if (!sendError) {
+          return {
+            success: true,
+            data: { email: parsed.data.email, invited: "email" },
+          };
+        }
+      } catch {
+        // Fall through to the temp-password reveal below.
+      }
+    }
+  }
+
   return {
     success: true,
     data: { email: parsed.data.email, password: tempPassword },

@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCompanySettings, getInvoice } from "@/lib/data";
+import { buildInvoicePdfData } from "@/lib/pdf/invoice-pdf-data";
+import { renderInvoicePdf } from "@/lib/pdf/invoice-pdf";
+import { EMAIL_FROM, getResend, isResendConfigured } from "@/lib/email/client";
+import { invoiceEmail } from "@/lib/email/templates";
+import { formatCurrency, formatDate } from "@/lib/format";
 import type { ActionState } from "@/app/actions/types";
 import type { InvoiceStatus } from "@/lib/types/database";
 
@@ -307,5 +313,79 @@ export async function addPaymentAction(
   return { success: true };
 }
 
-// TODO(resend): sendInvoiceAction — email the invoice PDF/link to the client
-// via Resend, then set status to "sent".
+// Email the invoice (as a PDF attachment) to the client via Resend, then move a
+// draft invoice to "sent". Degrades gracefully when email isn't configured.
+export async function sendInvoiceAction(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Missing invoice." };
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. See README setup." };
+  }
+  if (!isResendConfigured()) {
+    return {
+      error:
+        "Email isn't configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL. See README.",
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You must be signed in." };
+
+  // RLS scopes getInvoice to the owner; a foreign id returns null → not found.
+  const invoice = await getInvoice(id);
+  if (!invoice) return { error: "Invoice not found." };
+
+  const to = invoice.client?.email?.trim();
+  if (!to) {
+    return {
+      error: "This client has no email address. Add one on the client first.",
+    };
+  }
+
+  const settings = await getCompanySettings();
+  const companyName = settings?.company_name ?? "TD Studios";
+  const pdf = await renderInvoicePdf(buildInvoicePdfData(invoice, settings));
+  const email = invoiceEmail({
+    companyName,
+    clientName: invoice.client?.company_name ?? "there",
+    invoiceNumber: invoice.invoice_number,
+    formattedTotal: formatCurrency(invoice.total),
+    dueDate: formatDate(invoice.due_date),
+  });
+
+  try {
+    const { error: sendError } = await getResend().emails.send({
+      from: EMAIL_FROM,
+      to,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      attachments: [
+        { filename: `${invoice.invoice_number}.pdf`, content: Buffer.from(pdf) },
+      ],
+    });
+    if (sendError) {
+      return { error: sendError.message ?? "Could not send the email." };
+    }
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Could not send the email.",
+    };
+  }
+
+  // Promote a draft to "sent"; never downgrade a sent/paid invoice.
+  if (invoice.status === "draft") {
+    await supabase.from("invoices").update({ status: "sent" }).eq("id", id);
+  }
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  return { success: true, data: { email: to } };
+}
