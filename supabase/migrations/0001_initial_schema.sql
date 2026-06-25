@@ -1,10 +1,11 @@
 -- TD Studios Invoice App — initial schema
 -- Tables: clients, invoices, invoice_items, payments, company_settings
 --
--- Note on security: this app currently ships without authentication, so Row Level
--- Security is enabled with permissive policies for the anon/authenticated roles.
--- TODO(auth): when authentication is added, scope every policy to auth.uid()
--- and add an `owner_id uuid references auth.users` column to each table.
+-- Note on security: this is the FIRST migration and predates auth. It enables
+-- Row Level Security with permissive anon/authenticated policies as a starting
+-- point. It is SUPERSEDED by 0002_auth_and_owner_scoping.sql, which adds an
+-- `owner_id` column to every table and tightens all policies to auth.uid().
+-- Always apply migrations in order; do not run this one in isolation.
 
 -- Required for gen_random_uuid()
 create extension if not exists "pgcrypto";

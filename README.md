@@ -19,7 +19,17 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 - **Live totals** — subtotal, discount, tax, and total computed as you type and
   re-derived in the database on save.
 - **Settings** — company details and default tax rate used on every invoice.
-- **Mobile responsive** — collapsible sidebar with a sheet-based mobile nav.
+- **Authentication** — Supabase Auth (email/password) with owner-scoped Row
+  Level Security; every user sees only their own data.
+- **Client portals** — give a client a scoped login to view only their own
+  files and invoices, with secure file storage via a private bucket and
+  short-lived signed URLs.
+- **PDF export** — server-rendered invoice PDFs (`TD-INV-####.pdf`), identical
+  for download and email attachment.
+- **Email (Resend)** — email an invoice (with PDF) to a client and send portal
+  invites with a set-password link.
+- **Mobile responsive / PWA** — collapsible sidebar with a sheet-based mobile
+  nav; installable Web App Manifest that launches standalone.
 
 ## Routes
 
@@ -105,30 +115,45 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 app/
-  (app)/              App shell (sidebar layout, force-dynamic)
+  (app)/              Admin app shell (sidebar layout, force-dynamic)
     dashboard/        KPIs + recent invoices
     clients/          List, new, [id]
     invoices/         List, new, [id]
     settings/         Company settings
-  actions/            Server Actions (clients, invoices, settings)
-  page.tsx            Landing page
+    client-portals/   Admin: manage portal logins & files
+  (portal)/           Client-portal shell (force-dynamic)
+    portal/           Overview, files, invoices
+  actions/            Server Actions: clients, invoices, settings, auth,
+                      portal (admin-side), portal-client (client-side)
+  api/                Route handlers: invoice PDF, file downloads, clients,
+                      health
+  login/              Sign-in panel + forgot-password form
+  reset-password/     Password reset flow
+  page.tsx            Public sign-in screen (reused by /login)
   layout.tsx          Root layout (dark, fonts, metadata)
+  manifest.ts         PWA Web App Manifest
 components/
   layout/             App shell, sidebar nav, brand, page header
   clients/            Client form
   invoices/           Invoice form, table, status badge/control
   settings/           Settings form
   dashboard/          Stat card
+  portal/             Portal + file-manager UI
   shared/             Submit button, delete dialog, empty state
   ui/                 shadcn/ui primitives
 lib/
-  supabase/           Server + browser Supabase clients
-  types/database.ts   Database types
+  supabase/           SSR, route-handler, and service-role clients
+  types/database.ts   Database types (hand-maintained schema mirror)
+  auth.ts             requireUser / requireAdmin / portal context helpers
   data.ts             Read queries (with safe fallbacks)
   invoice.ts          Totals + status helpers
+  portal.ts           Portal category ↔ storage-path mapping
+  pdf/                Invoice PDF data mapping + renderer (pdf-lib)
+  email/              Resend client + HTML templates
   format.ts           Currency / date / percent formatting
+proxy.ts              Session refresh + auth redirects (Next.js 16 middleware)
 supabase/
-  migrations/         SQL schema
+  migrations/         SQL schema (0001–0004, applied in order)
 ```
 
 ## Data model
