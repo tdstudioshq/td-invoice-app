@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import {
   PDFDocument,
   StandardFonts,
@@ -62,6 +65,13 @@ const STATUS_FILL: Record<InvoiceStatus, RGB> = {
   overdue: rgb(0.83, 0.18, 0.18),
 };
 
+// Hoist the static logo read so repeated PDF exports reuse the same bytes.
+// The route-specific output tracing rule in next.config.ts packages this file
+// with the Vercel function.
+const invoiceLogoBytes = readFile(
+  path.join(process.cwd(), "public", "invoice-logo.png"),
+);
+
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -90,6 +100,7 @@ export async function renderInvoicePdf(
 
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await doc.embedPng(await invoiceLogoBytes);
 
   let page = doc.addPage([PAGE_W, PAGE_H]);
   let y = PAGE_H - MARGIN;
@@ -132,10 +143,15 @@ export async function renderInvoicePdf(
 
   // ---- Header: TD branding (left) + INVOICE title/number/status (right) ----
   const top = y;
-  page.drawRectangle({ x: MARGIN, y: top - 34, width: 34, height: 34, color: INK });
-  at("TD", MARGIN + (34 - w("TD", bold, 14)) / 2, top - 23, bold, 14, WHITE);
-  at(data.company.name, MARGIN + 46, top - 13, bold, 13);
-  at("INVOICING", MARGIN + 46, top - 26, font, 8, MUTED);
+  const logoSize = logo.scaleToFit(66, 70);
+  page.drawImage(logo, {
+    x: MARGIN,
+    y: top - logoSize.height,
+    width: logoSize.width,
+    height: logoSize.height,
+  });
+  at(data.company.name, MARGIN + 78, top - 25, bold, 13);
+  at("INVOICING", MARGIN + 78, top - 40, font, 8, MUTED);
 
   atRight("INVOICE", RIGHT, top - 20, bold, 26);
   atRight(data.invoiceNumber, RIGHT, top - 38, font, 11, MUTED);
@@ -152,7 +168,7 @@ export async function renderInvoicePdf(
   });
   at(pillText, pillX + 8, top - 55, bold, 8, WHITE);
 
-  y = top - 78;
+  y = top - 86;
   hline(y);
   y -= 22;
 

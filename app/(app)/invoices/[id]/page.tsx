@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check, Download, Pencil } from "lucide-react";
@@ -146,10 +147,15 @@ export default async function InvoiceDetailPage(
         <CardContent className="space-y-8 px-6 py-8 sm:px-10 print:px-0 print:py-0">
           {/* Branded header */}
           <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center text-base font-bold tracking-tight">
-                TD
-              </span>
+            <div className="flex items-center gap-4">
+              <Image
+                src="/invoice-logo.png"
+                alt="TD Studios TNT Printing logo"
+                width={365}
+                height={384}
+                priority
+                className="h-20 w-auto shrink-0 object-contain print:h-[0.8in]"
+              />
               <div className="leading-tight">
                 <p className="text-base font-semibold">{companyName}</p>
                 <p className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">

@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  outputFileTracingIncludes: {
+    "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
+  },
 };
 
 export default nextConfig;
