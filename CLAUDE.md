@@ -47,7 +47,7 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 ### Three Supabase clients (do not mix them)
 
 1. **SSR client** — `lib/supabase/server.ts` (`createClient()`) and `client.ts`, via `@supabase/ssr`. Used by Server Components and Server Actions; RLS-scoped through the anon key + auth cookies. Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-2. **Route-handler client** — `lib/supabase/with-supabase.ts` (`supabaseRoute(config, handler)`), via `@supabase/server`. Used only by API routes under `app/api/` (e.g. `app/api/clients/route.ts`). `ctx.supabase` is RLS-scoped; `ctx.supabaseAdmin` bypasses RLS. `auth: "secret"` requires the secret key in the `apikey` header. Env: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`.
+2. **Route-handler client** — `lib/supabase/with-supabase.ts` (`supabaseRoute(config, handler)`), via `@supabase/server`. Used only by API routes under `app/api/` (e.g. `app/api/clients/route.ts`). `ctx.supabase` is RLS-scoped; `ctx.supabaseAdmin` bypasses RLS. `auth: "secret"` requires the secret key in the `apikey` header; `auth: "none"` is for public endpoints (e.g. `app/api/health/route.ts`, an unauthenticated health check). Env: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`.
 3. **Service-role admin client** — `lib/supabase/admin.ts` (`createAdminClient()`, guarded by `isSupabaseAdminConfigured()`), via `@supabase/supabase-js`. **Bypasses RLS.** Use only on the server, only inside `requireAdmin()`-guarded Server Actions, and only for privileged operations the cookie-scoped client can't do (currently creating client-portal auth users via `auth.admin.createUser`). Never import it into a Client Component or return its results unfiltered. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
 
 ### Auth & roles
@@ -94,3 +94,22 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 ### Roadmap stubs
 
 Only **Stripe** (payments reconciliation) remains stubbed — see `TODO(stripe)` in `app/actions/invoices.ts` and `.env.example`. (Resend email is implemented; see above.)
+
+## Mobile companion app (`mobile/`)
+
+`mobile/` is a **separate, self-contained Expo workspace** — not part of the Next.js build. It is deliberately excluded from the root toolchain (`tsconfig.json` `exclude`, `eslint.config.mjs` ignores, its own `node_modules`), so run all mobile commands from inside `mobile/` with its own deps:
+
+```bash
+cd mobile
+npm install
+cp .env.example .env   # EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY
+npx expo start         # then scan QR with Expo Go (iOS), or `npm run ios` for the Simulator
+npm run typecheck      # tsc --noEmit
+npm run lint           # expo lint
+```
+
+- **Stack:** Expo SDK 54 (pinned for Expo Go physical-device testing), React Native 0.81, React 19, **Expo Router** (file-based routes under `mobile/app/`, `typedRoutes` on). Mirrors the web app's two role-based route groups: `(admin)/` and `(portal)/`.
+- **Read-only by design:** connects to the **same Supabase project** with only the anon key + existing RLS. No service-role client, no schema/Stripe/Resend, no writes. Never put a service-role key in the mobile app.
+- **Two things share, not duplicate, the web app:** the database types are re-exported from the web app via a relative bridge (`mobile/src/types/database.ts` → `../../../lib/types/database`), so the web schema mirror is the single source of truth. Mobile reads live in `mobile/src/lib/data.ts` (its own copy, parallel to the web `lib/data.ts`).
+- **Session persistence** uses `expo-sqlite/localStorage/install` (imported first in `mobile/src/lib/supabase.ts`) as the storage backend, with `processLock` and AppState-driven `startAutoRefresh`/`stopAutoRefresh`. `isSupabaseConfigured` gates the same graceful-degradation pattern as the web app.
+- No EAS build / store submission is configured yet (see `mobile/README.md`).
