@@ -34,19 +34,26 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Routes & rendering
 
-- Authenticated app lives under the `app/(app)/` route group, wrapped by `AppShell` (sidebar + mobile sheet nav). `app/page.tsx` (outside the group) is the public landing page.
-- The `(app)` group sets `export const dynamic = "force-dynamic"` in its `layout.tsx` because every page reads from Supabase per request. Keep new data-backed pages inside this group.
+- Admin app lives under the `app/(app)/` route group, wrapped by `AppShell` (sidebar + mobile sheet nav). Client-portal pages live under the separate `app/(portal)/` group (`/portal/*`), wrapped by its own shell. `app/page.tsx` (outside both groups) is the public sign-in screen, reused by `/login`.
+- Both data-backed groups set `export const dynamic = "force-dynamic"` in their `layout.tsx` because every page reads from Supabase per request. Keep new data-backed pages inside the appropriate group.
+- `proxy.ts` (Next.js 16's renamed Middleware, Node.js runtime) runs on every request: it refreshes the Supabase session (rotating cookies) and optimistically redirects unauthenticated users to `/login` and authenticated users away from it. `PUBLIC_PATHS` = `/`, `/login`, `/reset-password`. The proxy is **not** the real gate — enforcement is Postgres RLS plus `requireUser()`/`requireAdmin()`/`requirePortalUser()` in Server Components and Actions.
 
 ### Data flow
 
 - **Reads:** `lib/data.ts` holds all query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, etc.), called directly from Server Components.
-- **Writes:** Server Actions in `app/actions/{clients,invoices,settings}.ts` (`"use server"`). They validate `FormData` with **zod**, then `revalidatePath(...)` the affected routes and `redirect(...)`. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`); `react-hook-form` is a dependency but the forms are plain `<form action={...}>` + `FormData`, not RHF.
+- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate `FormData` with **zod**, then `revalidatePath(...)` the affected routes and `redirect(...)`. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`); `react-hook-form` is a dependency but the forms are plain `<form action={...}>` + `FormData`, not RHF.
 - **Graceful degradation:** every read/write first checks `isSupabaseConfigured()` and returns a safe fallback (empty array / `null` / a "not configured" error) when env vars are absent. This is deliberate — the app builds and the UI renders empty states with no database. Preserve this guard in new data code.
 
-### Two distinct Supabase clients (do not mix them)
+### Three Supabase clients (do not mix them)
 
 1. **SSR client** — `lib/supabase/server.ts` (`createClient()`) and `client.ts`, via `@supabase/ssr`. Used by Server Components and Server Actions; RLS-scoped through the anon key + auth cookies. Env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 2. **Route-handler client** — `lib/supabase/with-supabase.ts` (`supabaseRoute(config, handler)`), via `@supabase/server`. Used only by API routes under `app/api/` (e.g. `app/api/clients/route.ts`). `ctx.supabase` is RLS-scoped; `ctx.supabaseAdmin` bypasses RLS. `auth: "secret"` requires the secret key in the `apikey` header. Env: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`.
+3. **Service-role admin client** — `lib/supabase/admin.ts` (`createAdminClient()`, guarded by `isSupabaseAdminConfigured()`), via `@supabase/supabase-js`. **Bypasses RLS.** Use only on the server, only inside `requireAdmin()`-guarded Server Actions, and only for privileged operations the cookie-scoped client can't do (currently creating client-portal auth users via `auth.admin.createUser`). Never import it into a Client Component or return its results unfiltered. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
+
+### Auth & roles
+
+- **Auth is live** (Supabase Auth, email/password). Helpers in `lib/auth.ts`: `getUser()`/`requireUser()` (any session), `requireAdmin()`, and `getPortalContext()`/`requirePortalUser()`. Self-serve sign-up is disabled — users are created in the Supabase dashboard or, for portal users, via the admin action.
+- Two roles, decided implicitly by a `client_users` row: an authenticated user **without** one is an **admin** (full `app/(app)` dashboard); one **with** an active (`revoked_at is null`) row is a **portal user**, confined to `/portal/*` and mapped to exactly one client. `signInAction` routes each to the correct home.
 
 ### Invoice totals & status — computed in two agreeing places
 
@@ -56,10 +63,34 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Database schema & types
 
-- Schema source of truth is `supabase/migrations/0001_initial_schema.sql`. Apply it via the Supabase SQL Editor or `supabase db push` (see README).
-- `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing both Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
-- **No auth yet:** RLS is enabled but policies are permissive for anon/authenticated. The `TODO(auth)` note atop the migration tracks scoping policies to `auth.uid()` once login exists.
+- Schema is built from migrations in `supabase/migrations/`, applied **in order** via the Supabase SQL Editor or `supabase db push` (see README):
+  - `0001_initial_schema.sql` — `clients`, `invoices`, `invoice_items`, `payments`, `company_settings`; the `TD-INV-####` numbering sequence and total-calculation triggers.
+  - `0002_auth_and_owner_scoping.sql` — adds `owner_id` to every table and **tightens RLS to `auth.uid()`** (no more permissive anon access).
+  - `0003_client_portal.sql` — `client_users`, `client_file_folders`, `client_files`, `file_activity`; additive portal-scoped `SELECT` policies (via `portal_client_id()`) with admin write policies preserved.
+  - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
+- `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
+- **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
+
+### Client portals & secure file storage
+
+- Admins manage portal logins and files under `/client-portals` (`app/actions/portal.ts`); portal users live under `/portal/*` (`app/actions/portal-client.ts`). Files are organized into three categories — `uploads` / `final_files` / `invoices` — mapped to storage path prefixes in `lib/portal.ts`.
+- Files live in the **private `client-files` bucket**, keyed `{clientId}/{prefix}/{safeName}`. They are never served by raw object URL: downloads go through `app/api/files/[fileId]/route.ts`, which authorizes the request and returns a short-lived **signed URL**. Portal users can upload only when the admin has enabled it (enforced in the action *and* by Storage + table RLS).
+
+### PDF export
+
+- Invoice PDFs are generated server-side with **pdf-lib**. `lib/pdf/invoice-pdf-data.ts` maps an invoice to the PDF's data shape and `lib/pdf/invoice-pdf.ts` renders it. `app/api/invoices/[id]/pdf/route.ts` serves the download (`TD-INV-####.pdf`); the same data mapping feeds the emailed attachment so downloaded and emailed PDFs are identical.
+
+### Email (Resend) — implemented
+
+Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `getResend()`, `isResendConfigured()`, `EMAIL_FROM`; `templates.ts` holds the HTML).
+- **Email an invoice:** `sendInvoiceAction` (`app/actions/invoices.ts`) renders + attaches the PDF, emails the client, and promotes a `draft` invoice to `sent`.
+- **Portal invites:** `createPortalUserAction` (`app/actions/portal.ts`) emails a set-password link when Resend is configured, falling back to a one-time temp-password reveal otherwise.
+- Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (server-only). Both flows degrade gracefully when unset.
+
+### PWA & mobile
+
+- Ships a Web App Manifest (`app/manifest.ts`) and maskable icons; installable and launches standalone to `/dashboard`. Shells apply `env(safe-area-inset-*)` padding for notch/home-indicator safety, and invoice/line-item layouts have dedicated mobile treatments.
 
 ### Roadmap stubs
 
-Stripe (payments reconciliation) and Resend (emailing invoices, flipping status to `sent`) are stubbed as `TODO(stripe)` / `TODO(resend)` in `app/actions/invoices.ts` and `.env.example`.
+Only **Stripe** (payments reconciliation) remains stubbed — see `TODO(stripe)` in `app/actions/invoices.ts` and `.env.example`. (Resend email is implemented; see above.)
