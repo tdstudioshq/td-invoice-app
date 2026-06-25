@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/mobile/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,6 +17,8 @@
 # next.js
 /.next/
 /out/
+/mobile/.expo/
+/mobile/dist/
 
 # production
 /build
@@ -34,6 +37,7 @@ yarn-error.log*
 .env*
 # ...but keep the example template tracked (no secrets in it)
 !.env.example
+!/mobile/.env.example
 
 # vercel
 .vercel

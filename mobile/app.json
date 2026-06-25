@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "TD Studios",
+    "slug": "td-studios-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "tdstudios",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.tdstudiosny.invoice"
+    },
+    "android": {
+      "package": "com.tdstudiosny.invoice"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can upload documents to your portal.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera so you can capture documents to upload."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID to unlock the app."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
