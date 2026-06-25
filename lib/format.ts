@@ -24,6 +24,15 @@ export function formatDate(value: string | Date | null | undefined): string {
   return isValid(date) ? format(date, "MMM d, yyyy") : "—";
 }
 
+/** Format an ISO timestamp as "MMM d, yyyy at h:mm a". */
+export function formatDateTime(
+  value: string | Date | null | undefined,
+): string {
+  if (!value) return "—";
+  const date = typeof value === "string" ? parseISO(value) : value;
+  return isValid(date) ? format(date, "MMM d, yyyy 'at' h:mm a") : "—";
+}
+
 /** Today's date as an ISO date string (yyyy-MM-dd), for date input defaults. */
 export function todayISO(): string {
   return format(new Date(), "yyyy-MM-dd");

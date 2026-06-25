@@ -14,10 +14,11 @@ This project uses **Next.js 16.2.9** with **React 19**. The pinned guidance in `
 npm run dev      # start dev server (http://localhost:3000)
 npm run build    # production build
 npm run start    # serve the production build
-npm run lint     # eslint (flat config: eslint.config.mjs)
+npm run lint     # bare eslint over the project (flat config: eslint.config.mjs)
+npx tsc --noEmit # typecheck (no dedicated script)
 ```
 
-There is no test setup yet.
+`next lint` was **removed in Next 16** — use `npm run lint`. There is no `lint:fix` script and no dedicated `typecheck` script; run `eslint --fix` / `tsc --noEmit` directly. There is no test setup yet.
 
 ## Conventions
 
@@ -25,7 +26,7 @@ App Router project. `app/layout.tsx` is the root layout (loads Geist + JetBrains
 
 - **Import alias:** `@/*` maps to the repo root (e.g. `@/lib/utils`, `@/components/ui/button`).
 - **Styling:** Tailwind CSS **v4** — there is no `tailwind.config.*`. Configuration and theme tokens live in `app/globals.css` via CSS (`@theme`/CSS variables); PostCSS is wired in `postcss.config.mjs` with `@tailwindcss/postcss`.
-- **UI components:** shadcn/ui (`components.json`), style `radix-lyra`, base color `neutral`, RSC enabled. Generated primitives live in `components/ui/`. Icon library is **Phosphor** (`@phosphor-icons/react`) — prefer it over lucide (which is installed only as a shadcn transitive dep). Add components with the `shadcn` CLI rather than hand-writing primitives.
+- **UI components:** shadcn/ui (`components.json`), style `radix-lyra`, base color `neutral`, RSC enabled. Generated primitives live in `components/ui/`. Icon library is **Phosphor** (`@phosphor-icons/react`) — prefer it over `lucide-react` (a direct dependency, but only because shadcn primitives pull it in; don't reach for it in app code). Add components with the `shadcn` CLI rather than hand-writing primitives.
 - **`cn()` helper:** `lib/utils.ts` merges classes with `clsx` + `tailwind-merge`; use it for conditional classNames.
 
 ## Architecture
@@ -40,8 +41,8 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Data flow
 
-- **Reads:** `lib/data.ts` holds all query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, etc.), called directly from Server Components.
-- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate `FormData` with **zod**, then `revalidatePath(...)` the affected routes and `redirect(...)`. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`); `react-hook-form` is a dependency but the forms are plain `<form action={...}>` + `FormData`, not RHF.
+- **Reads:** `lib/data.ts` holds core query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, etc.); feature-specific Social Hub reads live in `lib/social/data.ts`. Both are called directly from Server Components.
+- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings`, and `social` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate inputs, authenticate inside each action, then `revalidatePath(...)` the affected routes. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`) or progressive-enhancement forms with `useFormStatus`.
 - **Graceful degradation:** every read/write first checks `isSupabaseConfigured()` and returns a safe fallback (empty array / `null` / a "not configured" error) when env vars are absent. This is deliberate — the app builds and the UI renders empty states with no database. Preserve this guard in new data code.
 
 ### Three Supabase clients (do not mix them)
@@ -68,6 +69,8 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0002_auth_and_owner_scoping.sql` — adds `owner_id` to every table and **tightens RLS to `auth.uid()`** (no more permissive anon access).
   - `0003_client_portal.sql` — `client_users`, `client_file_folders`, `client_files`, `file_activity`; additive portal-scoped `SELECT` policies (via `portal_client_id()`) with admin write policies preserved.
   - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
+  - `0005_instagram_leads.sql` — owner-scoped Instagram Leads CRM records.
+  - `0006_social_hub.sql` — owner-scoped `social_accounts`, `social_posts`, and `social_sync_logs` cache tables. No Instagram token column exists.
 - `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
 - **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
 
@@ -87,13 +90,29 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - **Portal invites:** `createPortalUserAction` (`app/actions/portal.ts`) emails a set-password link when Resend is configured, falling back to a one-time temp-password reveal otherwise.
 - Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (server-only). Both flows degrade gracefully when unset.
 
+### Social Hub (Instagram) — Phase 1 read-only
+
+- Admin UI lives at `/social`; reusable cards/grid live in `components/social/`.
+- `lib/social/instagram.ts` is server-only and calls Meta Graph API v25.0 with
+  `INSTAGRAM_ACCESS_TOKEN` in the Authorization header. Never move this token
+  into a client component, a `NEXT_PUBLIC_*` variable, or a database row.
+- `syncInstagramAction` in `app/actions/social.ts` calls `requireAdmin()`, fetches
+  the profile/latest media, and upserts the cache through the cookie-scoped
+  Supabase client, preserving RLS.
+- Env: `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_BUSINESS_ACCOUNT_ID`; optional
+  `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (`appsecret_proof`).
+- Phase 1 does not publish, fetch analytics, process DMs, sync followers, or
+  modify the mobile app.
+
 ### PWA & mobile
 
 - Ships a Web App Manifest (`app/manifest.ts`) and maskable icons; installable and launches standalone to `/dashboard`. Shells apply `env(safe-area-inset-*)` padding for notch/home-indicator safety, and invoice/line-item layouts have dedicated mobile treatments.
 
 ### Roadmap stubs
 
-Only **Stripe** (payments reconciliation) remains stubbed — see `TODO(stripe)` in `app/actions/invoices.ts` and `.env.example`. (Resend email is implemented; see above.)
+Stripe payments remain stubbed. Social roadmap: follower-to-Leads sync, post
+analytics, AI captions, content calendar/scheduling, lead scoring/CRM
+conversion, and mobile Social Hub.
 
 ## Mobile companion app (`mobile/`)
 

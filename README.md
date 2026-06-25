@@ -28,6 +28,10 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
   for download and email attachment.
 - **Email (Resend)** — email an invoice (with PDF) to a client and send portal
   invites with a set-password link.
+- **Leads CRM** — searchable, paginated Instagram lead records cached in
+  Supabase.
+- **Social Hub** — read-only Instagram profile and recent-post sync through the
+  official Meta Graph API, cached in owner-scoped Supabase tables.
 - **Mobile responsive / PWA** — collapsible sidebar with a sheet-based mobile
   nav; installable Web App Manifest that launches standalone.
 
@@ -43,6 +47,8 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/invoices`       | Invoice list                             |
 | `/invoices/new`   | Create an invoice                        |
 | `/invoices/[id]`  | Invoice document (add `?edit=1` to edit) |
+| `/leads`          | Search and browse imported leads         |
+| `/social`         | Instagram Social Hub and manual sync     |
 | `/settings`       | Company settings                         |
 | `/client-portals` | Admin: manage client portal logins & files |
 | `/client-portals/[clientId]` | Admin: one client's portal access + file manager |
@@ -119,12 +125,14 @@ app/
     dashboard/        KPIs + recent invoices
     clients/          List, new, [id]
     invoices/         List, new, [id]
+    leads/            Searchable Leads CRM
+    social/           Read-only Instagram Social Hub
     settings/         Company settings
     client-portals/   Admin: manage portal logins & files
   (portal)/           Client-portal shell (force-dynamic)
     portal/           Overview, files, invoices
-  actions/            Server Actions: clients, invoices, settings, auth,
-                      portal (admin-side), portal-client (client-side)
+  actions/            Server Actions: clients, invoices, settings, social,
+                      auth, portal (admin-side), portal-client (client-side)
   api/                Route handlers: invoice PDF, file downloads, clients,
                       health
   login/              Sign-in panel + forgot-password form
@@ -150,6 +158,7 @@ lib/
   portal.ts           Portal category ↔ storage-path mapping
   pdf/                Invoice PDF data mapping + renderer (pdf-lib)
   email/              Resend client + HTML templates
+  social/             Instagram Graph API client + cached Social Hub reads
   format.ts           Currency / date / percent formatting
 proxy.ts              Session refresh + auth redirects (Next.js 16 middleware)
 supabase/
@@ -164,6 +173,10 @@ supabase/
 - **invoice_items** — line items (description, quantity, unit price, position).
 - **payments** — payments recorded against an invoice.
 - **company_settings** — single-row company profile and default tax rate.
+- **leads** — owner-scoped Instagram lead records.
+- **social_accounts** — cached Instagram profile and connection state.
+- **social_posts** — cached Instagram media and engagement counts.
+- **social_sync_logs** — manual sync history and errors.
 
 Totals are computed in two places that always agree: live in the browser while
 editing (`lib/invoice.ts`) and authoritatively in Postgres via triggers on save
@@ -287,6 +300,52 @@ invoice-email button reports email isn't configured, and portal invites fall
 back to a one-time temp password shown to the admin. Both env vars are
 **server-only** (never `NEXT_PUBLIC_`).
 
+## Social Hub (Instagram)
+
+Phase 1 is a read-only Instagram integration at `/social`. It uses the official
+Instagram API with Facebook Login / Meta Graph API v25.0 to fetch the connected
+professional account profile and its latest media. Profile metadata, posts, and
+sync results are cached in Supabase; the access token stays in server-only
+environment variables and is never written to Postgres or sent to the browser.
+
+### Meta account requirements
+
+1. Use an Instagram **Professional** account (Business or Creator). For the
+   Facebook Login flow, connect it to a Facebook Page.
+2. Create a Meta developer app and add the Instagram API with Facebook Login.
+3. Ensure the authenticating Facebook user can manage the linked Page.
+4. Request the read permissions required by Meta for the selected setup,
+   typically `instagram_basic`, `pages_show_list`, and
+   `pages_read_engagement`. Development-mode apps can test with app-role users;
+   production use may require App Review and Advanced Access.
+5. Generate a long-lived user access token and obtain the Instagram
+   Professional Account ID from the linked Page.
+
+Official references:
+
+- [Instagram Platform overview](https://developers.facebook.com/docs/instagram-platform/)
+- [Instagram API with Facebook Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/)
+- [Getting started](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/get-started)
+
+### Configuration
+
+Apply `supabase/migrations/0006_social_hub.sql`, then set:
+
+```bash
+INSTAGRAM_ACCESS_TOKEN=...
+INSTAGRAM_BUSINESS_ACCOUNT_ID=...
+INSTAGRAM_APP_ID=...       # optional in Phase 1
+INSTAGRAM_APP_SECRET=...   # optional; enables appsecret_proof
+```
+
+All four variables are server-only—do not prefix them with `NEXT_PUBLIC_`.
+Restart the dev server after changing them. Sign in as an admin, open
+`/social`, and click **Refresh**. The page displays connection state, last sync,
+profile counts, cached posts, and any Meta API error.
+
+The sync currently caches the latest 24 posts. It does not publish content,
+fetch insights, process DMs, or sync followers.
+
 ## Install as an app (PWA)
 
 The app ships a Web App Manifest (`app/manifest.ts`) and maskable icons, so it's
@@ -295,10 +354,14 @@ launches standalone to `/dashboard`.
 
 ## Roadmap (not yet implemented)
 
-Stubbed with `TODO` comments in the codebase:
-
 - **Stripe** — collect payments and reconcile them against invoices
   (`app/actions/invoices.ts`, `.env.example`).
+- Instagram follower sync into Leads
+- Post analytics dashboard
+- AI caption generation
+- Content calendar and scheduled publishing
+- Lead scoring and CRM conversion from Instagram followers
+- Mobile Social Hub
 
 ## Deploy to Vercel
 
@@ -309,6 +372,8 @@ Stubbed with `TODO` comments in the codebase:
    - `supabase/migrations/0002_auth_and_owner_scoping.sql`
    - `supabase/migrations/0003_client_portal.sql`
    - `supabase/migrations/0004_client_files_storage.sql`
+   - `supabase/migrations/0005_instagram_leads.sql`
+   - `supabase/migrations/0006_social_hub.sql`
 
    via the SQL Editor, or `supabase db push` if linked. Verify `owner_id` exists
    on all tables and policies are owner-scoped (no `*_all_access`), and that the

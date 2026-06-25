@@ -329,6 +329,162 @@ export interface Database {
           },
         ];
       };
+      leads: {
+        Row: {
+          id: string;
+          owner_id: string;
+          instagram_id: string;
+          username: string;
+          full_name: string | null;
+          is_private: boolean;
+          is_verified: boolean;
+          profile_pic_url: string | null;
+          relationship_type: "followers" | "following";
+          source_username: string;
+          source_file: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          instagram_id: string;
+          username: string;
+          full_name?: string | null;
+          is_private?: boolean;
+          is_verified?: boolean;
+          profile_pic_url?: string | null;
+          relationship_type: "followers" | "following";
+          source_username: string;
+          source_file?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
+        Relationships: [];
+      };
+      social_accounts: {
+        Row: {
+          id: string;
+          owner_id: string;
+          platform: "instagram";
+          username: string;
+          instagram_business_account_id: string;
+          profile_picture_url: string | null;
+          followers_count: number | null;
+          follows_count: number | null;
+          media_count: number | null;
+          token_expires_at: string | null;
+          last_synced_at: string | null;
+          sync_status: "pending" | "syncing" | "connected" | "error";
+          sync_error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          platform?: "instagram";
+          username: string;
+          instagram_business_account_id: string;
+          profile_picture_url?: string | null;
+          followers_count?: number | null;
+          follows_count?: number | null;
+          media_count?: number | null;
+          token_expires_at?: string | null;
+          last_synced_at?: string | null;
+          sync_status?: "pending" | "syncing" | "connected" | "error";
+          sync_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_accounts"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      social_posts: {
+        Row: {
+          id: string;
+          owner_id: string;
+          social_account_id: string;
+          instagram_media_id: string;
+          caption: string | null;
+          media_type: string;
+          media_url: string | null;
+          thumbnail_url: string | null;
+          permalink: string;
+          published_at: string;
+          username: string;
+          like_count: number | null;
+          comments_count: number | null;
+          raw_payload: Json;
+          synced_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          social_account_id: string;
+          instagram_media_id: string;
+          caption?: string | null;
+          media_type: string;
+          media_url?: string | null;
+          thumbnail_url?: string | null;
+          permalink: string;
+          published_at: string;
+          username: string;
+          like_count?: number | null;
+          comments_count?: number | null;
+          raw_payload?: Json;
+          synced_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_posts"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_account_owner_fkey";
+            columns: ["social_account_id", "owner_id"];
+            referencedRelation: "social_accounts";
+            referencedColumns: ["id", "owner_id"];
+          },
+        ];
+      };
+      social_sync_logs: {
+        Row: {
+          id: string;
+          owner_id: string;
+          social_account_id: string;
+          status: "running" | "completed" | "error";
+          posts_fetched: number;
+          posts_upserted: number;
+          error_message: string | null;
+          started_at: string;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          social_account_id: string;
+          status: "running" | "completed" | "error";
+          posts_fetched?: number;
+          posts_upserted?: number;
+          error_message?: string | null;
+          started_at?: string;
+          completed_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["social_sync_logs"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "social_sync_logs_account_owner_fkey";
+            columns: ["social_account_id", "owner_id"];
+            referencedRelation: "social_accounts";
+            referencedColumns: ["id", "owner_id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -370,6 +526,12 @@ export type ClientFileFolder =
 export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
 export type FileActivity =
   Database["public"]["Tables"]["file_activity"]["Row"];
+export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type SocialAccount =
+  Database["public"]["Tables"]["social_accounts"]["Row"];
+export type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];
+export type SocialSyncLog =
+  Database["public"]["Tables"]["social_sync_logs"]["Row"];
 
 // Composed shapes returned by joined queries.
 export type InvoiceWithClient = Invoice & {

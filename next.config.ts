@@ -8,6 +8,22 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**.cdninstagram.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.fbcdn.net",
+        port: "",
+        pathname: "/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
