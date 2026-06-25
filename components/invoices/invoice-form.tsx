@@ -270,51 +270,74 @@ export function InvoiceForm({
                 return (
                   <div
                     key={row.key}
-                    className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_5rem_7rem_7rem_2rem] sm:items-center"
+                    className="border-border grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 first:border-t-0 first:pt-0 sm:grid-cols-[1fr_5rem_7rem_7rem_2rem] sm:items-center sm:gap-2 sm:border-t-0 sm:pt-0"
                   >
-                    <Input
-                      aria-label="Description"
-                      placeholder="Design services"
-                      value={row.description}
-                      onChange={(e) =>
-                        updateRow(row.key, { description: e.target.value })
-                      }
-                    />
-                    <Input
-                      aria-label="Quantity"
-                      type="number"
-                      min="0"
-                      step="any"
-                      className="sm:text-right"
-                      value={row.quantity}
-                      onChange={(e) =>
-                        updateRow(row.key, { quantity: e.target.value })
-                      }
-                    />
-                    <Input
-                      aria-label="Unit price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      className="sm:text-right"
-                      value={row.unit_price}
-                      onChange={(e) =>
-                        updateRow(row.key, { unit_price: e.target.value })
-                      }
-                    />
-                    <div className="text-right text-sm tabular-nums">
-                      {formatCurrency(amount)}
+                    <div className="col-span-2 sm:col-span-1">
+                      <Label className="mb-1 block text-xs sm:hidden">
+                        Description
+                      </Label>
+                      <Input
+                        aria-label="Description"
+                        placeholder="Design services"
+                        value={row.description}
+                        onChange={(e) =>
+                          updateRow(row.key, { description: e.target.value })
+                        }
+                      />
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Remove item"
-                      onClick={() => removeRow(row.key)}
-                      disabled={rows.length === 1}
-                    >
-                      <Trash2 />
-                    </Button>
+                    <div>
+                      <Label className="mb-1 block text-xs sm:hidden">Qty</Label>
+                      <Input
+                        aria-label="Quantity"
+                        type="number"
+                        min="0"
+                        step="any"
+                        inputMode="decimal"
+                        className="sm:text-right"
+                        value={row.quantity}
+                        onChange={(e) =>
+                          updateRow(row.key, { quantity: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block text-xs sm:hidden">
+                        Unit price
+                      </Label>
+                      <Input
+                        aria-label="Unit price"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        className="sm:text-right"
+                        value={row.unit_price}
+                        onChange={(e) =>
+                          updateRow(row.key, { unit_price: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="sm:text-right">
+                      <Label className="mb-1 block text-xs sm:hidden">
+                        Amount
+                      </Label>
+                      <div className="py-1.5 text-sm tabular-nums sm:py-0">
+                        {formatCurrency(amount)}
+                      </div>
+                    </div>
+                    <div className="flex items-end justify-end sm:items-center sm:justify-center">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-9 sm:size-7"
+                        aria-label="Remove item"
+                        onClick={() => removeRow(row.key)}
+                        disabled={rows.length === 1}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}

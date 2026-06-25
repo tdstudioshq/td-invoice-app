@@ -10,6 +10,8 @@ function Toaster(props: ToasterProps) {
       theme="dark"
       className="toaster group"
       position="top-right"
+      // Keep toasts clear of the iOS status bar / notch and the mobile header.
+      mobileOffset={{ top: "calc(env(safe-area-inset-top) + 0.75rem)" }}
       style={
         {
           "--normal-bg": "var(--popover)",

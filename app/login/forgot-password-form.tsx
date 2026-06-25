@@ -44,7 +44,7 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
         <Button
           type="button"
           variant="outline"
-          className="w-full"
+          className="h-10 w-full rounded-xl border-white/15 bg-white/[0.05]"
           onClick={onBack}
         >
           Back to sign in
@@ -63,11 +63,12 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
           type="email"
           autoComplete="email"
           required
+          className="h-10 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
         />
       </div>
       <Button
         type="submit"
-        className="w-full"
+        className="h-10 w-full rounded-xl"
         disabled={submitting}
         aria-disabled={submitting}
       >

@@ -37,6 +37,7 @@ export function LoginForm({
           autoComplete="email"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
+          className="h-10 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
         />
         {state.fieldErrors?.email ? (
           <p className="text-destructive text-xs">{state.fieldErrors.email}</p>
@@ -61,6 +62,7 @@ export function LoginForm({
           autoComplete="current-password"
           required
           aria-invalid={Boolean(state.fieldErrors?.password)}
+          className="h-10 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
         />
         {state.fieldErrors?.password ? (
           <p className="text-destructive text-xs">
@@ -69,7 +71,7 @@ export function LoginForm({
         ) : null}
       </div>
 
-      <SubmitButton pendingText="Signing in…" className="w-full">
+      <SubmitButton pendingText="Signing in…" className="h-10 w-full rounded-xl">
         Sign in
       </SubmitButton>
     </form>

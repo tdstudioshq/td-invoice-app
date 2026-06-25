@@ -86,7 +86,7 @@ export function PortalShell({
 
   return (
     <div className="flex min-h-svh w-full">
-      <aside className="bg-sidebar border-border hidden w-60 shrink-0 flex-col border-r md:flex">
+      <aside className="bg-sidebar border-border hidden w-60 shrink-0 flex-col border-r pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:flex">
         <div className="border-border flex h-16 items-center border-b px-5">
           <PortalBrand companyName={companyName} />
         </div>
@@ -112,11 +112,16 @@ export function PortalShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="bg-background/80 border-border sticky top-0 z-30 flex h-16 items-center gap-3 border-b px-4 backdrop-blur md:hidden">
+        <header className="bg-background/80 border-border sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Open menu">
-                <Menu className="size-4" />
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-11"
+                aria-label="Open menu"
+              >
+                <Menu className="size-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
@@ -132,7 +137,7 @@ export function PortalShell({
           <PortalBrand companyName={companyName} />
         </header>
 
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] md:px-8 md:py-8">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
       </div>
