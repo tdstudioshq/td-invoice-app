@@ -6,6 +6,9 @@
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 
+// Maps to the three private-storage prefixes (uploads/, final-files/, invoices/).
+export type FileCategory = "uploads" | "final_files" | "invoices";
+
 export type Json =
   | string
   | number
@@ -186,6 +189,146 @@ export interface Database {
           },
         ];
       };
+      client_users: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          user_id: string;
+          client_id: string;
+          email: string | null;
+          can_upload: boolean;
+          revoked_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          user_id: string;
+          client_id: string;
+          email?: string | null;
+          can_upload?: boolean;
+          revoked_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["client_users"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "client_users_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_file_folders: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          client_id: string;
+          category: FileCategory;
+          name: string;
+          parent_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          client_id: string;
+          category?: FileCategory;
+          name: string;
+          parent_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["client_file_folders"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "client_file_folders_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_files: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          client_id: string;
+          folder_id: string | null;
+          category: FileCategory;
+          storage_path: string;
+          name: string;
+          size_bytes: number;
+          mime_type: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          client_id: string;
+          folder_id?: string | null;
+          category?: FileCategory;
+          storage_path: string;
+          name: string;
+          size_bytes?: number;
+          mime_type?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["client_files"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_files_folder_id_fkey";
+            columns: ["folder_id"];
+            referencedRelation: "client_file_folders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      file_activity: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          client_id: string;
+          file_id: string | null;
+          actor_id: string | null;
+          action: string;
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          client_id: string;
+          file_id?: string | null;
+          actor_id?: string | null;
+          action: string;
+          detail?: Json | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["file_activity"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "file_activity_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<never, never>;
     Functions: {
@@ -193,9 +336,22 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      portal_client_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      is_portal_user: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      portal_can_upload: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
     };
     Enums: {
       invoice_status: InvoiceStatus;
+      file_category: FileCategory;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -208,6 +364,12 @@ export type InvoiceItem = Database["public"]["Tables"]["invoice_items"]["Row"];
 export type Payment = Database["public"]["Tables"]["payments"]["Row"];
 export type CompanySettings =
   Database["public"]["Tables"]["company_settings"]["Row"];
+export type ClientUser = Database["public"]["Tables"]["client_users"]["Row"];
+export type ClientFileFolder =
+  Database["public"]["Tables"]["client_file_folders"]["Row"];
+export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
+export type FileActivity =
+  Database["public"]["Tables"]["file_activity"]["Row"];
 
 // Composed shapes returned by joined queries.
 export type InvoiceWithClient = Invoice & {
@@ -218,4 +380,15 @@ export type InvoiceWithRelations = Invoice & {
   client: Client | null;
   invoice_items: InvoiceItem[];
   payments: Payment[];
+};
+
+// Composed shapes for the client portal.
+export type ClientFileWithFolder = ClientFile & {
+  folder: Pick<ClientFileFolder, "id" | "name" | "category"> | null;
+};
+
+// A client row plus its portal-access summary, used by the admin portal screens.
+export type ClientPortalSummary = Client & {
+  portal_user: ClientUser | null;
+  file_count: number;
 };

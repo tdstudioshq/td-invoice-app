@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getPortalContext } from "@/lib/auth";
 import type { ActionState } from "@/app/actions/types";
 
 const credentialsSchema = z.object({
@@ -49,7 +50,9 @@ export async function signInAction(
   }
 
   revalidatePath("/", "layout");
-  redirect(safeRedirect(formData.get("redirect")));
+  // Route by role: client-portal users land in their portal, admins in the app.
+  const portal = await getPortalContext();
+  redirect(portal ? "/portal" : safeRedirect(formData.get("redirect")));
 }
 
 export async function signOutAction(): Promise<void> {

@@ -2,7 +2,12 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { effectiveStatus } from "@/lib/invoice";
 import type {
   Client,
+  ClientFile,
+  ClientFileFolder,
+  ClientPortalSummary,
+  ClientUser,
   CompanySettings,
+  FileActivity,
   InvoiceWithClient,
   InvoiceWithRelations,
 } from "@/lib/types/database";
@@ -106,6 +111,118 @@ export async function getCompanySettings(): Promise<CompanySettings | null> {
     return null;
   }
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// Client portals & files
+// ---------------------------------------------------------------------------
+
+/**
+ * One row per client with its portal-access state and file count, for the admin
+ * /client-portals list. RLS scopes every query to the current admin's workspace.
+ */
+export async function getClientPortalSummaries(): Promise<
+  ClientPortalSummary[]
+> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+
+  const [clientsRes, usersRes, filesRes] = await Promise.all([
+    supabase.from("clients").select("*").order("company_name"),
+    supabase.from("client_users").select("*").is("revoked_at", null),
+    supabase.from("client_files").select("client_id"),
+  ]);
+
+  if (clientsRes.error) {
+    console.error("getClientPortalSummaries", clientsRes.error.message);
+    return [];
+  }
+
+  const usersByClient = new Map<string, ClientUser>();
+  for (const u of usersRes.data ?? []) usersByClient.set(u.client_id, u);
+
+  const fileCounts = new Map<string, number>();
+  for (const f of filesRes.data ?? [])
+    fileCounts.set(f.client_id, (fileCounts.get(f.client_id) ?? 0) + 1);
+
+  return (clientsRes.data ?? []).map((client) => ({
+    ...client,
+    portal_user: usersByClient.get(client.id) ?? null,
+    file_count: fileCounts.get(client.id) ?? 0,
+  }));
+}
+
+/** The active portal user mapped to a client, or null. Admin-scoped via RLS. */
+export async function getPortalUserForClient(
+  clientId: string,
+): Promise<ClientUser | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("client_users")
+    .select("*")
+    .eq("client_id", clientId)
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (error) {
+    console.error("getPortalUserForClient", error.message);
+    return null;
+  }
+  return data;
+}
+
+/** Files for a client. RLS returns admin-owned files or the portal user's own. */
+export async function getClientFiles(clientId: string): Promise<ClientFile[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("client_files")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("getClientFiles", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Folders for a client. RLS-scoped. */
+export async function getClientFolders(
+  clientId: string,
+): Promise<ClientFileFolder[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("client_file_folders")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("getClientFolders", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Recent file activity for a client (admin-only via RLS). */
+export async function getFileActivity(
+  clientId: string,
+  limit = 20,
+): Promise<FileActivity[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("file_activity")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error("getFileActivity", error.message);
+    return [];
+  }
+  return data ?? [];
 }
 
 export interface DashboardStats {

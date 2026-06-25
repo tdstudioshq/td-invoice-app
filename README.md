@@ -34,6 +34,11 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/invoices/new`   | Create an invoice                        |
 | `/invoices/[id]`  | Invoice document (add `?edit=1` to edit) |
 | `/settings`       | Company settings                         |
+| `/client-portals` | Admin: manage client portal logins & files |
+| `/client-portals/[clientId]` | Admin: one client's portal access + file manager |
+| `/portal`         | Client portal: overview                  |
+| `/portal/files`   | Client portal: view/download/upload files |
+| `/portal/invoices`| Client portal: view/download invoice PDFs |
 
 ## Getting started
 
@@ -157,6 +162,77 @@ group layout. Every table has an `owner_id` and **Row Level Security scoped to
 data and users only ever see their own records. Server Actions and the PDF route
 run through the cookie-scoped client — no service-role/RLS bypass.
 
+## Client Portals & secure file storage
+
+Clients can be given a **portal login** to view only their own files and
+invoices, without touching the admin app.
+
+### Roles
+
+There are two roles, decided implicitly:
+
+- **Admin** — any authenticated user **without** a `client_users` row. Admins use
+  the full `app/(app)` dashboard.
+- **Client portal user** — a user **with** an active (`revoked_at is null`)
+  `client_users` row mapping them to exactly one client. They are confined to
+  `/portal/*` and can never reach the dashboard.
+
+`requireAdmin()` / `requirePortalUser()` in `lib/auth.ts` enforce this in every
+layout, and `signInAction` routes each user to the right home on login.
+
+### What admins can do (`/client-portals`)
+
+- Create a portal login for a client (generates the auth user + a **one-time
+  temporary password shown once** — share it securely; the client can reset it
+  via "Forgot password").
+- Toggle whether a client may upload files; revoke access (deletes the login).
+- Upload files into three categories (Uploads / Final Files / Invoices),
+  organize with folders, rename, and delete.
+
+### What clients can do (`/portal`)
+
+- See only their own client's files and **non-draft** invoices.
+- Download files and invoice PDFs via short-lived **signed URLs**
+  (`/api/files/[fileId]`) — the bucket is private and raw object URLs are never
+  exposed.
+- Upload files **only** when the admin has enabled it (enforced in the server
+  action *and* by Storage + table RLS).
+
+### Data model & RLS (migrations `0003`/`0004`)
+
+- New tables: `client_users`, `client_file_folders`, `client_files`,
+  `file_activity` — all `owner_id`-scoped to the admin like the existing tables.
+- The change to existing tables is **additive**: portal users get extra
+  permissive `SELECT` policies (scoped by `portal_client_id()`), and the existing
+  write policies are tightened so a portal login can never write to
+  `clients`/`invoices`/etc. Admin behavior is unchanged.
+- Files live in a **private `client-files` bucket**, keyed
+  `{client_id}/{uploads|final-files|invoices}/…`. `storage.objects` policies
+  mirror the table policies.
+
+### Supabase setup
+
+1. **Apply migrations** `0003_client_portal.sql` then `0004_client_files_storage.sql`
+   (SQL Editor or `supabase db push`). `0004` creates the private `client-files`
+   bucket automatically.
+2. **Confirm the bucket** exists and is **not public** (Storage → Buckets →
+   `client-files`).
+3. **Env** — creating portal logins uses the service-role key, so
+   `SUPABASE_URL` and `SUPABASE_SECRET_KEY` must be set (already in
+   `.env.example`).
+
+### Testing checklist
+
+- As an admin, open `/client-portals`, create a login for a client, copy the
+  temp password, upload a file into each category, create/rename a folder, toggle
+  uploads.
+- In an incognito window, sign in as the portal user: you land on `/portal`;
+  `/portal/files` shows only that client's files (downloads work); upload appears
+  only when enabled; `/portal/invoices` lists only that client's non-draft
+  invoices and the PDF downloads. `/dashboard` and `/client-portals` redirect away.
+- Cross-tenant: requesting another client's `fileId` or invoice id returns 404.
+- Revoke access → that user can no longer sign in to the portal.
+
 ## Install as an app (PWA)
 
 The app ships a Web App Manifest (`app/manifest.ts`) and maskable icons, so it's
@@ -178,9 +254,12 @@ Stubbed with `TODO` comments in the codebase:
 1. **Database** — apply migrations to your Supabase project (in order):
    - `supabase/migrations/0001_initial_schema.sql`
    - `supabase/migrations/0002_auth_and_owner_scoping.sql`
+   - `supabase/migrations/0003_client_portal.sql`
+   - `supabase/migrations/0004_client_files_storage.sql`
 
    via the SQL Editor, or `supabase db push` if linked. Verify `owner_id` exists
-   on all tables and policies are owner-scoped (no `*_all_access`).
+   on all tables and policies are owner-scoped (no `*_all_access`), and that the
+   private `client-files` Storage bucket was created (see "Client Portals" above).
 2. **Create a user** — Supabase dashboard → Authentication → Users → Add user
    (check *Auto Confirm*). Self-serve sign-up is intentionally disabled.
 3. **Environment variables** — set these in the Vercel project (Production +
