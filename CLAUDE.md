@@ -108,6 +108,10 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
   modify the mobile app. Future Instagram phases are paused until explicitly
   resumed.
 
+### Instagram Leads CRM
+
+- Read-only admin page at `/leads` (`app/(app)/leads/page.tsx`), backed by `getLeads()` in `lib/data.ts` against the owner-scoped `instagram_leads` table (`0005_instagram_leads.sql`). Supports `?q=` search and `?page=` pagination via `searchParams`. Like all reads, it returns an empty state when Supabase is unconfigured. Lead *creation* (follower-to-Leads sync) and lead scoring/CRM conversion are paused roadmap items — there is no write action yet.
+
 ### PWA & mobile
 
 - Ships a Web App Manifest (`app/manifest.ts`) and maskable icons; installable and launches standalone to `/dashboard`. Shells apply `env(safe-area-inset-*)` padding for notch/home-indicator safety, and invoice/line-item layouts have dedicated mobile treatments.
