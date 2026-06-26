@@ -8,6 +8,18 @@ additive.**
 
 ---
 
+## Current web state — Social Hub dormant
+
+Social Hub Phase 1 foundation exists in the web app at `/social`. The remote
+Supabase project already has `supabase/migrations/0006_social_hub.sql` applied,
+so `social_accounts`, `social_posts`, and `social_sync_logs` are present.
+Instagram credentials are not configured, and sync should remain inactive until
+`INSTAGRAM_ACCESS_TOKEN` and `INSTAGRAM_BUSINESS_ACCOUNT_ID` are intentionally
+added. Do not continue Instagram phases, add credentials, run remote Supabase
+commands, deploy, or push without explicit approval.
+
+---
+
 ## #6 — Face ID / Touch ID Gate ✅ (current session)
 
 **Goal:** optional biometric lock over an already-authenticated session.

@@ -70,7 +70,7 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0003_client_portal.sql` — `client_users`, `client_file_folders`, `client_files`, `file_activity`; additive portal-scoped `SELECT` policies (via `portal_client_id()`) with admin write policies preserved.
   - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
   - `0005_instagram_leads.sql` — owner-scoped Instagram Leads CRM records.
-  - `0006_social_hub.sql` — owner-scoped `social_accounts`, `social_posts`, and `social_sync_logs` cache tables. No Instagram token column exists.
+  - `0006_social_hub.sql` — owner-scoped `social_accounts`, `social_posts`, and `social_sync_logs` cache tables. No Instagram token column exists. This migration has already been applied to the remote Supabase project.
 - `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
 - **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
 
@@ -90,9 +90,12 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - **Portal invites:** `createPortalUserAction` (`app/actions/portal.ts`) emails a set-password link when Resend is configured, falling back to a one-time temp-password reveal otherwise.
 - Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (server-only). Both flows degrade gracefully when unset.
 
-### Social Hub (Instagram) — Phase 1 read-only
+### Social Hub (Instagram) — dormant Phase 1 foundation
 
 - Admin UI lives at `/social`; reusable cards/grid live in `components/social/`.
+- The remote Supabase project already has `0006_social_hub.sql` applied.
+- Instagram env vars are intentionally not configured right now, so `/social`
+  should stay in the not-configured/dormant state and sync should not run.
 - `lib/social/instagram.ts` is server-only and calls Meta Graph API v25.0 with
   `INSTAGRAM_ACCESS_TOKEN` in the Authorization header. Never move this token
   into a client component, a `NEXT_PUBLIC_*` variable, or a database row.
@@ -102,7 +105,8 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - Env: `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_BUSINESS_ACCOUNT_ID`; optional
   `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (`appsecret_proof`).
 - Phase 1 does not publish, fetch analytics, process DMs, sync followers, or
-  modify the mobile app.
+  modify the mobile app. Future Instagram phases are paused until explicitly
+  resumed.
 
 ### PWA & mobile
 
@@ -110,8 +114,8 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 
 ### Roadmap stubs
 
-Stripe payments remain stubbed. Social roadmap: follower-to-Leads sync, post
-analytics, AI captions, content calendar/scheduling, lead scoring/CRM
+Stripe payments remain stubbed. Social roadmap items are paused: follower-to-Leads
+sync, post analytics, AI captions, content calendar/scheduling, lead scoring/CRM
 conversion, and mobile Social Hub.
 
 ## Mobile companion app (`mobile/`)

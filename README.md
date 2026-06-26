@@ -30,8 +30,9 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
   invites with a set-password link.
 - **Leads CRM** — searchable, paginated Instagram lead records cached in
   Supabase.
-- **Social Hub** — read-only Instagram profile and recent-post sync through the
-  official Meta Graph API, cached in owner-scoped Supabase tables.
+- **Social Hub foundation** — dormant read-only Instagram profile/recent-post
+  sync UI and cache tables. It uses the official Meta Graph API only after
+  server-only Instagram env vars are configured.
 - **Mobile responsive / PWA** — collapsible sidebar with a sheet-based mobile
   nav; installable Web App Manifest that launches standalone.
 
@@ -48,7 +49,7 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/invoices/new`   | Create an invoice                        |
 | `/invoices/[id]`  | Invoice document (add `?edit=1` to edit) |
 | `/leads`          | Search and browse imported leads         |
-| `/social`         | Instagram Social Hub and manual sync     |
+| `/social`         | Dormant Instagram Social Hub             |
 | `/settings`       | Company settings                         |
 | `/client-portals` | Admin: manage client portal logins & files |
 | `/client-portals/[clientId]` | Admin: one client's portal access + file manager |
@@ -126,7 +127,7 @@ app/
     clients/          List, new, [id]
     invoices/         List, new, [id]
     leads/            Searchable Leads CRM
-    social/           Read-only Instagram Social Hub
+    social/           Dormant Instagram Social Hub
     settings/         Company settings
     client-portals/   Admin: manage portal logins & files
   (portal)/           Client-portal shell (force-dynamic)
@@ -162,7 +163,7 @@ lib/
   format.ts           Currency / date / percent formatting
 proxy.ts              Session refresh + auth redirects (Next.js 16 middleware)
 supabase/
-  migrations/         SQL schema (0001–0004, applied in order)
+  migrations/         SQL schema (0001–0006, applied in order)
 ```
 
 ## Data model
@@ -302,11 +303,18 @@ back to a one-time temp password shown to the admin. Both env vars are
 
 ## Social Hub (Instagram)
 
-Phase 1 is a read-only Instagram integration at `/social`. It uses the official
-Instagram API with Facebook Login / Meta Graph API v25.0 to fetch the connected
-professional account profile and its latest media. Profile metadata, posts, and
-sync results are cached in Supabase; the access token stays in server-only
-environment variables and is never written to Postgres or sent to the browser.
+Phase 1 foundation exists at `/social`, but it is currently **dormant**.
+`supabase/migrations/0006_social_hub.sql` has already been applied to the
+remote Supabase project, so the owner-scoped `social_accounts`, `social_posts`,
+and `social_sync_logs` tables are in place. Instagram credentials are **not**
+configured, so manual sync remains inactive and the page should show a
+not-configured state.
+
+When credentials are added later, the module uses the official Instagram API
+with Facebook Login / Meta Graph API v25.0 to fetch the connected professional
+account profile and latest media. Profile metadata, posts, and sync results are
+cached in Supabase; the access token stays in server-only environment variables
+and is never written to Postgres or sent to the browser.
 
 ### Meta account requirements
 
@@ -329,7 +337,7 @@ Official references:
 
 ### Configuration
 
-Apply `supabase/migrations/0006_social_hub.sql`, then set:
+The remote migration is already applied. To activate sync later, set:
 
 ```bash
 INSTAGRAM_ACCESS_TOKEN=...
@@ -342,6 +350,9 @@ All four variables are server-only—do not prefix them with `NEXT_PUBLIC_`.
 Restart the dev server after changing them. Sign in as an admin, open
 `/social`, and click **Refresh**. The page displays connection state, last sync,
 profile counts, cached posts, and any Meta API error.
+
+Current production/local status: these Instagram env vars are intentionally not
+configured, and future Instagram phases are paused.
 
 The sync currently caches the latest 24 posts. It does not publish content,
 fetch insights, process DMs, or sync followers.
@@ -356,12 +367,13 @@ launches standalone to `/dashboard`.
 
 - **Stripe** — collect payments and reconcile them against invoices
   (`app/actions/invoices.ts`, `.env.example`).
-- Instagram follower sync into Leads
-- Post analytics dashboard
-- AI caption generation
-- Content calendar and scheduled publishing
-- Lead scoring and CRM conversion from Instagram followers
-- Mobile Social Hub
+- Instagram phases are paused until explicitly resumed:
+  - follower sync into Leads
+  - post analytics dashboard
+  - AI caption generation
+  - content calendar and scheduled publishing
+  - lead scoring and CRM conversion from Instagram followers
+  - mobile Social Hub
 
 ## Deploy to Vercel
 
@@ -375,7 +387,8 @@ launches standalone to `/dashboard`.
    - `supabase/migrations/0005_instagram_leads.sql`
    - `supabase/migrations/0006_social_hub.sql`
 
-   via the SQL Editor, or `supabase db push` if linked. Verify `owner_id` exists
+   via the SQL Editor, or `supabase db push` if linked. In the current remote
+   project, `0006_social_hub.sql` has already been applied. Verify `owner_id` exists
    on all tables and policies are owner-scoped (no `*_all_access`), and that the
    private `client-files` Storage bucket was created (see "Client Portals" above).
 2. **Create a user** — Supabase dashboard → Authentication → Users → Add user
