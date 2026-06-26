@@ -22,9 +22,9 @@ export function MainNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             data-active={active}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-              "data-[active=true]:bg-muted data-[active=true]:text-foreground data-[active=true]:font-medium",
+              "flex items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm transition-colors",
+              "text-muted-foreground hover:bg-glass-highlight/20 hover:text-foreground",
+              "data-[active=true]:bg-glass-highlight/25 data-[active=true]:text-metal-platinum data-[active=true]:font-medium",
             )}
           >
             <Icon className="size-4" />

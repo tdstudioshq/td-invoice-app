@@ -70,7 +70,7 @@ export default async function DashboardPage() {
       </div>
 
       <Card className="mt-8">
-        <CardHeader className="flex-row items-center justify-between">
+        <CardHeader className="flex-row items-center justify-between border-b border-glass-border">
           <CardTitle>Recent invoices</CardTitle>
           {invoices.length > 0 ? (
             <Button asChild variant="outline" size="sm">

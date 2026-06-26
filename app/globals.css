@@ -6,7 +6,14 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-deep: var(--background-deep);
   --color-foreground: var(--foreground);
+  --color-glass: var(--glass-background);
+  --color-glass-border: var(--glass-border);
+  --color-glass-highlight: var(--glass-highlight);
+  --color-metal-platinum: var(--metal-platinum);
+  --color-metal-solid: var(--metal-solid);
+  --color-metal-foreground: var(--metal-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-mono);
   --font-heading: var(--font-mono);
@@ -50,6 +57,7 @@
 
 :root {
   --background: oklch(1 0 0);
+  --background-deep: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -81,41 +89,54 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --glass-background: oklch(1 0 0 / 70%);
+  --glass-border: oklch(0.145 0 0 / 10%);
+  --glass-highlight: oklch(1 0 0 / 84%);
+  --metal-platinum: oklch(0.7 0.004 286.2);
+  --metal-solid: oklch(0.52 0.004 286.2);
+  --metal-foreground: oklch(0.98 0.001 286.4);
 }
 
 /* TD Studios — dark professional agency aesthetic, zinc palette. */
 .dark {
-  --background: oklch(0.16 0.004 285.8);
+  --background: oklch(0.105 0.004 285.8);
+  --background-deep: oklch(0.075 0.004 285.8);
   --foreground: oklch(0.985 0.001 286.4);
-  --card: oklch(0.2 0.006 285.9);
+  --card: oklch(0.16 0.006 285.9);
   --card-foreground: oklch(0.985 0.001 286.4);
-  --popover: oklch(0.2 0.006 285.9);
+  --popover: oklch(0.14 0.006 285.9);
   --popover-foreground: oklch(0.985 0.001 286.4);
-  --primary: oklch(0.92 0.004 286.3);
-  --primary-foreground: oklch(0.21 0.006 285.9);
-  --secondary: oklch(0.27 0.006 286);
+  --primary: oklch(0.88 0.004 286.3);
+  --primary-foreground: oklch(0.12 0.004 285.9);
+  --secondary: oklch(0.235 0.006 286);
   --secondary-foreground: oklch(0.985 0.001 286.4);
-  --muted: oklch(0.27 0.006 286);
-  --muted-foreground: oklch(0.712 0.013 286.1);
-  --accent: oklch(0.274 0.006 286);
+  --muted: oklch(0.22 0.006 286);
+  --muted-foreground: oklch(0.7 0.013 286.1);
+  --accent: oklch(0.245 0.006 286);
   --accent-foreground: oklch(0.985 0.001 286.4);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.552 0.014 285.9);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.78 0.006 286.1);
   --chart-1: oklch(0.87 0.004 286);
   --chart-2: oklch(0.65 0.012 286);
   --chart-3: oklch(0.52 0.012 286);
   --chart-4: oklch(0.41 0.01 286);
   --chart-5: oklch(0.3 0.008 286);
-  --sidebar: oklch(0.18 0.005 285.9);
+  --sidebar: oklch(0.115 0.005 285.9);
   --sidebar-foreground: oklch(0.985 0.001 286.4);
-  --sidebar-primary: oklch(0.92 0.004 286.3);
-  --sidebar-primary-foreground: oklch(0.21 0.006 285.9);
-  --sidebar-accent: oklch(0.27 0.006 286);
+  --sidebar-primary: oklch(0.88 0.004 286.3);
+  --sidebar-primary-foreground: oklch(0.12 0.004 285.9);
+  --sidebar-accent: oklch(0.225 0.006 286);
   --sidebar-accent-foreground: oklch(0.985 0.001 286.4);
-  --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.552 0.014 285.9);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.78 0.006 286.1);
+  --glass-background: oklch(0.17 0.006 285.9 / 62%);
+  --glass-border: oklch(1 0 0 / 12%);
+  --glass-highlight: oklch(1 0 0 / 18%);
+  --metal-platinum: oklch(0.9 0.005 286.3);
+  --metal-solid: oklch(0.72 0.006 286.1);
+  --metal-foreground: oklch(0.11 0.004 285.8);
 }
 
 @layer base {
@@ -127,6 +148,62 @@
   }
   html {
     @apply font-mono;
+  }
+}
+
+@layer utilities {
+  .glass {
+    border: 1px solid var(--glass-border);
+    background:
+      linear-gradient(180deg, var(--glass-highlight), transparent 54%),
+      var(--glass-background);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 80px oklch(0 0 0 / 34%);
+    backdrop-filter: blur(22px) saturate(150%);
+    -webkit-backdrop-filter: blur(22px) saturate(150%);
+  }
+
+  .metal {
+    border-color: oklch(1 0 0 / 55%);
+    background:
+      linear-gradient(145deg, oklch(1 0 0 / 92%) 0%, var(--metal-platinum) 28%, var(--metal-solid) 62%, oklch(0.58 0.006 286.1) 100%);
+    color: var(--metal-foreground);
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 78%),
+      inset 0 -1px 0 oklch(0 0 0 / 18%),
+      0 12px 34px oklch(0 0 0 / 36%);
+    text-shadow: 0 1px 0 oklch(1 0 0 / 28%);
+  }
+
+  .metal:hover {
+    background:
+      linear-gradient(145deg, oklch(1 0 0 / 98%) 0%, oklch(0.95 0.004 286.3) 30%, var(--metal-solid) 64%, oklch(0.62 0.006 286.1) 100%);
+  }
+
+  .ambient-bg {
+    --ambient-blooms:
+      radial-gradient(circle at 18% -8%, oklch(0.9 0.006 286.3 / 16%), transparent 30rem),
+      radial-gradient(circle at 88% 6%, oklch(0.72 0.035 252 / 13%), transparent 34rem),
+      radial-gradient(circle at 48% 112%, oklch(0.66 0.02 286 / 10%), transparent 28rem);
+    background-color: var(--background);
+    background-image: var(--ambient-blooms);
+  }
+
+  .subtle-grid {
+    --grid-line: oklch(1 0 0 / 3.5%);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .ambient-bg.subtle-grid {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+      var(--ambient-blooms);
+    background-size: 64px 64px, 64px 64px, auto, auto, auto;
   }
 }
 
@@ -156,6 +233,12 @@
     --accent-foreground: oklch(0.205 0 0);
     --border: oklch(0.85 0 0);
     --input: oklch(0.85 0 0);
+    --glass-background: oklch(1 0 0);
+    --glass-border: oklch(0.85 0 0);
+    --glass-highlight: transparent;
+    --metal-platinum: oklch(0.205 0 0);
+    --metal-solid: oklch(0.205 0 0);
+    --metal-foreground: oklch(1 0 0);
   }
 
   html,
@@ -173,6 +256,17 @@
   /* Hard hide for anything tagged no-print (in addition to print:hidden). */
   .no-print {
     display: none !important;
+  }
+
+  .glass,
+  .metal,
+  .ambient-bg,
+  .subtle-grid {
+    background: #fff !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* Tighten the page so the invoice fits a single sheet. */

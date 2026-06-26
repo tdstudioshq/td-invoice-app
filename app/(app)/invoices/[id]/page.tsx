@@ -150,7 +150,7 @@ export default async function InvoiceDetailPage(
       </div>
 
       {/* Invoice document — the printable area */}
-      <Card className="print:rounded-none print:border-0 print:shadow-none">
+      <Card className="print:rounded-none print:border-0 print:bg-white print:shadow-none">
         <CardContent className="space-y-8 px-6 py-8 sm:px-10 print:px-0 print:py-0">
           {/* Branded header */}
           <header className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -171,7 +171,9 @@ export default async function InvoiceDetailPage(
               </div>
             </div>
             <div className="sm:text-right">
-              <h1 className="text-3xl font-bold tracking-tight">Invoice</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-metal-platinum print:text-foreground">
+                Invoice
+              </h1>
               <p className="text-muted-foreground mt-1 text-sm">
                 {invoice.invoice_number}
               </p>
@@ -237,23 +239,25 @@ export default async function InvoiceDetailPage(
           </div>
 
           {/* Meta strip */}
-          <div className="border-border grid grid-cols-2 gap-4 border-y py-4 text-sm sm:grid-cols-4">
+          <div className="border-glass-border grid grid-cols-2 gap-4 border-y py-4 text-sm print:border-border sm:grid-cols-4">
             <Meta label="Issued">{formatDate(invoice.issue_date)}</Meta>
             <Meta label="Due">{formatDate(invoice.due_date)}</Meta>
             <Meta label="Total">
-              <span className="font-semibold">
+              <span className="font-semibold text-metal-platinum print:text-foreground">
                 {formatCurrency(invoice.total)}
               </span>
             </Meta>
             <Meta label="Balance due">
-              <span className="font-semibold">{formatCurrency(balance)}</span>
+              <span className="font-semibold text-metal-platinum print:text-foreground">
+                {formatCurrency(balance)}
+              </span>
             </Meta>
           </div>
 
           {/* Line items */}
-          <div className="border-border overflow-x-auto border">
+          <div className="glass overflow-x-auto rounded-[8px] print:rounded-none print:border print:border-border">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-glass-highlight/10 print:bg-transparent">
                 <TableRow>
                   <TableHead>Description</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
@@ -304,16 +308,18 @@ export default async function InvoiceDetailPage(
               label={`Tax (${formatPercent(invoice.tax_rate)})`}
               value={invoice.tax_amount}
             />
-            <div className="border-border flex items-center justify-between border-t pt-2 text-base font-semibold">
+            <div className="border-glass-border flex items-center justify-between border-t pt-2 text-base font-semibold print:border-border">
               <span>Total</span>
-              <span className="tabular-nums">
+              <span className="tabular-nums text-metal-platinum print:text-foreground">
                 {formatCurrency(invoice.total)}
               </span>
             </div>
             <TotalRow label="Amount paid" value={-totalPaid} />
-            <div className="border-border flex items-center justify-between border-t pt-2 font-semibold">
+            <div className="border-glass-border flex items-center justify-between border-t pt-2 font-semibold print:border-border">
               <span>Balance due</span>
-              <span className="tabular-nums">{formatCurrency(balance)}</span>
+              <span className="tabular-nums text-metal-platinum print:text-foreground">
+                {formatCurrency(balance)}
+              </span>
             </div>
           </div>
 
@@ -341,7 +347,7 @@ export default async function InvoiceDetailPage(
 
       {/* Payments log — management only, never printed */}
       <Card className="mt-6 print:hidden">
-        <CardHeader>
+        <CardHeader className="border-b border-glass-border">
           <CardTitle>Payments</CardTitle>
         </CardHeader>
         <CardContent>

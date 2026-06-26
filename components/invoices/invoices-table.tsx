@@ -21,44 +21,44 @@ export function InvoicesTable({
   showClient?: boolean;
 }) {
   return (
-    <div className="border-border overflow-x-auto border">
-      <Table>
-        <TableHeader>
+    <div className="glass overflow-x-auto rounded-[8px]">
+      <Table className="min-w-[680px]">
+        <TableHeader className="bg-glass-highlight/10">
           <TableRow>
-            <TableHead>Invoice</TableHead>
-            {showClient ? <TableHead>Client</TableHead> : null}
-            <TableHead>Status</TableHead>
-            <TableHead>Issued</TableHead>
-            <TableHead>Due</TableHead>
-            <TableHead className="text-right">Total</TableHead>
+            <TableHead className="px-4">Invoice</TableHead>
+            {showClient ? <TableHead className="px-4">Client</TableHead> : null}
+            <TableHead className="px-4">Status</TableHead>
+            <TableHead className="px-4">Issued</TableHead>
+            <TableHead className="px-4">Due</TableHead>
+            <TableHead className="px-4 text-right">Total</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {invoices.map((invoice) => (
             <TableRow key={invoice.id} className="group">
-              <TableCell className="font-medium">
+              <TableCell className="px-4 py-3.5 font-medium">
                 <Link
                   href={`/invoices/${invoice.id}`}
-                  className="hover:underline"
+                  className="transition-colors hover:text-metal-platinum"
                 >
                   {invoice.invoice_number}
                 </Link>
               </TableCell>
               {showClient ? (
-                <TableCell className="text-muted-foreground">
+                <TableCell className="text-muted-foreground px-4 py-3.5">
                   {invoice.client?.company_name ?? "—"}
                 </TableCell>
               ) : null}
-              <TableCell>
+              <TableCell className="px-4 py-3.5">
                 <StatusBadge status={effectiveStatus(invoice)} />
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="text-muted-foreground px-4 py-3.5">
                 {formatDate(invoice.issue_date)}
               </TableCell>
-              <TableCell className="text-muted-foreground">
+              <TableCell className="text-muted-foreground px-4 py-3.5">
                 {formatDate(invoice.due_date)}
               </TableCell>
-              <TableCell className="text-right font-medium tabular-nums">
+              <TableCell className="px-4 py-3.5 text-right font-semibold tabular-nums text-metal-platinum">
                 {formatCurrency(invoice.total)}
               </TableCell>
             </TableRow>
