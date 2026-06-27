@@ -257,7 +257,6 @@ const paymentSchema = z.object({
 
 // Record a payment against an invoice. When total payments cover the invoice
 // total, the invoice is automatically marked "paid".
-// TODO(stripe): also create payments automatically from Stripe webhooks.
 export async function addPaymentAction(
   _prevState: ActionState,
   formData: FormData,

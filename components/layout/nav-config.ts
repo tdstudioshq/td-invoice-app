@@ -1,5 +1,4 @@
 import type { ComponentType } from "react";
-import { InstagramLogoIcon } from "@phosphor-icons/react";
 import {
   LayoutDashboard,
   Users,
@@ -22,7 +21,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/leads", label: "Leads", icon: UserSearch },
   { href: "/qr", label: "QR Codes", icon: QrCode },
-  { href: "/social", label: "Social Hub", icon: InstagramLogoIcon },
   { href: "/client-portals", label: "Client Portals", icon: FolderLock },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

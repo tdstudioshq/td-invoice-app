@@ -42,8 +42,8 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Data flow
 
-- **Reads:** `lib/data.ts` holds core query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, the QR helpers `getQrCodes`/`getQrCodeById`/`getQrScanCounts`/`getQrScansForQrCode`/`getQrScanSummary`, etc.); feature-specific Social Hub reads live in `lib/social/data.ts`. Both are called directly from Server Components.
-- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings`, `social`, and `qr` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate inputs, authenticate inside each action, then `revalidatePath(...)` the affected routes. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`) or progressive-enhancement forms with `useFormStatus`.
+- **Reads:** `lib/data.ts` holds core query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, the QR helpers `getQrCodes`/`getQrCodeById`/`getQrScanCounts`/`getQrScansForQrCode`/`getQrScanSummary`, etc.), called directly from Server Components.
+- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings`, `qr`, and `profile` for the admin/customer app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate inputs, authenticate inside each action, then `revalidatePath(...)` the affected routes. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`) or progressive-enhancement forms with `useFormStatus`.
 - **Graceful degradation:** every read/write first checks `isSupabaseConfigured()` and returns a safe fallback (empty array / `null` / a "not configured" error) when env vars are absent. This is deliberate — the app builds and the UI renders empty states with no database. Preserve this guard in new data code.
 
 ### Three Supabase clients (do not mix them)
@@ -75,11 +75,12 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0003_client_portal.sql` — `client_users`, `client_file_folders`, `client_files`, `file_activity`; additive portal-scoped `SELECT` policies (via `portal_client_id()`) with admin write policies preserved.
   - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
   - `0005_instagram_leads.sql` — owner-scoped Instagram Leads CRM records.
-  - `0006_social_hub.sql` — owner-scoped `social_accounts`, `social_posts`, and `social_sync_logs` cache tables. No Instagram token column exists. This migration has already been applied to the remote Supabase project.
+  - `0006_social_hub.sql` — (removed) created the dormant Instagram Social Hub tables; dropped again by `0011`. Kept only as historical record.
   - `0007_qr_codes.sql` — owner-scoped `qr_codes` (saved/dynamic QR codes) plus the `SECURITY DEFINER` `resolve_qr_slug()` helper for the anonymous redirect (superseded in 0008).
   - `0008_qr_scans.sql` — append-only `qr_scans` analytics, the `qr_code_scan_counts` (`security_invoker`) view, and the `SECURITY DEFINER` `resolve_qr_target()` / `log_qr_scan()` helpers that the public `/q/<slug>` route uses.
   - `0009_profiles.sql` — customer self-signup `profiles` (owner-only RLS, no role column). See **Auth & roles**.
   - `0010_qr_generations.sql` — append-only `qr_generations` history (every code generated, admin + anonymous public). RLS exposes nothing to normal clients; inserts go through the `SECURITY DEFINER` `log_qr_generation()` (owner_id from JWT, null when anonymous), admin reads via the service-role client.
+  - `0011_drop_social_hub.sql` — drops the `social_accounts` / `social_posts` / `social_sync_logs` tables; the Social Hub was removed entirely.
 - `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
 - **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
 
@@ -98,24 +99,6 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - **Email an invoice:** `sendInvoiceAction` (`app/actions/invoices.ts`) renders + attaches the PDF, emails the client, and promotes a `draft` invoice to `sent`.
 - **Portal invites:** `createPortalUserAction` (`app/actions/portal.ts`) emails a set-password link when Resend is configured, falling back to a one-time temp-password reveal otherwise.
 - Env: `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (server-only). Both flows degrade gracefully when unset.
-
-### Social Hub (Instagram) — dormant Phase 1 foundation
-
-- Admin UI lives at `/social`; reusable cards/grid live in `components/social/`.
-- The remote Supabase project already has `0006_social_hub.sql` applied.
-- Instagram env vars are intentionally not configured right now, so `/social`
-  should stay in the not-configured/dormant state and sync should not run.
-- `lib/social/instagram.ts` is server-only and calls Meta Graph API v25.0 with
-  `INSTAGRAM_ACCESS_TOKEN` in the Authorization header. Never move this token
-  into a client component, a `NEXT_PUBLIC_*` variable, or a database row.
-- `syncInstagramAction` in `app/actions/social.ts` calls `requireAdmin()`, fetches
-  the profile/latest media, and upserts the cache through the cookie-scoped
-  Supabase client, preserving RLS.
-- Env: `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_BUSINESS_ACCOUNT_ID`; optional
-  `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (`appsecret_proof`).
-- Phase 1 does not publish, fetch analytics, process DMs, sync followers, or
-  modify the mobile app. Future Instagram phases are paused until explicitly
-  resumed.
 
 ### QR code platform (dynamic links, styling, scan analytics)
 
@@ -136,9 +119,8 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 
 ### Roadmap stubs
 
-Stripe payments remain stubbed. Social roadmap items are paused: follower-to-Leads
-sync, post analytics, AI captions, content calendar/scheduling, lead scoring/CRM
-conversion, and mobile Social Hub.
+Lead *creation* (follower-to-Leads sync) and lead scoring/CRM conversion remain
+paused roadmap items — the Leads CRM (`/leads`) is read-only for now.
 
 ## Mobile companion app (`mobile/`)
 

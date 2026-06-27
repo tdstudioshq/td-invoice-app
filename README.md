@@ -30,9 +30,6 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
   invites with a set-password link.
 - **Leads CRM** — searchable, paginated Instagram lead records cached in
   Supabase.
-- **Social Hub foundation** — dormant read-only Instagram profile/recent-post
-  sync UI and cache tables. It uses the official Meta Graph API only after
-  server-only Instagram env vars are configured.
 - **Mobile responsive / PWA** — collapsible sidebar with a sheet-based mobile
   nav; installable Web App Manifest that launches standalone.
 
@@ -49,7 +46,6 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/invoices/new`   | Create an invoice                        |
 | `/invoices/[id]`  | Invoice document (add `?edit=1` to edit) |
 | `/leads`          | Search and browse imported leads         |
-| `/social`         | Dormant Instagram Social Hub             |
 | `/settings`       | Company settings                         |
 | `/client-portals` | Admin: manage client portal logins & files |
 | `/client-portals/[clientId]` | Admin: one client's portal access + file manager |
@@ -127,12 +123,11 @@ app/
     clients/          List, new, [id]
     invoices/         List, new, [id]
     leads/            Searchable Leads CRM
-    social/           Dormant Instagram Social Hub
     settings/         Company settings
     client-portals/   Admin: manage portal logins & files
   (portal)/           Client-portal shell (force-dynamic)
     portal/           Overview, files, invoices
-  actions/            Server Actions: clients, invoices, settings, social,
+  actions/            Server Actions: clients, invoices, settings, qr, profile,
                       auth, portal (admin-side), portal-client (client-side)
   api/                Route handlers: invoice PDF, file downloads, clients,
                       health
@@ -159,11 +154,10 @@ lib/
   portal.ts           Portal category ↔ storage-path mapping
   pdf/                Invoice PDF data mapping + renderer (pdf-lib)
   email/              Resend client + HTML templates
-  social/             Instagram Graph API client + cached Social Hub reads
   format.ts           Currency / date / percent formatting
 proxy.ts              Session refresh + auth redirects (Next.js 16 middleware)
 supabase/
-  migrations/         SQL schema (0001–0006, applied in order)
+  migrations/         SQL schema (0001–0011, applied in order)
 ```
 
 ## Data model
@@ -175,9 +169,6 @@ supabase/
 - **payments** — payments recorded against an invoice.
 - **company_settings** — single-row company profile and default tax rate.
 - **leads** — owner-scoped Instagram lead records.
-- **social_accounts** — cached Instagram profile and connection state.
-- **social_posts** — cached Instagram media and engagement counts.
-- **social_sync_logs** — manual sync history and errors.
 
 Totals are computed in two places that always agree: live in the browser while
 editing (`lib/invoice.ts`) and authoritatively in Postgres via triggers on save
@@ -301,62 +292,6 @@ invoice-email button reports email isn't configured, and portal invites fall
 back to a one-time temp password shown to the admin. Both env vars are
 **server-only** (never `NEXT_PUBLIC_`).
 
-## Social Hub (Instagram)
-
-Phase 1 foundation exists at `/social`, but it is currently **dormant**.
-`supabase/migrations/0006_social_hub.sql` has already been applied to the
-remote Supabase project, so the owner-scoped `social_accounts`, `social_posts`,
-and `social_sync_logs` tables are in place. Instagram credentials are **not**
-configured, so manual sync remains inactive and the page should show a
-not-configured state.
-
-When credentials are added later, the module uses the official Instagram API
-with Facebook Login / Meta Graph API v25.0 to fetch the connected professional
-account profile and latest media. Profile metadata, posts, and sync results are
-cached in Supabase; the access token stays in server-only environment variables
-and is never written to Postgres or sent to the browser.
-
-### Meta account requirements
-
-1. Use an Instagram **Professional** account (Business or Creator). For the
-   Facebook Login flow, connect it to a Facebook Page.
-2. Create a Meta developer app and add the Instagram API with Facebook Login.
-3. Ensure the authenticating Facebook user can manage the linked Page.
-4. Request the read permissions required by Meta for the selected setup,
-   typically `instagram_basic`, `pages_show_list`, and
-   `pages_read_engagement`. Development-mode apps can test with app-role users;
-   production use may require App Review and Advanced Access.
-5. Generate a long-lived user access token and obtain the Instagram
-   Professional Account ID from the linked Page.
-
-Official references:
-
-- [Instagram Platform overview](https://developers.facebook.com/docs/instagram-platform/)
-- [Instagram API with Facebook Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/)
-- [Getting started](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-facebook-login/get-started)
-
-### Configuration
-
-The remote migration is already applied. To activate sync later, set:
-
-```bash
-INSTAGRAM_ACCESS_TOKEN=...
-INSTAGRAM_BUSINESS_ACCOUNT_ID=...
-INSTAGRAM_APP_ID=...       # optional in Phase 1
-INSTAGRAM_APP_SECRET=...   # optional; enables appsecret_proof
-```
-
-All four variables are server-only—do not prefix them with `NEXT_PUBLIC_`.
-Restart the dev server after changing them. Sign in as an admin, open
-`/social`, and click **Refresh**. The page displays connection state, last sync,
-profile counts, cached posts, and any Meta API error.
-
-Current production/local status: these Instagram env vars are intentionally not
-configured, and future Instagram phases are paused.
-
-The sync currently caches the latest 24 posts. It does not publish content,
-fetch insights, process DMs, or sync followers.
-
 ## Install as an app (PWA)
 
 The app ships a Web App Manifest (`app/manifest.ts`) and maskable icons, so it's
@@ -365,32 +300,20 @@ launches standalone to `/dashboard`.
 
 ## Roadmap (not yet implemented)
 
-- **Stripe** — collect payments and reconcile them against invoices
-  (`app/actions/invoices.ts`, `.env.example`).
-- Instagram phases are paused until explicitly resumed:
-  - follower sync into Leads
-  - post analytics dashboard
-  - AI caption generation
-  - content calendar and scheduled publishing
-  - lead scoring and CRM conversion from Instagram followers
-  - mobile Social Hub
+- **Leads CRM** is read-only — lead *creation* (follower-to-Leads sync) and
+  lead scoring / CRM conversion are paused.
 
 ## Deploy to Vercel
 
 ### Deployment checklist
 
-1. **Database** — apply migrations to your Supabase project (in order):
-   - `supabase/migrations/0001_initial_schema.sql`
-   - `supabase/migrations/0002_auth_and_owner_scoping.sql`
-   - `supabase/migrations/0003_client_portal.sql`
-   - `supabase/migrations/0004_client_files_storage.sql`
-   - `supabase/migrations/0005_instagram_leads.sql`
-   - `supabase/migrations/0006_social_hub.sql`
-
-   via the SQL Editor, or `supabase db push` if linked. In the current remote
-   project, `0006_social_hub.sql` has already been applied. Verify `owner_id` exists
-   on all tables and policies are owner-scoped (no `*_all_access`), and that the
-   private `client-files` Storage bucket was created (see "Client Portals" above).
+1. **Database** — apply migrations to your Supabase project **in order**
+   (`0001` … `0011`) via the SQL Editor, or `supabase db push` if linked. Note
+   `0006` created the (now-removed) Social Hub tables and `0011` drops them again
+   — both are kept so a from-scratch rebuild stays correct. Verify `owner_id`
+   exists on all tables and policies are owner-scoped (no `*_all_access`), and
+   that the private `client-files` Storage bucket was created (see "Client
+   Portals" above).
 2. **Create a user** — Supabase dashboard → Authentication → Users → Add user
    (check *Auto Confirm*). Self-serve sign-up is intentionally disabled.
 3. **Environment variables** — set these in the Vercel project (Production +
