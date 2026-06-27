@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AlertCircle, RotateCcw, Save } from "lucide-react";
 
-import { saveQrCodeAction } from "@/app/actions/qr";
+import { logQrGenerationAction, saveQrCodeAction } from "@/app/actions/qr";
 import { initialActionState } from "@/app/actions/types";
 import { QrExportButtons } from "@/components/qr/qr-export-buttons";
 import { QrPreview } from "@/components/qr/qr-preview";
@@ -90,14 +90,26 @@ function deriveFileName(content: string): string {
  * `allowSave` gates the "save as dynamic QR" form, which needs a signed-in
  * account. The public-facing generator passes `allowSave={false}` to offer just
  * the static generator + exports.
+ *
+ * `source` tags generation-history rows as coming from the admin app or the
+ * public page (see `logQrGenerationAction`).
  */
-export function QrGenerator({ allowSave = true }: { allowSave?: boolean }) {
+export function QrGenerator({
+  allowSave = true,
+  source = "admin",
+}: {
+  allowSave?: boolean;
+  source?: "public" | "admin";
+}) {
   const [raw, setRaw] = useState("");
   const [instagram, setInstagram] = useState("");
   const [name, setName] = useState("");
   const [style, setStyle] = useState(DEFAULT_QR_STYLE);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const generationId = useRef(0);
+  // The last content we logged to history, so editing a URL records one row per
+  // distinct value rather than one per keystroke.
+  const lastLogged = useRef<string | null>(null);
   const [saveState, saveAction, savePending] = useActionState(
     saveQrCodeAction,
     initialActionState,
@@ -133,7 +145,18 @@ export function QrGenerator({ allowSave = true }: { allowSave?: boolean }) {
         renderQrPng(content, style)
           .then((url) => {
             // Ignore results from superseded inputs.
-            if (id === generationId.current) setDataUrl(url);
+            if (id !== generationId.current) return;
+            setDataUrl(url);
+            // Record the generation once per distinct encoded value.
+            if (content !== lastLogged.current) {
+              lastLogged.current = content;
+              void logQrGenerationAction({
+                content,
+                type: igUrl ? "instagram" : "url",
+                source,
+                style,
+              });
+            }
           })
           .catch(() => {
             if (id === generationId.current) setDataUrl(null);
@@ -143,7 +166,7 @@ export function QrGenerator({ allowSave = true }: { allowSave?: boolean }) {
     );
 
     return () => clearTimeout(timer);
-  }, [content, style]);
+  }, [content, style, igUrl, source]);
 
   function reset() {
     setRaw("");

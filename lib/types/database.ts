@@ -421,6 +421,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["qr_codes"]["Insert"]>;
         Relationships: [];
       };
+      qr_generations: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          source: "public" | "admin";
+          type: "url" | "instagram" | "text";
+          content: string;
+          style_json: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          source?: "public" | "admin";
+          type?: "url" | "instagram" | "text";
+          content: string;
+          style_json?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["qr_generations"]["Insert"]>;
+        Relationships: [];
+      };
       qr_scans: {
         Row: {
           id: string;
@@ -616,6 +638,15 @@ export interface Database {
         };
         Returns: undefined;
       };
+      log_qr_generation: {
+        Args: {
+          p_content: string;
+          p_type?: string;
+          p_source?: string;
+          p_style?: Json;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       invoice_status: InvoiceStatus;
@@ -641,6 +672,8 @@ export type FileActivity =
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
+export type QrGeneration =
+  Database["public"]["Tables"]["qr_generations"]["Row"];
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
 export type SocialAccount =
   Database["public"]["Tables"]["social_accounts"]["Row"];

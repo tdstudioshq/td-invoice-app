@@ -33,7 +33,7 @@ export default function PublicQrGeneratorPage() {
           </h1>
         </header>
 
-        <QrGenerator allowSave={false} />
+        <QrGenerator allowSave={false} source="public" />
 
         <Link
           href="/"

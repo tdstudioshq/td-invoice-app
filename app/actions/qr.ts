@@ -75,6 +75,48 @@ function randomSuffix(): string {
 }
 
 /**
+ * Record a QR generation in the history log. Called fire-and-forget from the
+ * generator (admin and public) each time a new distinct code is produced. Routes
+ * through the SECURITY DEFINER `log_qr_generation` RPC so anonymous public-page
+ * visitors can log without any table grant; owner_id is stamped from their JWT
+ * (null when anonymous). Never throws into the UI — failures are swallowed.
+ */
+export async function logQrGenerationAction(input: {
+  content: string;
+  type?: "url" | "instagram" | "text";
+  source?: "public" | "admin";
+  style?: unknown;
+}): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const content =
+    typeof input.content === "string" ? input.content.trim() : "";
+  if (!content) return;
+
+  // Store a compact style summary, not the raw style — the embedded logo can be
+  // a ~220 KB data URL, far too heavy to keep per generation. Colors, error
+  // correction, and a has-logo flag are enough for the history view.
+  const style = parseQrStyle(input.style);
+  const styleSummary = {
+    fg: style.fg,
+    bg: style.bg,
+    ecc: style.ecc,
+    has_logo: Boolean(style.logo),
+  };
+
+  try {
+    const supabase = await createClient();
+    await supabase.rpc("log_qr_generation", {
+      p_content: content.slice(0, 2000),
+      p_type: input.type ?? "url",
+      p_source: input.source ?? "public",
+      p_style: styleSummary as unknown as Json,
+    });
+  } catch {
+    /* logging is best-effort; never block generation on it */
+  }
+}
+
+/**
  * Save a destination URL as a dynamic QR code. Creates an owner-scoped row with
  * a clean, globally-unique slug derived from the name; the printed QR encodes
  * the resulting /q/<slug> short link so the destination can be repointed later.

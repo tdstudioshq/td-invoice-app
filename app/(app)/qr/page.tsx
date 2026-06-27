@@ -1,6 +1,10 @@
+import Link from "next/link";
+import { ClockCounterClockwiseIcon } from "@phosphor-icons/react/dist/ssr";
+
 import { PageHeader } from "@/components/layout/page-header";
 import { QrCodeList } from "@/components/qr/qr-code-list";
 import { QrGenerator } from "@/components/qr/qr-generator";
+import { Button } from "@/components/ui/button";
 import { getQrCodes, getQrScanCounts } from "@/lib/data";
 import { getSiteUrl } from "@/lib/email/client";
 
@@ -18,9 +22,16 @@ export default async function QrPage() {
       <PageHeader
         title="QR Codes"
         description="Generate a static QR code, or save a dynamic short link you can reprint and repoint anytime."
-      />
+      >
+        <Button asChild variant="outline">
+          <Link href="/qr/history">
+            <ClockCounterClockwiseIcon />
+            Generation history
+          </Link>
+        </Button>
+      </PageHeader>
       <div className="space-y-8">
-        <QrGenerator />
+        <QrGenerator source="admin" />
 
         <section className="space-y-4">
           <div className="space-y-1">
