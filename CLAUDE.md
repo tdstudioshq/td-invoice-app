@@ -35,14 +35,15 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Routes & rendering
 
-- Admin app lives under the `app/(app)/` route group, wrapped by `AppShell` (sidebar + mobile sheet nav). Client-portal pages live under the separate `app/(portal)/` group (`/portal/*`), wrapped by its own shell. `app/page.tsx` (outside both groups) is the public sign-in screen, reused by `/login`.
+- Admin app lives under the `app/(app)/` route group, wrapped by `AppShell` (sidebar + mobile sheet nav). Client-portal pages live under the separate `app/(portal)/` group (`/portal/*`), wrapped by its own shell. `app/page.tsx` (outside both groups) is the public sign-in screen, reused by `/login`. The sign-in card is now a "link in bio" `HomeCard` (`app/home-card.tsx`) that flips between bio links and the sign-in form; edit `BIO_LINKS` there to change the buttons.
+- **Public (no-auth) pages outside both groups:** `app/qr-generator/page.tsx` (a public QR generator, the same `QrGenerator` component with `allowSave={false}`) and `app/q/[slug]/page.tsx` (the dynamic-QR redirect — see the QR section). Both must stay reachable without a session, so they are allow-listed in `proxy.ts`.
 - Both data-backed groups set `export const dynamic = "force-dynamic"` in their `layout.tsx` because every page reads from Supabase per request. Keep new data-backed pages inside the appropriate group.
-- `proxy.ts` (Next.js 16's renamed Middleware, Node.js runtime) runs on every request: it refreshes the Supabase session (rotating cookies) and optimistically redirects unauthenticated users to `/login` and authenticated users away from it. `PUBLIC_PATHS` = `/`, `/login`, `/reset-password`. The proxy is **not** the real gate — enforcement is Postgres RLS plus `requireUser()`/`requireAdmin()`/`requirePortalUser()` in Server Components and Actions.
+- `proxy.ts` (Next.js 16's renamed Middleware, Node.js runtime) runs on every request: it refreshes the Supabase session (rotating cookies) and optimistically redirects unauthenticated users to `/login` and authenticated users away from it. `PUBLIC_PATHS` = `/`, `/login`, `/reset-password`, `/qr-generator`, plus any `/q/<slug>` redirect. The proxy is **not** the real gate — enforcement is Postgres RLS plus `requireUser()`/`requireAdmin()`/`requirePortalUser()` in Server Components and Actions.
 
 ### Data flow
 
-- **Reads:** `lib/data.ts` holds core query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, etc.); feature-specific Social Hub reads live in `lib/social/data.ts`. Both are called directly from Server Components.
-- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings`, and `social` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate inputs, authenticate inside each action, then `revalidatePath(...)` the affected routes. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`) or progressive-enhancement forms with `useFormStatus`.
+- **Reads:** `lib/data.ts` holds core query helpers (`getInvoices`, `getInvoice`, `getDashboardStats`, the QR helpers `getQrCodes`/`getQrCodeById`/`getQrScanCounts`/`getQrScansForQrCode`/`getQrScanSummary`, etc.); feature-specific Social Hub reads live in `lib/social/data.ts`. Both are called directly from Server Components.
+- **Writes:** Server Actions in `app/actions/` (`"use server"`): `clients`, `invoices`, `settings`, `social`, and `qr` for the admin app; `auth` (sign in/out, password reset), `portal` (admin-side portal-user + file management), and `portal-client` (client-side portal uploads). They validate inputs, authenticate inside each action, then `revalidatePath(...)` the affected routes. Forms are client components using `useActionState` against the shared `ActionState` shape in `app/actions/types.ts` (`{ error?, fieldErrors?, success? }`) or progressive-enhancement forms with `useFormStatus`.
 - **Graceful degradation:** every read/write first checks `isSupabaseConfigured()` and returns a safe fallback (empty array / `null` / a "not configured" error) when env vars are absent. This is deliberate — the app builds and the UI renders empty states with no database. Preserve this guard in new data code.
 
 ### Three Supabase clients (do not mix them)
@@ -71,6 +72,8 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
   - `0005_instagram_leads.sql` — owner-scoped Instagram Leads CRM records.
   - `0006_social_hub.sql` — owner-scoped `social_accounts`, `social_posts`, and `social_sync_logs` cache tables. No Instagram token column exists. This migration has already been applied to the remote Supabase project.
+  - `0007_qr_codes.sql` — owner-scoped `qr_codes` (saved/dynamic QR codes) plus the `SECURITY DEFINER` `resolve_qr_slug()` helper for the anonymous redirect (superseded in 0008).
+  - `0008_qr_scans.sql` — append-only `qr_scans` analytics, the `qr_code_scan_counts` (`security_invoker`) view, and the `SECURITY DEFINER` `resolve_qr_target()` / `log_qr_scan()` helpers that the public `/q/<slug>` route uses.
 - `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
 - **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
 
@@ -107,6 +110,14 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - Phase 1 does not publish, fetch analytics, process DMs, sync followers, or
   modify the mobile app. Future Instagram phases are paused until explicitly
   resumed.
+
+### QR code platform (dynamic links, styling, scan analytics)
+
+- **Admin UI:** `/qr` (`app/(app)/qr/page.tsx`) lists saved codes and hosts the generator; `/qr/[id]` (`app/(app)/qr/[id]/page.tsx`) is the per-code detail/editor with its scan analytics. The reusable `QrGenerator` (`components/qr/`) is also embedded on the **public** `/qr-generator` page with `allowSave={false}`.
+- **Static vs dynamic:** a static code encodes the destination directly. A *dynamic* code (saved via `saveQrCodeAction` in `app/actions/qr.ts`) gets an owner-scoped `qr_codes` row with a unique `slug`, and the printed QR encodes the stable short link `/q/<slug>` — so the destination can be repointed (`updateQrCodeAction`) or disabled (`toggleQrCodeAction`) without reprinting. Slugs are globally unique; because RLS hides other owners' rows, inserts can't pre-check and instead retry with a random suffix on a `23505` unique violation.
+- **Public redirect + analytics, no table grants:** `app/q/[slug]/page.tsx` (`force-dynamic`, allow-listed in `proxy.ts`) resolves the slug through the `SECURITY DEFINER` `resolve_qr_target()` RPC (returns only `qr_code_id` + `destination_url`, never owner data), best-effort-logs a scan via `log_qr_scan()`, then 302s. Anonymous callers get **execute** on those two functions only — they never read or write `qr_codes`/`qr_scans` directly. Scan logging is privacy-preserving: a **salted, truncated SHA-256 of the IP** (`QR_SCAN_SALT` env, optional), a coarse device class, and `x-vercel-ip-country` — never the raw IP. Logging failures never block the redirect.
+- **Styling is client-side and serializable:** `lib/qr/style.ts` defines the small `QrStyle` (`fg`/`bg`/`ecc`/optional base64 `logo`), persisted per code in `qr_codes.style_json`; `parseQrStyle()` coerces stored/submitted JSON back to a valid style and drops oversized/invalid logos (`MAX_LOGO_DATA_URL_LENGTH`). There is **no separate logo asset storage** — the logo is a size-capped data URL inline in the row, matching the project's "no new infra" approach.
+- **Rendering runs in the browser:** `lib/qr/render.ts` (`renderQrPng`/`renderQrSvg`, logo overlay via canvas/`<image>`) and `lib/qr/pdf.ts` (single-page pdf-lib export) are pure functions called only from client components (`qr-export-buttons`, `qr-download-buttons`, `qr-preview`). Unlike the invoice PDF, QR PDFs are generated client-side.
 
 ### Instagram Leads CRM
 
