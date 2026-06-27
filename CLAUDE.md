@@ -54,8 +54,12 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
 
 ### Auth & roles
 
-- **Auth is live** (Supabase Auth, email/password). Helpers in `lib/auth.ts`: `getUser()`/`requireUser()` (any session), `requireAdmin()`, and `getPortalContext()`/`requirePortalUser()`. Self-serve sign-up is disabled — users are created in the Supabase dashboard or, for portal users, via the admin action.
-- Two roles, decided implicitly by a `client_users` row: an authenticated user **without** one is an **admin** (full `app/(app)` dashboard); one **with** an active (`revoked_at is null`) row is a **portal user**, confined to `/portal/*` and mapped to exactly one client. `signInAction` routes each to the correct home.
+- **Auth is live** (Supabase Auth, email/password). Helpers in `lib/auth.ts`: `getUser()`/`requireUser()` (any session), `requireAdmin()`, `getPortalContext()`/`requirePortalUser()`, and `requireCustomer()`. Admins are created in the Supabase dashboard; portal users via the admin action; **customers self-sign-up at `/sign-up`**.
+- **Three roles, with admin determined by an explicit allowlist — never inferred from missing data:**
+  1. **admin** — email is in the server-only `ADMIN_EMAILS` env allowlist (`isAdminEmail()`). Full `app/(app)` dashboard. **`ADMIN_EMAILS` must be set or no one can reach the dashboard.**
+  2. **portal user** — has an active (`revoked_at is null`) `client_users` row. Confined to `/portal/*`, mapped to one client.
+  3. **customer** — any other authenticated user (self-signup). Lives in the `(customer)` group: `/onboarding` until their `profiles` row has `onboarded_at`, then `/account`.
+- **Security:** admin status lives *only* in env config, never in a user-writable row, so a customer can never self-promote (the `profiles` table deliberately has no role column). `roleHome()` computes the right landing path and `signInAction` routes each role there (admin behavior unchanged). Admins read/manage `profiles` via the service-role client (`lib/supabase/admin.ts`), since profile RLS is owner-only. Migration: `0009_profiles.sql`.
 
 ### Invoice totals & status — computed in two agreeing places
 

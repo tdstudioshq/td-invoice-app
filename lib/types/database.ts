@@ -363,6 +363,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          full_name: string | null;
+          email: string | null;
+          phone: string | null;
+          instagram: string | null;
+          business_name: string | null;
+          onboarded_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          instagram?: string | null;
+          business_name?: string | null;
+          onboarded_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
       qr_codes: {
         Row: {
           id: string;
@@ -613,6 +639,7 @@ export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
 export type FileActivity =
   Database["public"]["Tables"]["file_activity"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
 export type SocialAccount =

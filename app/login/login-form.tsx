@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 
 import { signInAction } from "@/app/actions/auth";
@@ -74,6 +75,16 @@ export function LoginForm({
       <SubmitButton pendingText="Signing in…" className="h-11 w-full rounded-xl">
         Sign in
       </SubmitButton>
+
+      <p className="text-muted-foreground text-center text-xs">
+        New customer?{" "}
+        <Link
+          href="/sign-up"
+          className="text-foreground underline-offset-4 hover:underline"
+        >
+          Create an account
+        </Link>
+      </p>
     </form>
   );
 }

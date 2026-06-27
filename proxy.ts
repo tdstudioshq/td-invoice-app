@@ -18,6 +18,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const PUBLIC_PATHS = new Set<string>([
   "/",
   "/login",
+  "/sign-up",
   "/reset-password",
   "/qr-generator",
   "/qr-generator/designs",
@@ -67,7 +68,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && pathname === "/login") {
+  // Authenticated users shouldn't see the auth pages. Send them to /dashboard;
+  // non-admins are then routed on to their own area by requireAdmin (optimistic
+  // gate — the real role decision lives in the Server Components).
+  if (user && (pathname === "/login" || pathname === "/sign-up")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
