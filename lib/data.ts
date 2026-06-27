@@ -1,6 +1,7 @@
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { effectiveStatus } from "@/lib/invoice";
 import type {
+  BioPageWithLinks,
   Client,
   ClientFile,
   ClientFileFolder,
@@ -11,9 +12,13 @@ import type {
   InvoiceWithClient,
   InvoiceWithRelations,
   Lead,
+  PublicBioLink,
+  PublicBioPage,
   QrCodeRecord,
   QrScan,
 } from "@/lib/types/database";
+
+const BIO_ASSETS_BUCKET = "bio-page-assets";
 
 export interface QrScanSummary {
   total: number;
@@ -78,6 +83,92 @@ export async function getQrCodeById(id: string): Promise<QrCodeRecord | null> {
     return null;
   }
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// Bio Pages (link-in-bio)
+// ---------------------------------------------------------------------------
+
+/**
+ * The signed-in user's bio page plus its links (newest page if they somehow have
+ * more than one), for the builder/manage screen. Owner-scoped by RLS. Returns
+ * null when they haven't created one yet (or Supabase isn't configured).
+ */
+export async function getMyBioPage(): Promise<BioPageWithLinks | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bio_pages")
+    .select("*, bio_links(*)")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("getMyBioPage", error.message);
+    return null;
+  }
+  if (!data) return null;
+  // Order links deterministically for the editor (sort_order, then created_at).
+  const bio_links = [...(data.bio_links ?? [])].sort(
+    (a, b) =>
+      a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at),
+  );
+  return { ...data, bio_links };
+}
+
+export interface PublicBioPageData {
+  page: PublicBioPage;
+  links: PublicBioLink[];
+  avatarUrl: string | null;
+}
+
+/**
+ * A PUBLISHED bio page + its VISIBLE links for the public /u/<username> route.
+ * Reads exclusively through the SECURITY DEFINER helpers, so no draft data or
+ * owner_id is ever exposed and no table grant is required. Returns null for
+ * unknown or unpublished usernames.
+ */
+export async function getPublicBioPage(
+  username: string,
+): Promise<PublicBioPageData | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+
+  const { data: pageRows, error: pageError } = await supabase.rpc(
+    "get_bio_page",
+    { p_username: username },
+  );
+  if (pageError) {
+    console.error("getPublicBioPage", pageError.message);
+    return null;
+  }
+  const page = Array.isArray(pageRows) ? pageRows[0] : null;
+  if (!page) return null;
+
+  const { data: linkRows } = await supabase.rpc("get_bio_links", {
+    p_page_id: page.id,
+  });
+  const links = Array.isArray(linkRows) ? linkRows : [];
+
+  const avatarUrl = page.avatar_path
+    ? supabase.storage.from(BIO_ASSETS_BUCKET).getPublicUrl(page.avatar_path)
+        .data.publicUrl
+    : null;
+
+  return { page, links, avatarUrl };
+}
+
+/**
+ * Public URL for an avatar object in the public bio-page-assets bucket, or null.
+ * Used by the builder preview (the public page resolves its own via the reader).
+ */
+export async function getBioAvatarUrl(
+  avatarPath: string | null,
+): Promise<string | null> {
+  if (!avatarPath || !isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  return supabase.storage.from(BIO_ASSETS_BUCKET).getPublicUrl(avatarPath).data
+    .publicUrl;
 }
 
 /** Total scans per QR code, keyed by id. RLS scopes this to the owner's codes. */

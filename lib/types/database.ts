@@ -6,6 +6,9 @@
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 
+// Bio Pages (link-in-bio) theme. Mirrors BIO_THEMES in lib/bio.ts.
+export type BioTheme = "minimal" | "dark" | "gradient" | "glass";
+
 // Maps to the three private-storage prefixes (uploads/, final-files/, invoices/).
 export type FileCategory = "uploads" | "final_files" | "invoices";
 
@@ -443,6 +446,98 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["qr_generations"]["Insert"]>;
         Relationships: [];
       };
+      bio_pages: {
+        Row: {
+          id: string;
+          owner_id: string;
+          username: string;
+          display_name: string | null;
+          bio: string | null;
+          avatar_path: string | null;
+          theme: BioTheme;
+          accent_color: string;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          username: string;
+          display_name?: string | null;
+          bio?: string | null;
+          avatar_path?: string | null;
+          theme?: BioTheme;
+          accent_color?: string;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bio_pages"]["Insert"]>;
+        Relationships: [];
+      };
+      bio_links: {
+        Row: {
+          id: string;
+          owner_id: string;
+          bio_page_id: string;
+          title: string;
+          url: string;
+          icon: string | null;
+          sort_order: number;
+          is_visible: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          bio_page_id: string;
+          title: string;
+          url: string;
+          icon?: string | null;
+          sort_order?: number;
+          is_visible?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["bio_links"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "bio_links_bio_page_id_fkey";
+            columns: ["bio_page_id"];
+            referencedRelation: "bio_pages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      bio_page_views: {
+        Row: {
+          id: string;
+          bio_page_id: string;
+          viewed_at: string;
+          referrer: string | null;
+          user_agent: string | null;
+        };
+        Insert: {
+          id?: string;
+          bio_page_id: string;
+          viewed_at?: string;
+          referrer?: string | null;
+          user_agent?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["bio_page_views"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "bio_page_views_bio_page_id_fkey";
+            columns: ["bio_page_id"];
+            referencedRelation: "bio_pages";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       qr_scans: {
         Row: {
           id: string;
@@ -525,6 +620,36 @@ export interface Database {
         };
         Returns: undefined;
       };
+      get_bio_page: {
+        Args: { p_username: string };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string | null;
+          bio: string | null;
+          avatar_path: string | null;
+          theme: BioTheme;
+          accent_color: string;
+        }[];
+      };
+      get_bio_links: {
+        Args: { p_page_id: string };
+        Returns: {
+          id: string;
+          title: string;
+          url: string;
+          icon: string | null;
+          sort_order: number;
+        }[];
+      };
+      log_bio_page_view: {
+        Args: {
+          p_page_id: string;
+          p_referrer?: string | null;
+          p_user_agent?: string | null;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       invoice_status: InvoiceStatus;
@@ -553,6 +678,20 @@ export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
 export type QrGeneration =
   Database["public"]["Tables"]["qr_generations"]["Row"];
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
+export type BioPage = Database["public"]["Tables"]["bio_pages"]["Row"];
+export type BioLink = Database["public"]["Tables"]["bio_links"]["Row"];
+export type BioPageView =
+  Database["public"]["Tables"]["bio_page_views"]["Row"];
+
+// The owner's bio page joined with its links (builder/manage view).
+export type BioPageWithLinks = BioPage & { bio_links: BioLink[] };
+
+// Trimmed shapes returned by the public SECURITY DEFINER readers (no owner_id,
+// no draft data) — what the /u/<username> page renders.
+export type PublicBioPage =
+  Database["public"]["Functions"]["get_bio_page"]["Returns"][number];
+export type PublicBioLink =
+  Database["public"]["Functions"]["get_bio_links"]["Returns"][number];
 
 // Composed shapes returned by joined queries.
 export type InvoiceWithClient = Invoice & {

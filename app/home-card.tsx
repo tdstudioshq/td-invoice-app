@@ -9,6 +9,7 @@ import {
   EnvelopeSimpleIcon,
   ImagesIcon,
   InstagramLogoIcon,
+  LinkIcon,
   LockIcon,
   PaintBrushIcon,
   QrCodeIcon,
@@ -42,6 +43,12 @@ const BIO_LINKS: {
     label: "Request Custom Design",
     href: "/custom-design-request",
     icon: PaintBrushIcon,
+    internal: true,
+  },
+  {
+    label: "Create Link Page",
+    href: "/link-builder",
+    icon: LinkIcon,
     internal: true,
   },
   {

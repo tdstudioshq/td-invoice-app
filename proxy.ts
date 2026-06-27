@@ -58,9 +58,12 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  // `/q/<slug>` is the public dynamic-QR redirect — anyone scanning a code must
-  // reach it without a session, so it's public alongside PUBLIC_PATHS.
-  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/");
+  // `/q/<slug>` is the public dynamic-QR redirect and `/u/<username>` is the
+  // public bio page — both must be reachable without a session.
+  const isPublic =
+    PUBLIC_PATHS.has(pathname) ||
+    pathname.startsWith("/q/") ||
+    pathname.startsWith("/u/");
 
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);

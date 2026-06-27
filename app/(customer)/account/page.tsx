@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ImagesIcon,
+  LinkIcon,
   PaintBrushIcon,
   QrCodeIcon,
   SignOutIcon,
@@ -52,7 +53,11 @@ export default async function AccountPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-white">Quick actions</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link href="/link-builder" className={linkClass}>
+            <LinkIcon weight="bold" className="size-4" />
+            Manage bio page
+          </Link>
           <Link href="/custom-design-request" className={linkClass}>
             <PaintBrushIcon weight="bold" className="size-4" />
             Request a design
