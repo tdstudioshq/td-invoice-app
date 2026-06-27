@@ -31,7 +31,7 @@ export function LoginPanel({
       shadowMode
       cornerRadius={24}
       padding="0px"
-      className="w-full"
+      className="flex w-full justify-center"
     >
       <div className="flex flex-col gap-6 p-8">
         <div className="flex flex-col items-center gap-2 text-center">
