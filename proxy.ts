@@ -15,7 +15,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // Public paths that do not require a session. `/reset-password` must be public:
 // the recovery link arrives with the session in the URL hash (not a cookie), so
 // the page has to load client-side to read it — redirecting would strip it.
-const PUBLIC_PATHS = new Set<string>(["/", "/login", "/reset-password"]);
+const PUBLIC_PATHS = new Set<string>([
+  "/",
+  "/login",
+  "/reset-password",
+  "/qr-generator",
+  "/qr-generator/designs",
+  "/custom-design-request",
+]);
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
