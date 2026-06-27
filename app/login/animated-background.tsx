@@ -1,12 +1,16 @@
 "use client";
 
+import Image from "next/image";
+
+import diamonds from "@/public/login-diamonds.jpg";
+
 /**
- * Full-screen animated near-black background for the sign-in screen.
+ * Full-screen background for the sign-in screen.
  *
- * Pure CSS — no JS and no extra dependencies: a few large, very dark radial
- * glows slowly drift over a black base, with a faint masked grid and a vignette.
- * Tuned to the minimal TD Studios palette (grayscale, no color). All motion is
- * paused under `prefers-reduced-motion`.
+ * A falling-diamonds photo sits at the base, dimmed by a dark tint + vignette
+ * so the centered auth card stays legible. Over it, a few large, very dark
+ * radial glows slowly drift (pure CSS, no deps). All motion is paused under
+ * `prefers-reduced-motion`.
  *
  * Rendered as `absolute inset-0` inside a `relative` container (the login
  * `<main>`) so it sits above the opaque body background but behind the card.
@@ -17,8 +21,20 @@ export function AnimatedBackground() {
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
     >
-      {/* Base radial wash, slightly lifted toward the top. */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,#111114,#000000)]" />
+      {/* Base diamond photo. */}
+      <Image
+        src={diamonds}
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        placeholder="blur"
+        className="object-cover"
+      />
+
+      {/* Dark tint + vignette to keep the centered card legible over the photo. */}
+      {/* <div className="absolute inset-0 bg-black/20" /> */}
+      {/* <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(0,0,0,0.08),rgba(0,0,0,0.45))]" /> */}
 
       {/* Slowly drifting dark glows. */}
       <div className="tdbg-glow tdbg-glow-1" />

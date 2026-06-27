@@ -37,7 +37,7 @@ export function LoginForm({
           autoComplete="email"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
-          className="h-10 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
+          className="h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
         />
         {state.fieldErrors?.email ? (
           <p className="text-destructive text-xs">{state.fieldErrors.email}</p>
@@ -50,7 +50,7 @@ export function LoginForm({
           <button
             type="button"
             onClick={onForgot}
-            className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+            className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
           >
             Forgot password?
           </button>
@@ -62,7 +62,7 @@ export function LoginForm({
           autoComplete="current-password"
           required
           aria-invalid={Boolean(state.fieldErrors?.password)}
-          className="h-10 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
+          className="h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
         />
         {state.fieldErrors?.password ? (
           <p className="text-destructive text-xs">
@@ -71,7 +71,7 @@ export function LoginForm({
         ) : null}
       </div>
 
-      <SubmitButton pendingText="Signing in…" className="h-10 w-full rounded-xl">
+      <SubmitButton pendingText="Signing in…" className="h-11 w-full rounded-xl">
         Sign in
       </SubmitButton>
     </form>

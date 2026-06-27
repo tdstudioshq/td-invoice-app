@@ -137,7 +137,7 @@ export function PortalShell({
           <PortalBrand companyName={companyName} />
         </header>
 
-        <main className="flex-1 py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] md:px-8 md:py-8">
+        <main className="min-w-0 flex-1 py-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] md:px-8 md:py-8">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
         </main>
       </div>

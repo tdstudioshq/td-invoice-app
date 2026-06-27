@@ -255,7 +255,41 @@ export default async function InvoiceDetailPage(
           </div>
 
           {/* Line items */}
-          <div className="glass overflow-x-auto rounded-[8px] print:rounded-none print:border print:border-border">
+          <div className="space-y-3 sm:hidden print:hidden">
+            {items.length === 0 ? (
+              <p className="glass text-muted-foreground rounded-[8px] p-4 text-center text-sm">
+                No line items
+              </p>
+            ) : (
+              items.map((item) => (
+                <article key={item.id} className="glass rounded-[8px] p-4">
+                  <p className="font-medium">{item.description || "—"}</p>
+                  <dl className="mt-3 grid grid-cols-3 gap-3 border-t border-glass-border pt-3 text-sm">
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Qty</dt>
+                      <dd className="mt-0.5 tabular-nums">{item.quantity}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground text-xs">Unit price</dt>
+                      <dd className="mt-0.5 tabular-nums">
+                        {formatCurrency(item.unit_price)}
+                      </dd>
+                    </div>
+                    <div className="text-right">
+                      <dt className="text-muted-foreground text-xs">Amount</dt>
+                      <dd className="mt-0.5 font-medium tabular-nums">
+                        {formatCurrency(
+                          Number(item.quantity) * Number(item.unit_price),
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              ))
+            )}
+          </div>
+
+          <div className="glass hidden overflow-x-auto rounded-[8px] sm:block print:block print:rounded-none print:border print:border-border">
             <Table>
               <TableHeader className="bg-glass-highlight/10 print:bg-transparent">
                 <TableRow>

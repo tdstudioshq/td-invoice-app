@@ -72,7 +72,7 @@ export function AppShell({
           <Brand />
         </header>
 
-        <main className="flex-1 py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] md:px-8 md:py-8 print:p-0">
+        <main className="min-w-0 flex-1 py-5 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_1.5rem)] md:px-8 md:py-8 print:p-0">
           <div className="mx-auto w-full max-w-6xl print:max-w-none">
             {children}
           </div>

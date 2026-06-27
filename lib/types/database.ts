@@ -363,6 +363,69 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
         Relationships: [];
       };
+      qr_codes: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          slug: string;
+          type: "url" | "text";
+          destination_url: string | null;
+          raw_value: string;
+          style_json: Json;
+          is_dynamic: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          name: string;
+          slug: string;
+          type?: "url" | "text";
+          destination_url?: string | null;
+          raw_value: string;
+          style_json?: Json;
+          is_dynamic?: boolean;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["qr_codes"]["Insert"]>;
+        Relationships: [];
+      };
+      qr_scans: {
+        Row: {
+          id: string;
+          qr_code_id: string;
+          scanned_at: string;
+          referrer: string | null;
+          user_agent: string | null;
+          ip_hash: string | null;
+          country: string | null;
+          device: string | null;
+        };
+        Insert: {
+          id?: string;
+          qr_code_id: string;
+          scanned_at?: string;
+          referrer?: string | null;
+          user_agent?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          device?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["qr_scans"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "qr_scans_qr_code_id_fkey";
+            columns: ["qr_code_id"];
+            referencedRelation: "qr_codes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       social_accounts: {
         Row: {
           id: string;
@@ -486,7 +549,15 @@ export interface Database {
         ];
       };
     };
-    Views: Record<never, never>;
+    Views: {
+      qr_code_scan_counts: {
+        Row: {
+          qr_code_id: string | null;
+          scan_count: number | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       next_invoice_number: {
         Args: Record<string, never>;
@@ -503,6 +574,21 @@ export interface Database {
       portal_can_upload: {
         Args: Record<string, never>;
         Returns: boolean;
+      };
+      resolve_qr_target: {
+        Args: { p_slug: string };
+        Returns: { qr_code_id: string; destination_url: string }[];
+      };
+      log_qr_scan: {
+        Args: {
+          p_qr_code_id: string;
+          p_referrer?: string | null;
+          p_user_agent?: string | null;
+          p_ip_hash?: string | null;
+          p_country?: string | null;
+          p_device?: string | null;
+        };
+        Returns: undefined;
       };
     };
     Enums: {
@@ -527,6 +613,8 @@ export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
 export type FileActivity =
   Database["public"]["Tables"]["file_activity"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
+export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
 export type SocialAccount =
   Database["public"]["Tables"]["social_accounts"]["Row"];
 export type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];

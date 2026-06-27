@@ -104,7 +104,55 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         />
       ) : (
         <>
-          <div className="border-border overflow-hidden border">
+          <div className="space-y-3 sm:hidden">
+            {leads.map((lead) => (
+              <article
+                key={lead.id}
+                className="glass rounded-[8px] p-4 [content-visibility:auto] [contain-intrinsic-size:0_180px]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <a
+                      href={`https://www.instagram.com/${encodeURIComponent(
+                        lead.username,
+                      )}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-11 max-w-full items-center gap-1.5 font-medium"
+                    >
+                      <span className="truncate">@{lead.username}</span>
+                      <ExternalLink className="text-muted-foreground size-3.5 shrink-0" />
+                    </a>
+                    <p className="text-muted-foreground truncate text-sm">
+                      {lead.full_name || "No display name"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    <Badge variant={lead.is_private ? "secondary" : "outline"}>
+                      {lead.is_private ? "Private" : "Public"}
+                    </Badge>
+                    {lead.is_verified ? (
+                      <Badge variant="outline">Verified</Badge>
+                    ) : null}
+                  </div>
+                </div>
+                <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-glass-border pt-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground text-xs">Relationship</dt>
+                    <dd className="mt-0.5 capitalize">
+                      {lead.relationship_type}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs">Source</dt>
+                    <dd className="mt-0.5 truncate">@{lead.source_username}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+
+          <div className="border-border hidden overflow-hidden border sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -164,13 +212,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
               Showing {firstResult.toLocaleString()}–
               {lastResult.toLocaleString()} of {total.toLocaleString()}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex">
               {page <= 1 ? (
-                <Button variant="outline" size="sm" disabled>
+                <Button variant="outline" size="sm" disabled className="w-full">
                   Previous
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={pageHref(page - 1, query)}>Previous</Link>
                 </Button>
               )}
@@ -178,11 +226,11 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
                 Page {page.toLocaleString()} of {totalPages.toLocaleString()}
               </span>
               {page >= totalPages ? (
-                <Button variant="outline" size="sm" disabled>
+                <Button variant="outline" size="sm" disabled className="w-full">
                   Next
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" asChild>
+                <Button variant="outline" size="sm" asChild className="w-full">
                   <Link href={pageHref(page + 1, query)}>Next</Link>
                 </Button>
               )}

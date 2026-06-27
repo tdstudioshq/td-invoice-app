@@ -330,7 +330,7 @@ export function InvoiceForm({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        className="size-9 sm:size-7"
+                        className="size-11 sm:size-7"
                         aria-label="Remove item"
                         onClick={() => removeRow(row.key)}
                         disabled={rows.length === 1}

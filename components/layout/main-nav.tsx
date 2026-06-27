@@ -22,7 +22,7 @@ export function MainNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             data-active={active}
             className={cn(
-              "flex items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm transition-colors",
+              "flex min-h-11 items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm transition-colors md:min-h-0",
               "text-muted-foreground hover:bg-glass-highlight/20 hover:text-foreground",
               "data-[active=true]:bg-glass-highlight/25 data-[active=true]:text-metal-platinum data-[active=true]:font-medium",
             )}

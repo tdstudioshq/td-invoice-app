@@ -27,7 +27,9 @@ export function PageHeader({
         ) : null}
       </div>
       {children ? (
-        <div className="flex items-center gap-2">{children}</div>
+        <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:items-center">
+          {children}
+        </div>
       ) : null}
     </div>
   );
