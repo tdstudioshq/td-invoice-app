@@ -31,9 +31,10 @@ export const DEFAULT_QR_STYLE: QrStyle = {
   logo: null,
 };
 
-// Cap an embedded logo so style_json rows stay small (the upload UI also resizes
-// before this point). ~180 KB of base64 ≈ a ~130 KB image.
-export const MAX_LOGO_DATA_URL_LENGTH = 180_000;
+// Cap an embedded logo so style_json rows stay small (the upload UI resizes and
+// compresses to fit this before it's ever stored). ~220 KB of base64 ≈ a
+// ~160 KB image.
+export const MAX_LOGO_DATA_URL_LENGTH = 220_000;
 
 const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 

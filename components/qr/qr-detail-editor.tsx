@@ -117,6 +117,7 @@ export function QrDetailEditor({
             fileName={code.slug}
             size="sm"
             caption={{ title: code.name, subtitle: shortUrl }}
+            showPdf
           />
         </div>
       </div>

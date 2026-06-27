@@ -19,33 +19,23 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { renderQrPng } from "@/lib/qr/render";
 import { DEFAULT_QR_STYLE } from "@/lib/qr/style";
 import { cn } from "@/lib/utils";
 
-type Mode = "url" | "text";
-
 const MAX_LENGTH = 2000;
 
 /**
- * Resolves the raw input into the exact string that should be encoded.
- *
- * In URL mode a bare host (e.g. `example.com`) is upgraded to `https://` and the
- * result must parse as a URL with a dotted hostname — otherwise it's reported as
- * invalid. In text mode the input is encoded verbatim.
+ * Resolves the raw input into the URL to encode. A bare host (e.g.
+ * `example.com`) is upgraded to `https://`, and the result must parse as a URL
+ * with a dotted hostname — otherwise it's reported as invalid.
  */
-function resolveContent(
-  mode: Mode,
-  raw: string,
-): { value: string; error: string | null } {
+function resolveUrl(raw: string): { value: string; error: string | null } {
   const trimmed = raw.trim();
   if (!trimmed) return { value: "", error: null };
   if (trimmed.length > MAX_LENGTH) {
-    return { value: "", error: `Keep content under ${MAX_LENGTH} characters.` };
+    return { value: "", error: `Keep the URL under ${MAX_LENGTH} characters.` };
   }
-
-  if (mode === "text") return { value: trimmed, error: null };
 
   const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
     ? trimmed
@@ -61,26 +51,49 @@ function resolveContent(
   }
 }
 
-function deriveFileName(mode: Mode, content: string): string {
-  if (mode === "url") {
-    try {
-      const host = new URL(content).hostname.replace(/^www\./, "");
-      if (host) return host.replace(/[^a-z0-9.-]/gi, "-");
-    } catch {
-      /* fall through to default */
+/**
+ * Resolves an Instagram username into a profile URL. Accepts a bare handle, a
+ * leading `@`, or a pasted profile link, and keeps only valid handle characters
+ * — returning null when there's nothing usable.
+ */
+function resolveInstagram(raw: string): string | null {
+  let handle = raw.trim();
+  if (!handle) return null;
+  // If they pasted a full profile URL, pull the handle out of the path.
+  const fromUrl = handle.match(/instagram\.com\/([^/?#]+)/i);
+  if (fromUrl) handle = fromUrl[1];
+  handle = handle.replace(/^@+/, "").replace(/[^A-Za-z0-9._]/g, "");
+  return handle ? `https://instagram.com/${handle}` : null;
+}
+
+function deriveFileName(content: string): string {
+  try {
+    const url = new URL(content);
+    const host = url.hostname.replace(/^www\./, "");
+    // Instagram profile → name the file after the handle, not the host.
+    if (/(^|\.)instagram\.com$/i.test(host)) {
+      const handle = url.pathname.split("/").filter(Boolean)[0];
+      if (handle) return `instagram-${handle}`.replace(/[^a-z0-9.-]/gi, "-");
     }
+    if (host) return host.replace(/[^a-z0-9.-]/gi, "-");
+  } catch {
+    /* fall through to default */
   }
   return "qr-code";
 }
 
 /**
- * QR generator: type a URL or text, style it (colors, error correction, logo),
- * get a live high-resolution preview, export as PNG/SVG/PDF, or save a URL as a
- * dynamic code. Rendering runs entirely in the browser via `qrcode`.
+ * QR generator for links: enter a URL, style it (error correction, logo), get a
+ * live high-resolution preview, export as PNG/SVG/PDF, or save it as a dynamic
+ * code. Rendering runs entirely in the browser via `qrcode`.
+ *
+ * `allowSave` gates the "save as dynamic QR" form, which needs a signed-in
+ * account. The public-facing generator passes `allowSave={false}` to offer just
+ * the static generator + exports.
  */
-export function QrGenerator() {
-  const [mode, setMode] = useState<Mode>("url");
+export function QrGenerator({ allowSave = true }: { allowSave?: boolean }) {
   const [raw, setRaw] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [name, setName] = useState("");
   const [style, setStyle] = useState(DEFAULT_QR_STYLE);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -90,10 +103,13 @@ export function QrGenerator() {
     initialActionState,
   );
 
-  const { value: content, error: validationError } = useMemo(
-    () => resolveContent(mode, raw),
-    [mode, raw],
+  const igUrl = useMemo(() => resolveInstagram(instagram), [instagram]);
+  const { value: urlContent, error: validationError } = useMemo(
+    () => resolveUrl(raw),
+    [raw],
   );
+  // A filled Instagram handle takes priority over the URL box.
+  const content = igUrl ?? urlContent;
 
   // On a successful save, confirm and clear the name. The server action's
   // revalidatePath("/qr") refreshes the saved list below automatically; the
@@ -131,66 +147,40 @@ export function QrGenerator() {
 
   function reset() {
     setRaw("");
+    setInstagram("");
     setName("");
-    setMode("url");
     setStyle(DEFAULT_QR_STYLE);
     setDataUrl(null);
   }
 
-  const fileName = deriveFileName(mode, content);
-  const showError = Boolean(raw.trim()) && Boolean(validationError);
-  const canSave = mode === "url" && Boolean(content) && !validationError;
+  const fileName = deriveFileName(content);
+  // When Instagram is filled it drives the QR, so suppress URL-box errors.
+  const showError = !igUrl && Boolean(raw.trim()) && Boolean(validationError);
+  const canSave = Boolean(content) && (Boolean(igUrl) || !validationError);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Generate a QR code</CardTitle>
         <CardDescription>
-          Encode any link or text. The preview updates live and never leaves your
-          browser.
+          Turn a link into a scannable QR code. The preview updates live and
+          never leaves your browser.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6 md:grid-cols-2 md:gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label>Content type</Label>
-            <div
-              role="group"
-              aria-label="Content type"
-              className="grid grid-cols-2 gap-2"
-            >
-              {(["url", "text"] as const).map((option) => (
-                <Button
-                  key={option}
-                  type="button"
-                  variant={mode === option ? "default" : "outline"}
-                  onClick={() => setMode(option)}
-                  aria-pressed={mode === option}
-                  className="capitalize"
-                >
-                  {option === "url" ? "URL" : "Text"}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="qr-content">
-              {mode === "url" ? "URL" : "Text"}
-            </Label>
-            <Textarea
+            <Label htmlFor="qr-content">URL</Label>
+            <Input
               id="qr-content"
+              type="url"
+              inputMode="url"
               value={raw}
               onChange={(event) => setRaw(event.target.value)}
-              placeholder={
-                mode === "url"
-                  ? "https://tdstudios.com"
-                  : "Any text you want to encode…"
-              }
+              placeholder="https://tdstudios.com"
               aria-invalid={showError}
               aria-describedby={showError ? "qr-error" : undefined}
               maxLength={MAX_LENGTH + 1}
-              className="min-h-28"
             />
             {showError ? (
               <p
@@ -202,11 +192,32 @@ export function QrGenerator() {
               </p>
             ) : (
               <p className="text-muted-foreground text-xs">
-                {mode === "url"
-                  ? "A scheme is added automatically if you omit it."
-                  : "Plain text is encoded exactly as typed."}
+                A scheme is added automatically if you omit it.
               </p>
             )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="qr-instagram">Instagram username</Label>
+            <div className="relative">
+              <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm">
+                @
+              </span>
+              <Input
+                id="qr-instagram"
+                value={instagram}
+                onChange={(event) => setInstagram(event.target.value)}
+                placeholder="tdstudiosco"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                className="pl-7"
+              />
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Just the username — we&apos;ll point the QR to instagram.com/your
+              handle. Takes priority over the URL above when filled.
+            </p>
           </div>
 
           <div className="border-t border-glass-border pt-4">
@@ -235,7 +246,7 @@ export function QrGenerator() {
             </div>
           </div>
 
-          {canSave ? (
+          {allowSave && canSave ? (
             <form
               action={saveAction}
               className="mt-auto flex flex-col gap-2 border-t border-glass-border pt-4"
