@@ -47,7 +47,7 @@ export default async function LinkBuilderPage() {
 
   return (
     <>
-      <header className="flex flex-col items-center gap-3 text-center">
+      <header className="mx-auto flex w-full max-w-xl flex-col items-center gap-3 text-center">
         <Image
           src="/logo.png"
           alt="TD Studios"

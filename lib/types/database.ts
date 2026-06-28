@@ -456,6 +456,11 @@ export interface Database {
           avatar_path: string | null;
           theme: BioTheme;
           accent_color: string;
+          accent_color_2: string;
+          font_family: string;
+          button_style: string;
+          button_shape: string;
+          spacing: string;
           is_published: boolean;
           created_at: string;
           updated_at: string;
@@ -469,6 +474,11 @@ export interface Database {
           avatar_path?: string | null;
           theme?: BioTheme;
           accent_color?: string;
+          accent_color_2?: string;
+          font_family?: string;
+          button_style?: string;
+          button_shape?: string;
+          spacing?: string;
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -630,6 +640,11 @@ export interface Database {
           avatar_path: string | null;
           theme: BioTheme;
           accent_color: string;
+          accent_color_2: string;
+          font_family: string;
+          button_style: string;
+          button_shape: string;
+          spacing: string;
         }[];
       };
       get_bio_links: {

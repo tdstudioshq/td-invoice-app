@@ -7,8 +7,14 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   ALLOWED_AVATAR_TYPES,
   DEFAULT_ACCENT_COLOR,
+  DEFAULT_ACCENT_COLOR_2,
   DEFAULT_BIO_THEME,
   MAX_AVATAR_BYTES,
+  coerceAccent,
+  coerceButtonShape,
+  coerceButtonStyle,
+  coerceFont,
+  coerceSpacing,
   coerceTheme,
   isValidHexColor,
   normalizeUsername,
@@ -205,7 +211,7 @@ export async function updateBioProfileAction(
 export async function uploadBioAvatarAction(
   _prevState: ActionState,
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { avatarUrl?: string }> {
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
     return { fieldErrors: { avatar: "Choose an image to upload" } };
@@ -258,7 +264,11 @@ export async function uploadBioAvatarAction(
 
   revalidatePath("/link-builder");
   revalidatePath(`/u/${page.username}`);
-  return { success: true };
+
+  const avatarUrl = supabase.storage
+    .from(BIO_ASSETS_BUCKET)
+    .getPublicUrl(path).data.publicUrl;
+  return { success: true, avatarUrl };
 }
 
 const linkSchema = z.object({
@@ -445,4 +455,174 @@ export async function toggleBioPublishAction(formData: FormData): Promise<void> 
 
   revalidatePath("/link-builder");
   if (username) revalidatePath(`/u/${username}`);
+}
+
+// ---------------------------------------------------------------------------
+// Real-time editor autosave. The visual editor keeps the entire page model in
+// local React state and calls this ONE action (debounced or on demand) with the
+// full snapshot — profile, style, and the ordered link list. It reconciles links
+// (insert new / update existing / delete removed) and returns a clientId→dbId
+// map so the client can adopt new ids without re-inserting on the next save.
+// Invalid/incomplete links are reported via `linkErrors` and simply not
+// persisted, so autosave never blocks while a row is mid-edit.
+// ---------------------------------------------------------------------------
+
+export interface SaveBioLinkInput {
+  clientId: string;
+  id: string | null;
+  title: string;
+  url: string;
+  is_visible: boolean;
+}
+
+export interface SaveBioPageInput {
+  username: string;
+  display_name: string;
+  bio: string;
+  theme: string;
+  accent_color: string;
+  accent_color_2: string;
+  font_family: string;
+  button_style: string;
+  button_shape: string;
+  spacing: string;
+  links: SaveBioLinkInput[];
+}
+
+export interface SaveBioResult {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  success?: boolean;
+  idMap?: Record<string, string>;
+  linkErrors?: Record<string, { title?: string; url?: string }>;
+}
+
+export async function saveBioPageAction(
+  input: SaveBioPageInput,
+): Promise<SaveBioResult> {
+  const username = normalizeUsername(input.username ?? "");
+  const usernameError = validateUsername(username);
+  if (usernameError) return { fieldErrors: { username: usernameError } };
+
+  const display_name = (input.display_name ?? "").trim().slice(0, 80);
+  const bio = (input.bio ?? "").trim().slice(0, 280);
+
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. See README setup." };
+  }
+  const user = await getCurrentUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("bio_pages")
+    .select("id, username")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!current) return { error: "Create your page first." };
+  const pageId = current.id;
+
+  const { error: pageErr } = await supabase
+    .from("bio_pages")
+    .update({
+      username,
+      display_name: display_name || null,
+      bio: bio || null,
+      theme: coerceTheme(input.theme),
+      accent_color: coerceAccent(input.accent_color, DEFAULT_ACCENT_COLOR),
+      accent_color_2: coerceAccent(
+        input.accent_color_2,
+        DEFAULT_ACCENT_COLOR_2,
+      ),
+      font_family: coerceFont(input.font_family),
+      button_style: coerceButtonStyle(input.button_style),
+      button_shape: coerceButtonShape(input.button_shape),
+      spacing: coerceSpacing(input.spacing),
+    })
+    .eq("id", pageId);
+  if (pageErr) {
+    if (pageErr.code === "23505") {
+      return { fieldErrors: { username: "That username is taken" } };
+    }
+    if (pageErr.code === "23514") {
+      return { fieldErrors: { username: "That username isn't allowed" } };
+    }
+    return { error: pageErr.message };
+  }
+
+  // Reconcile links against what's currently in the DB for this page.
+  const incoming = Array.isArray(input.links) ? input.links : [];
+  const { data: existing } = await supabase
+    .from("bio_links")
+    .select("id")
+    .eq("bio_page_id", pageId);
+  const existingIds = new Set((existing ?? []).map((r) => r.id));
+
+  // Delete links the client no longer references (regardless of validity, so an
+  // in-progress edit that clears a field doesn't wipe the row).
+  const referencedRealIds = new Set(
+    incoming
+      .filter((l) => l.id && existingIds.has(l.id))
+      .map((l) => l.id as string),
+  );
+  const toDelete = [...existingIds].filter((id) => !referencedRealIds.has(id));
+  if (toDelete.length) {
+    await supabase.from("bio_links").delete().in("id", toDelete);
+  }
+
+  const idMap: Record<string, string> = {};
+  const linkErrors: Record<string, { title?: string; url?: string }> = {};
+  let order = 0;
+  for (const link of incoming) {
+    const title = (link.title ?? "").trim();
+    const normalized = normalizeUrl(link.url ?? "");
+    const errs: { title?: string; url?: string } = {};
+    if (!title) errs.title = "Title is required";
+    else if (title.length > 80) errs.title = "Keep the title under 80 characters";
+    if (!normalized) errs.url = "Enter a valid URL, e.g. https://example.com";
+    if (errs.title || errs.url) {
+      linkErrors[link.clientId] = errs;
+      continue; // keep editing client-side; don't persist a half-filled link
+    }
+
+    const url = normalized as string;
+    const sort_order = order++;
+    const is_visible = link.is_visible !== false;
+
+    if (link.id && existingIds.has(link.id)) {
+      const { error } = await supabase
+        .from("bio_links")
+        .update({ title, url, sort_order, is_visible })
+        .eq("id", link.id);
+      if (error) return { error: error.message };
+    } else {
+      const { data: inserted, error } = await supabase
+        .from("bio_links")
+        .insert({
+          owner_id: user.id,
+          bio_page_id: pageId,
+          title,
+          url,
+          sort_order,
+          is_visible,
+        })
+        .select("id")
+        .single();
+      if (error) return { error: error.message };
+      if (inserted) idMap[link.clientId] = inserted.id;
+    }
+  }
+
+  revalidatePath("/link-builder");
+  revalidatePath(`/u/${username}`);
+  if (current.username && current.username !== username) {
+    revalidatePath(`/u/${current.username}`);
+  }
+
+  return {
+    success: true,
+    idMap: Object.keys(idMap).length ? idMap : undefined,
+    linkErrors: Object.keys(linkErrors).length ? linkErrors : undefined,
+  };
 }

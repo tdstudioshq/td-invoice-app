@@ -15,7 +15,7 @@ export default function LinkBuilderLayout({
   return (
     <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
       <AnimatedBackground />
-      <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
         {children}
       </div>
     </main>
