@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
+    // Bundle the cutline overlay PDF into the function (it is read with fs at
+    // runtime, not served statically). Add new preset assets here too.
+    "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
   },
   images: {
     remotePatterns: [

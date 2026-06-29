@@ -1,9 +1,8 @@
-import Image from "next/image";
+import { HomeLogoLink } from "@/components/layout/home-logo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   ImagesIcon,
-  LinkIcon,
   PaintBrushIcon,
   QrCodeIcon,
   SignOutIcon,
@@ -35,14 +34,7 @@ export default async function AccountPage() {
   return (
     <>
       <header className="flex flex-col items-center gap-3 text-center">
-        <Image
-          src="/logo.png"
-          alt="TD Studios"
-          width={56}
-          height={56}
-          priority
-          className="size-14 rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] ring-1 ring-white/25"
-        />
+        <HomeLogoLink />
         <h1 className="text-2xl font-bold tracking-tight text-white">
           {profile.fullName ? `Welcome, ${profile.fullName}` : "Your account"}
         </h1>
@@ -54,10 +46,6 @@ export default async function AccountPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-white">Quick actions</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Link href="/link-builder" className={linkClass}>
-            <LinkIcon weight="bold" className="size-4" />
-            Manage bio page
-          </Link>
           <Link href="/custom-design-request" className={linkClass}>
             <PaintBrushIcon weight="bold" className="size-4" />
             Request a design

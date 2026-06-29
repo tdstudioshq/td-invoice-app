@@ -22,7 +22,11 @@ alter table public.bio_pages
 
 -- Re-create the public reader to expose the new style fields. Same security
 -- posture as 0012: published-only, no owner_id, anon + authenticated execute.
-create or replace function public.get_bio_page(p_username text)
+-- DROP first because PostgreSQL forbids CREATE OR REPLACE when the return type
+-- changes (SQLSTATE 42P13). Grants are re-applied immediately after.
+drop function if exists public.get_bio_page(text);
+
+create function public.get_bio_page(p_username text)
 returns table (
   id             uuid,
   username       text,

@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 
-import Image from "next/image";
+import { HomeLogoLink } from "@/components/layout/home-logo";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
@@ -42,14 +42,7 @@ export default async function PremadeDesignsPage() {
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8">
         <header className="flex flex-col items-center gap-3 text-center">
-          <Image
-            src="/logo.png"
-            alt="TD Studios"
-            width={56}
-            height={56}
-            priority
-            className="size-14 rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] ring-1 ring-white/25"
-          />
+          <HomeLogoLink />
           <h1 className="text-2xl font-bold tracking-tight text-white">
             Premade Designs
           </h1>

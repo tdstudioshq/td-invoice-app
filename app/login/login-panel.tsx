@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { GlassCard } from "@developer-hub/liquid-glass";
 import { toast } from "sonner";
 
 import { ForgotPasswordForm } from "@/app/login/forgot-password-form";
 import { LoginForm } from "@/app/login/login-form";
+import { HomeLogoLink } from "@/components/layout/home-logo";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 
 export function LoginPanel({
@@ -35,14 +35,7 @@ export function LoginPanel({
     >
       <div className="flex flex-col gap-6 p-8">
         <div className="flex flex-col items-center gap-2 text-center">
-          <Image
-            src="/logo.png"
-            alt="TD Studios"
-            width={56}
-            height={56}
-            priority
-            className="size-14 rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] ring-1 ring-white/25"
-          />
+          <HomeLogoLink />
           <CardTitle>{isSignin ? "Sign in" : "Reset password"}</CardTitle>
           <CardDescription>
             {isSignin

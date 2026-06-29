@@ -23,6 +23,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/qr-generator",
   "/qr-generator/designs",
   "/custom-design-request",
+  "/portfolio",
 ]);
 
 export async function proxy(request: NextRequest) {
@@ -58,12 +59,10 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  // `/q/<slug>` is the public dynamic-QR redirect and `/u/<username>` is the
-  // public bio page — both must be reachable without a session.
+  // `/q/<slug>` is the public dynamic-QR redirect — it must be reachable
+  // without a session.
   const isPublic =
-    PUBLIC_PATHS.has(pathname) ||
-    pathname.startsWith("/q/") ||
-    pathname.startsWith("/u/");
+    PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/");
 
   if (!user && !isPublic) {
     const loginUrl = new URL("/login", request.url);
