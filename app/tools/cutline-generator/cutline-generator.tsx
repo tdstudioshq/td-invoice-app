@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircleIcon,
   DownloadSimpleIcon,
@@ -11,6 +11,7 @@ import {
   UploadSimpleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import JSZip from "jszip";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  MAX_BATCH,
+  MAX_FILE_BYTES,
+  isAcceptedImage,
+  pdfNameFor,
+} from "@/lib/cutline/limits";
 import { cn } from "@/lib/utils";
 
 type PresetOption = { id: string; label: string; description: string };
@@ -35,12 +42,11 @@ interface Item {
   status: Status;
   progress: number; // 0..100 upload progress
   error?: string;
-  url?: string; // signed download URL when complete
+  blob?: Blob; // generated PDF (kept for the batch ZIP)
+  url?: string; // object URL for the generated PDF
   outName?: string;
 }
 
-const ACCEPTED = ["image/jpeg", "image/png"];
-const MAX_BYTES = 30 * 1024 * 1024;
 const CONCURRENCY = 3;
 
 const STATUS_BADGE: Record<
@@ -61,14 +67,39 @@ function formatBytes(bytes: number): string {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+function triggerDownload(url: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
   const [items, setItems] = useState<Item[]>([]);
   const [presetId, setPresetId] = useState(presets[0]?.id ?? "");
   const [running, setRunning] = useState(false);
   const [zipping, setZipping] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const jobIdRef = useRef<string>(crypto.randomUUID());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Revoke every object URL we created when the component unmounts. Keep a ref in
+  // sync via an effect (never write a ref during render) so the unmount cleanup
+  // sees the latest items.
+  const itemsRef = useRef<Item[]>(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  });
+  useEffect(
+    () => () => {
+      itemsRef.current.forEach((it) => {
+        URL.revokeObjectURL(it.previewUrl);
+        if (it.url) URL.revokeObjectURL(it.url);
+      });
+    },
+    [],
+  );
 
   const update = useCallback((id: string, patch: Partial<Item>) => {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -79,9 +110,11 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
     const accepted: Item[] = [];
     let rejected = 0;
     for (const file of incoming) {
-      const okType =
-        ACCEPTED.includes(file.type) || /\.(jpe?g|png)$/i.test(file.name);
-      if (!okType || file.size === 0 || file.size > MAX_BYTES) {
+      if (
+        !isAcceptedImage(file.type, file.name) ||
+        file.size === 0 ||
+        file.size > MAX_FILE_BYTES
+      ) {
         rejected += 1;
         continue;
       }
@@ -98,29 +131,47 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
         `Skipped ${rejected} file${rejected > 1 ? "s" : ""} — JPG/PNG up to 30 MB only.`,
       );
     }
-    if (accepted.length > 0) setItems((prev) => [...prev, ...accepted]);
+    if (accepted.length === 0) return;
+
+    setItems((prev) => {
+      const room = MAX_BATCH - prev.length;
+      if (room <= 0) {
+        toast.error(`Batch limit reached (${MAX_BATCH} images).`);
+        accepted.forEach((it) => URL.revokeObjectURL(it.previewUrl));
+        return prev;
+      }
+      if (accepted.length > room) {
+        toast.error(`Only ${room} more image${room > 1 ? "s" : ""} fit (max ${MAX_BATCH}).`);
+        accepted.slice(room).forEach((it) => URL.revokeObjectURL(it.previewUrl));
+      }
+      return [...prev, ...accepted.slice(0, room)];
+    });
   }, []);
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => {
       const target = prev.find((it) => it.id === id);
-      if (target) URL.revokeObjectURL(target.previewUrl);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+        if (target.url) URL.revokeObjectURL(target.url);
+      }
       return prev.filter((it) => it.id !== id);
     });
   }, []);
 
-  // Upload + process a single file. XHR is used (not fetch) so we can surface
-  // real upload progress and distinguish the "uploading" vs "processing" states.
+  // Upload + compose a single file. XHR (not fetch) so we can surface real upload
+  // progress and distinguish "uploading" from "processing". The PDF comes back as
+  // the response body (a blob) — nothing is stored server-side.
   const processOne = useCallback(
     (item: Item) =>
       new Promise<void>((resolve) => {
         const form = new FormData();
         form.append("file", item.file);
-        form.append("jobId", jobIdRef.current);
         form.append("preset", presetId);
 
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/cutline/generate");
+        xhr.responseType = "blob";
 
         update(item.id, { status: "uploading", progress: 0, error: undefined });
 
@@ -133,25 +184,32 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
         xhr.upload.onload = () => update(item.id, { status: "processing", progress: 100 });
 
         xhr.onload = () => {
-          let payload: { ok?: boolean; url?: string; name?: string; error?: string } = {};
-          try {
-            payload = JSON.parse(xhr.responseText);
-          } catch {
-            /* fall through to error handling */
-          }
-          if (xhr.status >= 200 && xhr.status < 300 && payload.ok && payload.url) {
+          const blob = xhr.response as Blob;
+          if (xhr.status >= 200 && xhr.status < 300 && blob && blob.size > 0) {
+            const outName = pdfNameFor(item.file.name);
             update(item.id, {
               status: "complete",
-              url: payload.url,
-              outName: payload.name,
+              blob,
+              url: URL.createObjectURL(blob),
+              outName,
             });
+            resolve();
           } else {
-            update(item.id, {
-              status: "failed",
-              error: payload.error || `Request failed (${xhr.status})`,
-            });
+            // Error body is JSON; read it out of the blob.
+            blob
+              ?.text()
+              .then((text) => {
+                let message = `Request failed (${xhr.status})`;
+                try {
+                  message = JSON.parse(text).error || message;
+                } catch {
+                  /* keep default */
+                }
+                update(item.id, { status: "failed", error: message });
+              })
+              .catch(() => update(item.id, { status: "failed", error: "Request failed" }))
+              .finally(resolve);
           }
-          resolve();
         };
         xhr.onerror = () => {
           update(item.id, { status: "failed", error: "Network error" });
@@ -185,35 +243,45 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
     setRunning(false);
   }, [items, processOne]);
 
+  // Bundle the already-generated PDF blobs into a ZIP in the browser. (PDF
+  // generation stays server-side; this only zips finished files — no upload,
+  // no storage.)
   const downloadZip = useCallback(async () => {
+    const done = items.filter((it) => it.status === "complete" && it.blob);
+    if (done.length === 0) return;
     setZipping(true);
     try {
-      const res = await fetch("/api/cutline/zip", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: jobIdRef.current }),
-      });
-      const payload = await res.json();
-      if (!res.ok || !payload.url) {
-        throw new Error(payload.error || "Could not build ZIP.");
+      const zip = new JSZip();
+      const used = new Set<string>();
+      for (const it of done) {
+        let name = it.outName ?? pdfNameFor(it.file.name);
+        // Avoid collisions when two sources share a name.
+        let n = 1;
+        while (used.has(name)) name = name.replace(/\.pdf$/i, `-${++n}.pdf`);
+        used.add(name);
+        zip.file(name, it.blob!);
       }
-      window.location.href = payload.url;
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not build ZIP.");
+      const blob = await zip.generateAsync({
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: { level: 6 },
+      });
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, `cutlines-${new Date().toISOString().slice(0, 10)}.zip`);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch {
+      toast.error("Could not build ZIP.");
     } finally {
       setZipping(false);
     }
-  }, []);
+  }, [items]);
 
-  const startOver = useCallback(async () => {
-    const jobId = jobIdRef.current;
-    items.forEach((it) => URL.revokeObjectURL(it.previewUrl));
+  const startOver = useCallback(() => {
+    items.forEach((it) => {
+      URL.revokeObjectURL(it.previewUrl);
+      if (it.url) URL.revokeObjectURL(it.url);
+    });
     setItems([]);
-    jobIdRef.current = crypto.randomUUID();
-    // Best-effort cleanup of the temporary Storage folder.
-    fetch(`/api/cutline/job?jobId=${jobId}`, { method: "DELETE", keepalive: true }).catch(
-      () => {},
-    );
   }, [items]);
 
   const onDrop = useCallback(
@@ -250,15 +318,15 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center transition-colors",
           dragActive
             ? "border-primary bg-primary/5"
-            : "border-border hover:border-muted-foreground/50 hover:bg-muted/30",
+            : "border-white/20 hover:border-white/40 hover:bg-white/[0.03]",
         )}
       >
-        <UploadSimpleIcon className="text-muted-foreground size-7" weight="bold" />
-        <p className="text-sm font-medium text-metal-platinum">
+        <UploadSimpleIcon className="size-7 text-white/70" weight="bold" />
+        <p className="text-sm font-medium text-white">
           Drag &amp; drop designs, or click to browse
         </p>
         <p className="text-muted-foreground text-xs">
-          JPG or PNG · 1200×1500 recommended · batch supported
+          JPG or PNG · up to 30 MB · max {MAX_BATCH} per batch
         </p>
         <input
           ref={inputRef}
@@ -328,17 +396,17 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
             return (
               <li
                 key={it.id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card/40 p-3"
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={it.previewUrl}
                   alt=""
-                  className="size-14 shrink-0 rounded-md object-cover ring-1 ring-border"
+                  className="size-14 shrink-0 rounded-md object-cover ring-1 ring-white/15"
                 />
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-metal-platinum">
+                    <p className="truncate text-sm font-medium text-white">
                       {it.file.name}
                     </p>
                     <Badge variant={badge.variant} className="shrink-0">
@@ -360,7 +428,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
                     {it.status === "failed" && it.error ? ` · ${it.error}` : ""}
                   </p>
                   {(it.status === "uploading" || it.status === "processing") && (
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                       <div
                         className="bg-primary h-full rounded-full transition-all"
                         style={{

@@ -66,10 +66,13 @@ function fitRect(
 const cutlineBytesCache = new Map<string, Promise<Buffer>>();
 
 function loadCutlineBytes(preset: CutlinePreset): Promise<Buffer> {
-  let cached = cutlineBytesCache.get(preset.assetPath);
+  let cached = cutlineBytesCache.get(preset.file);
   if (!cached) {
-    cached = readFile(path.join(process.cwd(), preset.assetPath));
-    cutlineBytesCache.set(preset.assetPath, cached);
+    // Inline literal dir (not a const) so Turbopack statically scopes the trace
+    // to this subfolder instead of the whole project. Keep in sync with
+    // CUTLINE_ASSET_DIR. The file is still bundled via outputFileTracingIncludes.
+    cached = readFile(path.join(process.cwd(), "public/assets/cutlines", preset.file));
+    cutlineBytesCache.set(preset.file, cached);
   }
   return cached;
 }

@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/qr-generator/designs",
   "/custom-design-request",
   "/portfolio",
+  "/tools/cutline-generator",
 ]);
 
 export async function proxy(request: NextRequest) {
