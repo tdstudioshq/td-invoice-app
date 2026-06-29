@@ -24,6 +24,19 @@ import { getCutlinePreset, type CutlinePreset } from "./presets";
 
 export type FitMode = "cover" | "contain" | "stretch";
 
+/**
+ * Thrown when the uploaded bytes can't be decoded as a usable image (corrupt,
+ * truncated, or an unsupported format like HEIC/TIFF/PSD or a renamed PDF). This
+ * is a *client* error — a bad upload, not a server fault — so the route maps it
+ * to a 4xx with this user-facing message rather than a generic 500/422.
+ */
+export class CutlineInputError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "CutlineInputError";
+  }
+}
+
 /** Bottom-left origin, matching pdf-lib's coordinate system. */
 function fitRect(
   imgW: number,
@@ -78,11 +91,27 @@ function loadCutlineBytes(preset: CutlinePreset): Promise<Buffer> {
 }
 
 interface NormalizedImage {
-  bytes: Buffer;
+  bytes: Uint8Array;
   /** "png" preserves transparency; "jpg" is used for opaque artwork. */
   format: "png" | "jpg";
   width: number;
   height: number;
+}
+
+/**
+ * Return a Uint8Array backed by a fresh, zero-`byteOffset` ArrayBuffer.
+ *
+ * pdf-lib's JpegEmbedder/PngEmbedder do `new DataView(data.buffer)` and read from
+ * offset 0, IGNORING the typed array's `byteOffset`. Node `Buffer`s are often
+ * views into a shared memory pool with a non-zero `byteOffset`, so `data.buffer`
+ * points at the pool's start, not the image's — pdf-lib then reads the wrong
+ * bytes and throws "SOI not found in JPEG" on a perfectly valid image. Copying
+ * the exact range into a new ArrayBuffer guarantees `byteOffset === 0`.
+ */
+function toZeroOffsetBytes(buf: Uint8Array): Uint8Array {
+  return new Uint8Array(
+    buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+  );
 }
 
 /**
@@ -92,26 +121,48 @@ interface NormalizedImage {
  * is preserved as PNG; opaque art is re-encoded as high-quality 4:4:4 JPEG.
  */
 async function normalizeImage(input: Buffer): Promise<NormalizedImage> {
-  const base = sharp(input, { failOn: "none" }).rotate(); // rotate() auto-orients from EXIF
-  const meta = await base.metadata();
-  const hasAlpha = Boolean(meta.hasAlpha);
+  try {
+    const base = sharp(input, { failOn: "none" }).rotate(); // rotate() auto-orients from EXIF
+    const meta = await base.metadata();
+    const hasAlpha = Boolean(meta.hasAlpha);
 
-  if (hasAlpha) {
+    if (hasAlpha) {
+      const { data, info } = await base
+        .clone()
+        .toColourspace("srgb")
+        .png()
+        .toBuffer({ resolveWithObject: true });
+      // Zero-offset bytes so pdf-lib's embedder reads from the real start.
+      return {
+        bytes: toZeroOffsetBytes(data),
+        format: "png",
+        width: info.width,
+        height: info.height,
+      };
+    }
+
     const { data, info } = await base
       .clone()
+      .flatten({ background: "#ffffff" })
       .toColourspace("srgb")
-      .png()
+      .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
       .toBuffer({ resolveWithObject: true });
-    return { bytes: data, format: "png", width: info.width, height: info.height };
+    // Zero-offset bytes so pdf-lib's embedder reads from the real start.
+    return {
+      bytes: toZeroOffsetBytes(data),
+      format: "jpg",
+      width: info.width,
+      height: info.height,
+    };
+  } catch (err) {
+    // sharp throws e.g. "Input buffer contains unsupported image format" when the
+    // bytes aren't a decodable JPG/PNG. Surface an actionable message instead of
+    // a raw library error.
+    throw new CutlineInputError(
+      "This file couldn't be read as a JPG or PNG. It may be corrupt or an unsupported format (HEIC, TIFF, PSD, or a renamed PDF). Re-export it as a JPG or PNG and try again.",
+      { cause: err },
+    );
   }
-
-  const { data, info } = await base
-    .clone()
-    .flatten({ background: "#ffffff" })
-    .toColourspace("srgb")
-    .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
-    .toBuffer({ resolveWithObject: true });
-  return { bytes: data, format: "jpg", width: info.width, height: info.height };
 }
 
 export interface ComposeOptions {

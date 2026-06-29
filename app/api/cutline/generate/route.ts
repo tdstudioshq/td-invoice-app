@@ -1,8 +1,10 @@
-import { composeCutlinePdf } from "@/lib/cutline/compose";
+import { CutlineInputError, composeCutlinePdf } from "@/lib/cutline/compose";
 import {
   MAX_FILE_BYTES,
   isAcceptedImage,
+  magicHead,
   pdfNameFor,
+  sniffImageMagic,
 } from "@/lib/cutline/limits";
 
 // Node runtime — sharp + pdf-lib are native/Node-only. (Default for route
@@ -40,14 +42,36 @@ export async function POST(req: Request) {
     return Response.json({ error: "Image is too large (30 MB max)." }, { status: 413 });
   }
 
+  // Read the multipart body ONCE into a Buffer — the only thing sharp ever sees.
+  // (No base64, no stringify, no req.text()/json(), no second read of the stream.)
   const sourceBytes = Buffer.from(await file.arrayBuffer());
+
+  // Authoritative content check by magic bytes — never trust MIME/extension alone.
+  if (!sniffImageMagic(sourceBytes)) {
+    return Response.json(
+      {
+        error: `Uploaded file bytes are not a valid JPG/PNG. Received: ${magicHead(sourceBytes)}`,
+      },
+      { status: 415 },
+    );
+  }
 
   let pdfBytes: Uint8Array;
   try {
     // Vector CutContour overlay is embedded as a Form XObject — never rasterised.
     pdfBytes = await composeCutlinePdf(sourceBytes, { presetId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Composition failed.";
+    // A bad upload (undecodable image) is the user's fault → 415 with a clear,
+    // actionable message. Anything else is an unexpected server error → 422, and
+    // we log the full reason so it's debuggable (the client only sees JSON).
+    if (err instanceof CutlineInputError) {
+      console.warn(
+        `[cutline] rejected "${file.name}" (${file.type || "no type"}, ${file.size} bytes): ${err.message}`,
+      );
+      return Response.json({ error: err.message }, { status: 415 });
+    }
+    console.error(`[cutline] compose failed for "${file.name}":`, err);
+    const message = err instanceof Error ? err.message : "Could not generate the PDF.";
     return Response.json({ error: message }, { status: 422 });
   }
 

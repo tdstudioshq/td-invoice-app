@@ -425,8 +425,10 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
                   <p className="text-muted-foreground text-xs">
                     {formatBytes(it.file.size)}
                     {it.status === "uploading" ? ` · ${it.progress}%` : ""}
-                    {it.status === "failed" && it.error ? ` · ${it.error}` : ""}
                   </p>
+                  {it.status === "failed" && it.error ? (
+                    <p className="text-destructive text-xs">{it.error}</p>
+                  ) : null}
                   {(it.status === "uploading" || it.status === "processing") && (
                     <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
                       <div
