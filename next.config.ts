@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // The mylar shop is a self-contained static HTML site served from
+  // public/mylar/index.html; the rewrite gives it the clean /mylar URL
+  // (the public folder does not resolve index.html automatically).
+  async rewrites() {
+    return [{ source: "/mylar", destination: "/mylar/index.html" }];
+  },
   outputFileTracingIncludes: {
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at

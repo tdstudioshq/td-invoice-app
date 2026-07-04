@@ -25,6 +25,11 @@ const PUBLIC_PATHS = new Set<string>([
   "/custom-design-request",
   "/portfolio",
   "/tools/cutline-generator",
+  // The static mylar shop (public/mylar/index.html): /mylar is the rewritten
+  // clean URL, and the direct file path must pass too since the matcher only
+  // skips image extensions, not .html.
+  "/mylar",
+  "/mylar/index.html",
 ]);
 
 export async function proxy(request: NextRequest) {

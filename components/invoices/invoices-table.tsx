@@ -74,7 +74,10 @@ export function InvoicesTable({
           </TableHeader>
           <TableBody>
             {invoices.map((invoice) => (
-              <TableRow key={invoice.id} className="group">
+              <TableRow
+                key={invoice.id}
+                className="group transition-colors hover:bg-glass-highlight/10"
+              >
                 <TableCell className="px-4 py-3.5 font-medium">
                   <Link
                     href={`/invoices/${invoice.id}`}

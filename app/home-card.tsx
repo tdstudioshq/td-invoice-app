@@ -13,6 +13,7 @@ import {
   PaintBrushIcon,
   QrCodeIcon,
   SquaresFourIcon,
+  StorefrontIcon,
   WhatsappLogoIcon,
   type Icon,
 } from "@phosphor-icons/react";
@@ -34,6 +35,12 @@ const BIO_LINKS: {
   icon: Icon;
   internal?: boolean;
 }[] = [
+  {
+    label: "Enter Here",
+    href: "/mylar",
+    icon: StorefrontIcon,
+    internal: true,
+  },
   {
     label: "Premade Designs",
     href: "/qr-generator/designs",
