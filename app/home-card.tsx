@@ -6,16 +6,14 @@ import { GlassCard } from "@developer-hub/liquid-glass";
 import { toast } from "sonner";
 import {
   ArrowLeftIcon,
-  EnvelopeSimpleIcon,
   ImagesIcon,
-  InstagramLogoIcon,
   LockIcon,
   PaintBrushIcon,
   QrCodeIcon,
   SquaresFourIcon,
-  WhatsappLogoIcon,
   type Icon,
 } from "@phosphor-icons/react";
+import { SocialIcon } from "react-social-icons";
 
 import { ForgotPasswordForm } from "@/app/login/forgot-password-form";
 import { LoginForm } from "@/app/login/login-form";
@@ -60,23 +58,15 @@ const BIO_LINKS: {
   },
 ];
 
-/** Social/contact links, shown as icon buttons under the TD STUDIOS title. */
-const SOCIAL_LINKS: { label: string; href: string; icon: Icon }[] = [
-  {
-    label: "Instagram",
-    href: "https://instagram.com/tdstudiosco",
-    icon: InstagramLogoIcon,
-  },
-  {
-    label: "WhatsApp",
-    href: "https://wa.me/19297528373",
-    icon: WhatsappLogoIcon,
-  },
-  {
-    label: "Email",
-    href: "mailto:tyler@tdstudiosny.com",
-    icon: EnvelopeSimpleIcon,
-  },
+/**
+ * Social/contact links, shown as colored icon buttons under the TD STUDIOS
+ * title. Rendered with react-social-icons, which picks the brand icon + color
+ * from the URL (wa.me → WhatsApp, mailto → email, …).
+ */
+const SOCIAL_LINKS: { label: string; href: string }[] = [
+  { label: "Instagram", href: "https://instagram.com/tdstudiosco" },
+  { label: "WhatsApp", href: "https://wa.me/19297528373" },
+  { label: "Email", href: "mailto:tyler@tdstudiosny.com" },
 ];
 
 const glassButton =
@@ -153,17 +143,16 @@ export function HomeCard({
                 TD STUDIOS
               </CardTitle>
               <div className="flex items-center justify-center gap-3 pt-1">
-                {SOCIAL_LINKS.map(({ label, href, icon: SocialIcon }) => (
-                  <a
+                {SOCIAL_LINKS.map(({ label, href }) => (
+                  <SocialIcon
                     key={label}
-                    href={href}
+                    url={href}
                     target="_blank"
                     rel="noreferrer"
                     aria-label={label}
-                    className={iconButton}
-                  >
-                    <SocialIcon weight="bold" className="size-5" />
-                  </a>
+                    className="transition-transform hover:scale-110 active:translate-y-px"
+                    style={{ height: 40, width: 40 }}
+                  />
                 ))}
                 <button
                   type="button"
