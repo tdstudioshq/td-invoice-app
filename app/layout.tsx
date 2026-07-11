@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
+import { Bebas_Neue, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
@@ -12,9 +12,12 @@ const siteUrl =
     ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000");
 
-const jetbrainsMono = JetBrains_Mono({
+// Bebas Neue only ships a single 400 weight and has no lowercase — it renders
+// everything in caps by design.
+const bebasNeue = Bebas_Neue({
   subsets: ["latin"],
-  variable: "--font-mono",
+  weight: "400",
+  variable: "--font-bebas",
 });
 
 const geistSans = Geist({
@@ -65,8 +68,8 @@ export default function RootLayout({
         "antialiased",
         geistSans.variable,
         geistMono.variable,
-        "font-mono",
-        jetbrainsMono.variable,
+        "font-sans",
+        bebasNeue.variable,
       )}
       style={{ colorScheme: "dark" }}
     >
