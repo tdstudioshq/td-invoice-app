@@ -489,7 +489,25 @@ export async function getClientFolders(
   return data ?? [];
 }
 
-/** Recent file activity for a client (admin-only via RLS). */
+/**
+ * The signed-in user's starred file ids for a client (favorites are per-user;
+ * RLS returns only the caller's own rows).
+ */
+export async function getFavoriteFileIds(clientId: string): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("client_file_favorites")
+    .select("file_id")
+    .eq("client_id", clientId);
+  if (error) {
+    console.error("getFavoriteFileIds", error.message);
+    return [];
+  }
+  return (data ?? []).map((row) => row.file_id);
+}
+
+/** Recent file activity for a client (admin + that client's portal via RLS). */
 export async function getFileActivity(
   clientId: string,
   limit = 20,

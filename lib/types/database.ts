@@ -234,6 +234,39 @@ export interface Database {
           },
         ];
       };
+      client_file_favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          file_id: string;
+          client_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          file_id: string;
+          client_id: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["client_file_favorites"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "client_file_favorites_file_id_fkey";
+            columns: ["file_id"];
+            referencedRelation: "client_files";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_file_favorites_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       client_file_folders: {
         Row: {
           id: string;
@@ -609,6 +642,8 @@ export type ClientUser = Database["public"]["Tables"]["client_users"]["Row"];
 export type ClientFileFolder =
   Database["public"]["Tables"]["client_file_folders"]["Row"];
 export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
+export type ClientFileFavorite =
+  Database["public"]["Tables"]["client_file_favorites"]["Row"];
 export type ClientProject =
   Database["public"]["Tables"]["client_projects"]["Row"];
 export type FileActivity =

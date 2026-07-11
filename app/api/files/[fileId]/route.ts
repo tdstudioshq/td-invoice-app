@@ -34,8 +34,12 @@ export async function GET(
     .maybeSingle();
   if (!file) return new Response("Not found", { status: 404 });
 
-  const inlineRequested =
-    new URL(req.url).searchParams.get("inline") === "1";
+  // thumb=1 behaves like inline=1 but skips the audit log — grid thumbnails
+  // fetch through this route in bulk and would otherwise flood the activity
+  // timeline with "preview" rows on every page view.
+  const params = new URL(req.url).searchParams;
+  const isThumb = params.get("thumb") === "1";
+  const inlineRequested = isThumb || params.get("inline") === "1";
   const canInline = inlineRequested && previewKind(file.mime_type) !== null;
 
   const { data: signed, error } = await supabase.storage
@@ -50,7 +54,8 @@ export async function GET(
   }
 
   // Best-effort audit trail; never block the download on a logging failure.
-  await supabase.from("file_activity").insert({
+  if (!isThumb)
+    await supabase.from("file_activity").insert({
     owner_id: file.owner_id,
     client_id: file.client_id,
     file_id: file.id,
