@@ -20,6 +20,8 @@ const PUBLIC_PATHS = new Set<string>([
   "/login",
   "/sign-up",
   "/reset-password",
+  // OAuth code exchange — must be reachable mid-flow, before cookies exist.
+  "/auth/callback",
   "/qr-generator",
   "/qr-generator/designs",
   "/custom-design-request",

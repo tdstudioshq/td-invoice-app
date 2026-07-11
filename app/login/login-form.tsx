@@ -5,6 +5,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 import { signInAction } from "@/app/actions/auth";
+import { GoogleSignInButton } from "@/app/login/google-sign-in-button";
 import { initialActionState } from "@/app/actions/types";
 import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,14 @@ export function LoginForm({
       <SubmitButton pendingText="Signing in…" className="h-11 w-full rounded-xl">
         Sign in
       </SubmitButton>
+
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-white/10" />
+        <span className="text-muted-foreground text-xs">or</span>
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+
+      <GoogleSignInButton redirectTo={redirectTo} />
 
       <p className="text-muted-foreground text-center text-xs">
         New customer?{" "}

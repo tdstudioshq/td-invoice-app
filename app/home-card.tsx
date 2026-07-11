@@ -16,6 +16,7 @@ import {
 import { SocialIcon } from "react-social-icons";
 
 import { ForgotPasswordForm } from "@/app/login/forgot-password-form";
+import { GoogleSignInButton } from "@/app/login/google-sign-in-button";
 import { LoginForm } from "@/app/login/login-form";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -192,6 +193,13 @@ export function HomeCard({
                   {label}
                 </a>
               ))}
+              {/* Google OAuth doubles as signup: Supabase auto-creates the
+                  auth user on first sign-in, and /auth/callback routes new
+                  users into customer onboarding. Returning users just log in. */}
+              <GoogleSignInButton
+                label="Sign Up with Google"
+                className={glassButton}
+              />
             </div>
             {/* Video box: grows to fill the leftover height so the card reaches
                 the bottom of the viewport on mobile (see the column's min-h).

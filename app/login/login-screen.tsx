@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
+import { AuthErrorToast } from "@/app/login/auth-error-toast";
 import { LoginPanel } from "@/app/login/login-panel";
 import { getPortalContext, getUser } from "@/lib/auth";
 
@@ -12,9 +13,11 @@ import { getPortalContext, getUser } from "@/lib/auth";
 export async function AuthScreen({
   redirectTo,
   justReset,
+  error,
 }: {
   redirectTo?: string;
   justReset?: boolean;
+  error?: string;
 }) {
   if (await getUser()) {
     redirect((await getPortalContext()) ? "/portal" : "/dashboard");
@@ -24,6 +27,7 @@ export async function AuthScreen({
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
       <AnimatedBackground />
       <div className="relative z-10 w-full max-w-sm">
+        {error ? <AuthErrorToast message={error} /> : null}
         <LoginPanel redirectTo={redirectTo} justReset={justReset} />
       </div>
     </main>
