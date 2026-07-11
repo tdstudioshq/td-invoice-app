@@ -11,11 +11,13 @@ import {
   prettifyName,
   type PortfolioImage,
 } from "@/lib/portfolio";
+import { PORTAL_HIDDEN_PROJECT_STATUSES } from "@/lib/projects";
 import type {
   Client,
   ClientFile,
   ClientFileFolder,
   ClientPortalSummary,
+  ClientProject,
   ClientUser,
   CompanySettings,
   FileActivity,
@@ -358,20 +360,115 @@ export async function getPortalUserForClient(
   return data;
 }
 
-/** Files for a client. RLS returns admin-owned files or the portal user's own. */
-export async function getClientFiles(clientId: string): Promise<ClientFile[]> {
+/**
+ * Files for a client. RLS returns admin-owned files or the portal user's own.
+ * Options: `projectId` filters to one project, `activeOnly` hides archived
+ * files (used by the admin "view as client" preview — portal RLS already hides
+ * them for real portal sessions), `limit` caps the result (e.g. recent files).
+ */
+export async function getClientFiles(
+  clientId: string,
+  opts: { projectId?: string; activeOnly?: boolean; limit?: number } = {},
+): Promise<ClientFile[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("client_files")
     .select("*")
     .eq("client_id", clientId)
+    .order("display_order", { ascending: true })
     .order("created_at", { ascending: false });
+  if (opts.projectId) query = query.eq("project_id", opts.projectId);
+  if (opts.activeOnly) query = query.is("archived_at", null);
+  if (opts.limit) query = query.limit(opts.limit);
+  const { data, error } = await query;
   if (error) {
     console.error("getClientFiles", error.message);
     return [];
   }
   return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Client projects
+// ---------------------------------------------------------------------------
+
+/**
+ * Projects for a client, soonest due first. `visibleOnly` applies the same
+ * filter the portal RLS enforces (no draft/archived) — used by the admin
+ * "view as client" preview; portal sessions get it from RLS for free.
+ */
+export async function getClientProjects(
+  clientId: string,
+  opts: { visibleOnly?: boolean } = {},
+): Promise<ClientProject[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  let query = supabase
+    .from("client_projects")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+  if (opts.visibleOnly) {
+    query = query.not(
+      "status",
+      "in",
+      `(${PORTAL_HIDDEN_PROJECT_STATUSES.join(",")})`,
+    );
+  }
+  const { data, error } = await query;
+  if (error) {
+    console.error("getClientProjects", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** One project by id, or null. RLS hides hidden/foreign projects from portal users. */
+export async function getClientProject(
+  projectId: string,
+): Promise<ClientProject | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("client_projects")
+    .select("*")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (error) {
+    console.error("getClientProject", error.message);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Files-per-project counts for a client, keyed by project id. `activeOnly`
+ * excludes archived files (preview parity with portal RLS).
+ */
+export async function getProjectFileCounts(
+  clientId: string,
+  opts: { activeOnly?: boolean } = {},
+): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured()) return {};
+  const supabase = await createClient();
+  let query = supabase
+    .from("client_files")
+    .select("project_id")
+    .eq("client_id", clientId)
+    .not("project_id", "is", null);
+  if (opts.activeOnly) query = query.is("archived_at", null);
+  const { data, error } = await query;
+  if (error) {
+    console.error("getProjectFileCounts", error.message);
+    return {};
+  }
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    if (row.project_id) counts[row.project_id] = (counts[row.project_id] ?? 0) + 1;
+  }
+  return counts;
 }
 
 /** Folders for a client. RLS-scoped. */

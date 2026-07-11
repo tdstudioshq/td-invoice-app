@@ -117,6 +117,16 @@ header{
 }
 .cart-badge.pop{transform:scale(1.35);}
 
+.nav-actions{display:flex;align-items:center;gap:8px;}
+.icon-btn{
+  display:flex;align-items:center;justify-content:center;
+  width:37px;height:37px;
+  border:1px solid var(--line-strong);color:#FFF;background:#000;
+  transition:border-color .15s, box-shadow .15s, color .15s;
+}
+.icon-btn:hover{border-color:var(--yellow);color:var(--yellow);box-shadow:0 0 14px rgba(255,212,0,0.25);}
+.icon-btn svg{width:16px;height:16px;display:block;}
+
 .mobile-nav{
   display:flex;gap:8px;overflow-x:auto;padding:10px 20px;
   border-bottom:1px solid var(--line);
@@ -432,6 +442,44 @@ header{
 .drawer-foot .btn-neon{width:100%;}
 .wire-note{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.14em;color:#B8B4A8;text-align:center;margin-top:11px;}
 
+/* ================= INSTAGRAM STRIP ================= */
+.ig-band{
+  border-top:1px solid var(--line);
+  padding:56px 0 60px;overflow:hidden;
+  background:radial-gradient(ellipse 600px 260px at 50% 0%, rgba(255,212,0,0.04), transparent 70%);
+}
+.ig-head{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;margin-bottom:30px;
+}
+.ig-title{
+  font-family:'Bebas Neue',sans-serif;font-weight:400;
+  font-size:clamp(30px,6vw,52px);line-height:.95;color:#FFF;
+}
+.ig-scroll{overflow:hidden;}
+.ig-track{display:flex;width:max-content;animation:marquee 45s linear infinite;}
+.ig-scroll:hover .ig-track{animation-play-state:paused;}
+@media (prefers-reduced-motion:reduce){
+  .ig-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .ig-track{animation:none;}
+}
+.ig-tile{
+  display:block;position:relative;flex:none;
+  width:172px;height:212px;margin-right:14px;
+  border:1px solid var(--line);background:#0A0A0C;
+  transition:border-color .15s, box-shadow .15s, transform .15s;
+}
+.ig-tile:hover{border-color:var(--yellow);box-shadow:0 0 18px rgba(255,212,0,0.25);transform:translateY(-3px);}
+.ig-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+.ig-tile .bag-thumb{width:100%;height:100%;padding:22px 30px;}
+.ig-tag{
+  position:absolute;left:0;right:0;bottom:0;
+  display:flex;align-items:center;gap:6px;justify-content:center;
+  font-family:'Space Mono',monospace;font-size:9px;letter-spacing:0.14em;color:#D6D2C6;
+  padding:7px 6px;background:rgba(4,4,5,0.82);border-top:1px solid var(--line);
+}
+.ig-tag svg{width:11px;height:11px;flex:none;}
+
 /* ================= FOOTER ================= */
 footer{border-top:1px solid var(--line);padding:64px 0 40px;background:#040405;}
 .foot-word{
@@ -574,9 +622,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px so
       <button class="soon">JARS</button>
       <button class="soon">TUBES</button>
     </nav>
-    <button class="cart-btn" onclick="toggleCart(true)">
-      CART <span id="cart-count" class="cart-badge tab">0</span>
-    </button>
+    <div class="nav-actions">
+      <a class="icon-btn" href="https://instagram.com/tdstudiosco" target="_blank" rel="noopener" aria-label="TD Studios on Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.3" fill="currentColor" stroke="none"/></svg>
+      </a>
+      <a class="icon-btn" href="mailto:tyler@tdstudiosny.com" aria-label="Email TD Studios">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg>
+      </a>
+      <button class="cart-btn" onclick="toggleCart(true)">
+        CART <span id="cart-count" class="cart-badge tab">0</span>
+      </button>
+    </div>
   </div>
   <div class="mobile-nav">
     <button onclick="showCategory()">BAGGIES</button>
@@ -845,6 +901,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px so
     <div class="wire-note">CHECKOUT WIRES UP TO YOUR BACKEND LATER</div>
   </div>
 </aside>
+
+<!-- ============ INSTAGRAM STRIP ============ -->
+<section class="ig-band" aria-label="TD Studios on Instagram">
+  <div class="wrap ig-head">
+    <div>
+      <div class="eyebrow">FRESH OFF THE PRESS</div>
+      <h2 class="ig-title">@TDSTUDIOSCO <span class="neon-yellow">ON INSTAGRAM</span></h2>
+    </div>
+    <a class="btn btn-neon" href="https://instagram.com/tdstudiosco" target="_blank" rel="noopener">Follow →</a>
+  </div>
+  <div class="ig-scroll">
+    <div class="ig-track" id="ig-track"></div>
+  </div>
+</section>
 
 <!-- ============ FOOTER ============ -->
 <footer>
@@ -1164,6 +1234,33 @@ function toggleCart(open){
   }
 }
 
+/* ---------- INSTAGRAM STRIP ----------
+   IG WIRING (later): a real Instagram feed needs a server-side access token
+   (or a widget service), so this strip ships with on-brand placeholder tiles
+   that all link to the profile. To show real posts, set each item's `img` to
+   the post's image URL and `href` to the post permalink — the marquee and
+   tile markup need zero changes. */
+const IG_PROFILE = 'https://instagram.com/tdstudiosco';
+const IG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.3" fill="currentColor" stroke="none"/></svg>';
+const IG_POSTS = Array.from({length:10}, (_,i)=>({
+  img: null, // null = placeholder bag tile; set to a post image URL when wired
+  href: IG_PROFILE,
+  color: [NEON.yellow, NEON.blue, NEON.red, NEON.green][i % 4],
+  code: 'IG' + (i+1),
+}));
+function renderIgStrip(){
+  const tile = p => `
+    <a class="ig-tile" href="${p.href}" target="_blank" rel="noopener">
+      ${p.img
+        ? `<img src="${p.img}" alt="Instagram post from @tdstudiosco" loading="lazy">`
+        : `<div class="bag-thumb" style="--glow-c:${hexGlow(p.color,'1A')};--glow-s:${hexGlow(p.color,'59')}">${bagSVG(p.color, p.code)}</div>`}
+      <span class="ig-tag">${IG_ICON} @TDSTUDIOSCO</span>
+    </a>`;
+  const half = IG_POSTS.map(tile).join('');
+  /* content duplicated once so the marquee's -50% loop is seamless */
+  document.getElementById('ig-track').innerHTML = half + half;
+}
+
 /* ---------- INIT ---------- */
 (function(){
   const hero = document.querySelector('.hero-img-frame img');
@@ -1171,6 +1268,7 @@ function toggleCart(open){
   if(hero && refl) refl.src = hero.src;
 })();
 renderCart();
+renderIgStrip();
 sizeSpacer();
 watchReveals();
 goHome();

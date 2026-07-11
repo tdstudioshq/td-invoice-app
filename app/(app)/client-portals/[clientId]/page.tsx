@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { ActivePortalControls } from "@/components/portal/active-portal-controls";
-import { AdminUploadForm } from "@/components/portal/admin-upload-form";
+import { AdminMultiUpload } from "@/components/portal/admin-multi-upload";
+import { CopyPortalLinkButton } from "@/components/portal/copy-portal-link-button";
 import { CreatePortalUserDialog } from "@/components/portal/create-portal-user-dialog";
+import { CreateProjectDialog } from "@/components/portal/create-project-dialog";
 import { FileList } from "@/components/portal/file-list";
 import { FolderManager } from "@/components/portal/folder-manager";
+import { ProjectStatusBadge } from "@/components/portal/project-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +24,9 @@ import {
   getClient,
   getClientFiles,
   getClientFolders,
+  getClientProjects,
   getPortalUserForClient,
+  getProjectFileCounts,
 } from "@/lib/data";
 import { CATEGORY_DESCRIPTION, CATEGORY_LABEL, FILE_CATEGORIES } from "@/lib/portal";
 import { formatDate } from "@/lib/format";
@@ -41,11 +46,14 @@ export default async function ClientPortalDetailPage(
   const client = await getClient(clientId);
   if (!client) notFound();
 
-  const [portalUser, files, folders] = await Promise.all([
-    getPortalUserForClient(clientId),
-    getClientFiles(clientId),
-    getClientFolders(clientId),
-  ]);
+  const [portalUser, files, folders, projects, projectFileCounts] =
+    await Promise.all([
+      getPortalUserForClient(clientId),
+      getClientFiles(clientId),
+      getClientFolders(clientId),
+      getClientProjects(clientId),
+      getProjectFileCounts(clientId),
+    ]);
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -59,7 +67,15 @@ export default async function ClientPortalDetailPage(
       <PageHeader
         title={client.company_name}
         description={client.email ?? undefined}
-      />
+      >
+        <CopyPortalLinkButton />
+        <Button asChild variant="outline" size="sm">
+          <Link href={`/client-portals/${clientId}/preview`}>
+            <Eye />
+            View as client
+          </Link>
+        </Button>
+      </PageHeader>
 
       <div className="space-y-8">
         {/* Portal access */}
@@ -107,6 +123,52 @@ export default async function ClientPortalDetailPage(
           </CardContent>
         </Card>
 
+        {/* Projects */}
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <CardTitle>Projects</CardTitle>
+              <CardDescription>
+                Group files into named projects with a status the client can
+                follow. Draft and Archived projects stay hidden from the
+                portal.
+              </CardDescription>
+            </div>
+            <CreateProjectDialog clientId={clientId} />
+          </CardHeader>
+          <CardContent>
+            {projects.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No projects yet.</p>
+            ) : (
+              <ul className="divide-border divide-y">
+                {projects.map((project) => {
+                  const count = projectFileCounts[project.id] ?? 0;
+                  return (
+                    <li key={project.id}>
+                      <Link
+                        href={`/client-portals/${clientId}/projects/${project.id}`}
+                        className="group flex items-center gap-3 py-3 text-sm"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">{project.name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {count} {count === 1 ? "file" : "files"}
+                            {project.due_date
+                              ? ` · Due ${formatDate(project.due_date)}`
+                              : ""}
+                          </p>
+                        </div>
+                        <ProjectStatusBadge status={project.status} />
+                        <ArrowRight className="text-muted-foreground size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Files */}
         <Card>
           <CardHeader>
@@ -119,8 +181,12 @@ export default async function ClientPortalDetailPage(
             <FolderManager clientId={clientId} folders={folders} />
 
             <div className="border-border border-t pt-6">
-              <h3 className="mb-3 text-sm font-medium">Upload a file</h3>
-              <AdminUploadForm clientId={clientId} folders={folders} />
+              <h3 className="mb-3 text-sm font-medium">Upload files</h3>
+              <AdminMultiUpload
+                clientId={clientId}
+                folders={folders}
+                projects={projects}
+              />
             </div>
 
             <div className="border-border space-y-6 border-t pt-6">

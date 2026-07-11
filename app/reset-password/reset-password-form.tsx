@@ -111,6 +111,14 @@ export function ResetPasswordForm() {
       return;
     }
 
+    // Best-effort: clear the portal must-change-password flag (no-op for
+    // non-portal users; never blocks the reset flow).
+    try {
+      await supabase.rpc("clear_must_change_password");
+    } catch {
+      // The flag just persists until the next successful change.
+    }
+
     // Clear the recovery session, then send them to sign in fresh.
     await supabase.auth.signOut();
     toast.success("Password updated. Please sign in.");

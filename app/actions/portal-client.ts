@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
+import { toFieldErrors } from "@/lib/action-helpers";
 import { requirePortalUser } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
@@ -99,5 +101,56 @@ export async function uploadOwnFileAction(
 
   revalidatePath("/portal/files");
   revalidatePath("/portal");
+  return { success: true };
+}
+
+const changePasswordSchema = z
+  .object({
+    password: z.string().min(8, "Use at least 8 characters."),
+    confirm: z.string(),
+  })
+  .refine((data) => data.password === data.confirm, {
+    path: ["confirm"],
+    message: "Passwords do not match.",
+  });
+
+/**
+ * In-session password change for a CLIENT-PORTAL user (/portal/account). Runs
+ * against the cookie-scoped session — unlike the /reset-password recovery flow,
+ * the user stays signed in. On success the must_change_password flag is cleared
+ * via the clear_must_change_password() RPC (a portal user has no UPDATE grant
+ * on client_users), which removes the layout banner on the next render.
+ */
+export async function changePasswordAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. See README setup." };
+  }
+
+  const portal = await requirePortalUser();
+  if (!portal) return { error: "You must be signed in." };
+
+  const parsed = changePasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+  });
+  if (!parsed.success) return { fieldErrors: toFieldErrors(parsed.error) };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+  if (error) return { error: error.message };
+
+  // Best-effort: the password is already changed, so a failure here shouldn't
+  // fail the action — the banner will just persist until the next change.
+  const { error: rpcError } = await supabase.rpc("clear_must_change_password");
+  if (rpcError) {
+    console.error("clear_must_change_password", rpcError.message);
+  }
+
+  revalidatePath("/portal", "layout");
   return { success: true };
 }

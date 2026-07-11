@@ -60,6 +60,8 @@ export interface PortalContext {
   email: string | null;
   clientId: string;
   canUpload: boolean;
+  /** True until the user replaces their provisioned temp password. */
+  mustChangePassword: boolean;
 }
 
 /**
@@ -75,7 +77,7 @@ export async function getPortalContext(): Promise<PortalContext | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("client_users")
-    .select("client_id, can_upload")
+    .select("client_id, can_upload, must_change_password")
     .eq("user_id", user.id)
     .is("revoked_at", null)
     .maybeSingle();
@@ -86,6 +88,7 @@ export async function getPortalContext(): Promise<PortalContext | null> {
     email: user.email ?? null,
     clientId: data.client_id,
     canUpload: data.can_upload,
+    mustChangePassword: data.must_change_password,
   };
 }
 

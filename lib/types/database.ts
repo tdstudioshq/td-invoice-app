@@ -9,6 +9,16 @@ export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
 // Maps to the three private-storage prefixes (uploads/, final-files/, invoices/).
 export type FileCategory = "uploads" | "final_files" | "invoices";
 
+// Lifecycle of a client project (see lib/projects.ts for labels/ordering).
+export type ProjectStatus =
+  | "draft"
+  | "in_progress"
+  | "awaiting_review"
+  | "revision_requested"
+  | "approved"
+  | "completed"
+  | "archived";
+
 export type Json =
   | string
   | number
@@ -197,6 +207,7 @@ export interface Database {
           client_id: string;
           email: string | null;
           can_upload: boolean;
+          must_change_password: boolean;
           revoked_at: string | null;
           created_at: string;
           updated_at: string;
@@ -208,6 +219,7 @@ export interface Database {
           client_id: string;
           email?: string | null;
           can_upload?: boolean;
+          must_change_password?: boolean;
           revoked_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -261,12 +273,15 @@ export interface Database {
           owner_id: string | null;
           client_id: string;
           folder_id: string | null;
+          project_id: string | null;
           category: FileCategory;
           storage_path: string;
           name: string;
           size_bytes: number;
           mime_type: string | null;
           uploaded_by: string | null;
+          archived_at: string | null;
+          display_order: number;
           created_at: string;
         };
         Insert: {
@@ -274,12 +289,15 @@ export interface Database {
           owner_id?: string | null;
           client_id: string;
           folder_id?: string | null;
+          project_id?: string | null;
           category?: FileCategory;
           storage_path: string;
           name: string;
           size_bytes?: number;
           mime_type?: string | null;
           uploaded_by?: string | null;
+          archived_at?: string | null;
+          display_order?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["client_files"]["Insert"]>;
@@ -294,6 +312,47 @@ export interface Database {
             foreignKeyName: "client_files_folder_id_fkey";
             columns: ["folder_id"];
             referencedRelation: "client_file_folders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "client_files_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "client_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      client_projects: {
+        Row: {
+          id: string;
+          owner_id: string | null;
+          client_id: string;
+          name: string;
+          description: string | null;
+          status: ProjectStatus;
+          due_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string | null;
+          client_id: string;
+          name: string;
+          description?: string | null;
+          status?: ProjectStatus;
+          due_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["client_projects"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "client_projects_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
             referencedColumns: ["id"];
           },
         ];
@@ -501,6 +560,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: boolean;
       };
+      clear_must_change_password: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
       resolve_qr_target: {
         Args: { p_slug: string };
         Returns: { qr_code_id: string; destination_url: string }[];
@@ -529,6 +592,7 @@ export interface Database {
     Enums: {
       invoice_status: InvoiceStatus;
       file_category: FileCategory;
+      project_status: ProjectStatus;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -545,6 +609,8 @@ export type ClientUser = Database["public"]["Tables"]["client_users"]["Row"];
 export type ClientFileFolder =
   Database["public"]["Tables"]["client_file_folders"]["Row"];
 export type ClientFile = Database["public"]["Tables"]["client_files"]["Row"];
+export type ClientProject =
+  Database["public"]["Tables"]["client_projects"]["Row"];
 export type FileActivity =
   Database["public"]["Tables"]["file_activity"]["Row"];
 export type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -573,5 +639,10 @@ export type ClientFileWithFolder = ClientFile & {
 // A client row plus its portal-access summary, used by the admin portal screens.
 export type ClientPortalSummary = Client & {
   portal_user: ClientUser | null;
+  file_count: number;
+};
+
+// A project plus how many files are attached to it.
+export type ClientProjectWithFileCount = ClientProject & {
   file_count: number;
 };

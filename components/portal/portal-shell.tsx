@@ -4,7 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { FileText, FolderLock, LayoutDashboard, Menu } from "lucide-react";
+import {
+  FileText,
+  FolderKanban,
+  FolderLock,
+  LayoutDashboard,
+  Menu,
+  UserRound,
+} from "lucide-react";
 
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { Button } from "@/components/ui/button";
@@ -19,8 +26,10 @@ import { cn } from "@/lib/utils";
 
 const PORTAL_NAV = [
   { href: "/portal", label: "Overview", icon: LayoutDashboard },
+  { href: "/portal/projects", label: "Projects", icon: FolderKanban },
   { href: "/portal/files", label: "Files", icon: FolderLock },
   { href: "/portal/invoices", label: "Invoices", icon: FileText },
+  { href: "/portal/account", label: "Account", icon: UserRound },
 ];
 
 function PortalBrand({ companyName }: { companyName?: string | null }) {

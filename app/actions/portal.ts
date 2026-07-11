@@ -5,9 +5,9 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireOwnedClient, toFieldErrors } from "@/lib/action-helpers";
 import { getCompanySettings } from "@/lib/data";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   createAdminClient,
   isSupabaseAdminConfigured,
@@ -19,52 +19,15 @@ import {
   isResendConfigured,
 } from "@/lib/email/client";
 import { portalInviteEmail } from "@/lib/email/templates";
-import {
-  FILE_CATEGORIES,
-  MAX_UPLOAD_BYTES,
-  buildStoragePath,
-  formatBytes,
-  sanitizeFileName,
-} from "@/lib/portal";
+import { FILE_CATEGORIES, sanitizeFileName } from "@/lib/portal";
 import type { ActionState } from "@/app/actions/types";
 import type { FileCategory } from "@/lib/types/database";
 
 const BUCKET = "client-files";
 
-function toFieldErrors(error: z.ZodError): Record<string, string> {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "form");
-    if (!fieldErrors[key]) fieldErrors[key] = issue.message;
-  }
-  return fieldErrors;
-}
-
 /** Generate a strong temporary password that satisfies common complexity rules. */
 function generateTempPassword(): string {
   return `${randomBytes(9).toString("base64url")}Aa1!`;
-}
-
-/**
- * Confirm the current admin owns `clientId`. Returns the cookie-scoped client and
- * the admin's user id, or an error state. RLS already restricts `clients` to the
- * owner, so a found row proves ownership.
- */
-async function requireOwnedClient(clientId: string) {
-  const user = await requireAdmin();
-  if (!user) {
-    return { error: "Supabase is not configured. See README setup." as string };
-  }
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, owner_id")
-    .eq("id", clientId)
-    .maybeSingle();
-  if (error || !data) {
-    return { error: "Client not found." as string };
-  }
-  return { supabase, userId: user.id };
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +98,9 @@ export async function createPortalUserAction(
     client_id: parsed.data.client_id,
     email: parsed.data.email,
     can_upload: parsed.data.can_upload,
+    // Cleared by clear_must_change_password() once the user sets their own
+    // password (either via the emailed recovery link or /portal/account).
+    must_change_password: true,
   });
   if (mapError) {
     // Roll back the orphaned auth user so the email can be retried.
@@ -323,82 +289,11 @@ export async function deleteFolderAction(formData: FormData): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Files
+//
+// Admin uploads live in app/actions/uploads.ts (signed-upload-URL pipeline —
+// file bytes never pass through a Server Action); only rename/delete remain
+// here.
 // ---------------------------------------------------------------------------
-
-export async function adminUploadFileAction(
-  _prev: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const clientId = String(formData.get("client_id") ?? "");
-  const categoryParse = categorySchema.safeParse(formData.get("category"));
-  const folderIdRaw = String(formData.get("folder_id") ?? "");
-  const file = formData.get("file");
-
-  if (!clientId) return { error: "Missing client." };
-  if (!categoryParse.success) return { error: "Invalid category." };
-  if (!(file instanceof File) || file.size === 0) {
-    return { fieldErrors: { file: "Choose a file to upload" } };
-  }
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return {
-      fieldErrors: { file: `File exceeds the ${formatBytes(MAX_UPLOAD_BYTES)} limit` },
-    };
-  }
-  if (!isSupabaseConfigured()) {
-    return { error: "Supabase is not configured. See README setup." };
-  }
-
-  const owned = await requireOwnedClient(clientId);
-  if ("error" in owned) return { error: owned.error };
-  const { supabase, userId } = owned;
-
-  const category = categoryParse.data;
-  // The folder <Select> uses "none" as its empty sentinel (Radix forbids "").
-  const folderId = folderIdRaw && folderIdRaw !== "none" ? folderIdRaw : null;
-  const displayName = sanitizeFileName(file.name);
-  const path = buildStoragePath(clientId, category, file.name);
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, file, {
-      contentType: file.type || "application/octet-stream",
-      upsert: false,
-    });
-  if (uploadError) return { error: uploadError.message };
-
-  const { data: row, error: rowError } = await supabase
-    .from("client_files")
-    .insert({
-      owner_id: userId,
-      client_id: clientId,
-      folder_id: folderId,
-      category,
-      storage_path: path,
-      name: displayName,
-      size_bytes: file.size,
-      mime_type: file.type || null,
-      uploaded_by: userId,
-    })
-    .select("id")
-    .single();
-  if (rowError) {
-    // Clean up the orphaned object if the metadata insert fails.
-    await supabase.storage.from(BUCKET).remove([path]);
-    return { error: rowError.message };
-  }
-
-  await supabase.from("file_activity").insert({
-    owner_id: userId,
-    client_id: clientId,
-    file_id: row.id,
-    actor_id: userId,
-    action: "upload",
-    detail: { name: displayName, category, by: "admin" },
-  });
-
-  revalidatePath(`/client-portals/${clientId}`);
-  return { success: true };
-}
 
 export async function renameFileAction(
   _prev: ActionState,

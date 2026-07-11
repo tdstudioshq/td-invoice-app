@@ -56,5 +56,29 @@ export function formatBytes(bytes: number | null | undefined): string {
   return `${i === 0 ? value : value.toFixed(1)} ${units[i]}`;
 }
 
-/** Max upload size accepted by the portal (25 MB). Enforced in server actions. */
+/**
+ * Max upload size (25 MB). Enforced at upload-ticket mint time, by the
+ * client-files bucket's file_size_limit (migration 0016), and re-checked at
+ * finalize — see lib/uploads.ts. The portal's own single-file server-action
+ * upload is additionally capped by Next's Server Action body limit (~4 MB,
+ * next.config.ts).
+ */
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+export type PreviewKind = "image" | "pdf";
+
+/**
+ * Whether a stored file can be previewed inline in the browser, and how.
+ * SVG is deliberately excluded (inline SVG can carry scripts — download only);
+ * design sources (.ai/.psd/.eps/.zip) get download cards instead.
+ */
+export function previewKind(
+  mimeType: string | null | undefined,
+): PreviewKind | null {
+  // Normalize: drop any `; charset=…` parameter and whitespace so the SVG guard
+  // below can't be slipped past with `image/svg+xml; charset=utf-8`.
+  const mime = (mimeType ?? "").toLowerCase().split(";")[0].trim();
+  if (mime === "application/pdf") return "pdf";
+  if (mime.startsWith("image/") && mime !== "image/svg+xml") return "image";
+  return null;
+}
