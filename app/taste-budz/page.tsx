@@ -1,0 +1,65 @@
+/* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
+
+import { AnimatedBackground } from "@/app/login/animated-background";
+import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
+import { getTasteBudzImages } from "@/lib/data";
+
+// The brand logo lives in the same public TASTE BUDZ bucket it fronts. It's
+// referenced by absolute URL (not listed at runtime) so metadata stays static.
+const TASTE_BUDZ_LOGO_URL =
+  "https://tbgyyyffbxveukbihnhp.supabase.co/storage/v1/object/public/TASTE%20BUDZ/TASTE%20BUDS%20READY%20LOGO.png";
+
+export const metadata = {
+  title: "TASTE BUDZ",
+  description: "The TASTE BUDZ gallery by TD Studios.",
+  openGraph: {
+    title: "TASTE BUDZ",
+    description: "The TASTE BUDZ gallery by TD Studios.",
+    images: [{ url: TASTE_BUDZ_LOGO_URL }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TASTE BUDZ",
+    images: [TASTE_BUDZ_LOGO_URL],
+  },
+};
+
+// Reads the TASTE BUDZ Storage bucket per request, so images uploaded later
+// appear automatically without a redeploy.
+export const dynamic = "force-dynamic";
+
+export default async function TasteBudzPage() {
+  const images = await getTasteBudzImages();
+
+  return (
+    <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+      <AnimatedBackground />
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
+        <header className="flex flex-col items-center gap-3 text-center">
+          <img
+            src={TASTE_BUDZ_LOGO_URL}
+            alt="TASTE BUDZ"
+            className="w-full max-w-xs sm:max-w-sm"
+          />
+          <h1 className="sr-only">TASTE BUDZ</h1>
+        </header>
+
+        <PortfolioGallery
+          images={images}
+          emptyTitle="No TASTE BUDZ images yet."
+          emptyHint="Upload images to the TASTE BUDZ bucket and they'll appear here automatically."
+        />
+
+        <Link
+          href="/"
+          className="text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
+        >
+          <ArrowLeftIcon weight="bold" className="size-3.5" />
+          Back to TD Studios
+        </Link>
+      </div>
+    </main>
+  );
+}

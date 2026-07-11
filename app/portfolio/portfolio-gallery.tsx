@@ -13,20 +13,23 @@ import { PortfolioLightbox } from "@/app/portfolio/portfolio-lightbox";
  * `lib/portfolio.ts` (data-driven, pure) so a filter bar can be reintroduced
  * later without touching the renderer — it's just not surfaced in the UI today.
  */
-export function PortfolioGallery({ images }: { images: PortfolioImage[] }) {
+export function PortfolioGallery({
+  images,
+  emptyTitle = "No portfolio images yet.",
+  emptyHint = "Upload images to the custom-work bucket and they'll appear here automatically.",
+}: {
+  images: PortfolioImage[];
+  emptyTitle?: string;
+  emptyHint?: string;
+}) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (images.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-20 text-center">
         <ImageIcon weight="duotone" className="size-10 text-white/40" />
-        <p className="text-sm font-medium text-white/80">
-          No portfolio images yet.
-        </p>
-        <p className="max-w-sm text-xs text-white/50">
-          Upload images to the custom-work bucket and they&apos;ll appear here
-          automatically.
-        </p>
+        <p className="text-sm font-medium text-white/80">{emptyTitle}</p>
+        <p className="max-w-sm text-xs text-white/50">{emptyHint}</p>
       </div>
     );
   }

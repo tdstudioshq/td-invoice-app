@@ -24,6 +24,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/qr-generator/designs",
   "/custom-design-request",
   "/portfolio",
+  "/taste-budz",
   "/tools/cutline-generator",
   // The static mylar shop (public/mylar/index.html): /mylar is the rewritten
   // clean URL, and the direct file path must pass too since the matcher only

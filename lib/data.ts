@@ -573,6 +573,26 @@ export async function getDashboardStats(
  * array when Supabase isn't configured (graceful-degradation pattern).
  */
 export async function getPortfolioImages(): Promise<PortfolioImage[]> {
+  return listPublicBucketImages(PORTFOLIO_BUCKET);
+}
+
+/**
+ * The public `TASTE BUDZ` bucket backing the `/taste-budz` gallery. Same model
+ * as the portfolio: upload to the bucket, the page picks it up next request.
+ * The brand logo lives in the same bucket but is rendered in the page header,
+ * so it's excluded from the grid.
+ */
+export const TASTE_BUDZ_BUCKET = "TASTE BUDZ";
+export const TASTE_BUDZ_LOGO_FILE = "TASTE BUDS READY LOGO.png";
+
+export async function getTasteBudzImages(): Promise<PortfolioImage[]> {
+  const images = await listPublicBucketImages(TASTE_BUDZ_BUCKET);
+  return images.filter((image) => image.name !== TASTE_BUDZ_LOGO_FILE);
+}
+
+async function listPublicBucketImages(
+  bucket: string,
+): Promise<PortfolioImage[]> {
   const storage = isSupabaseAdminConfigured()
     ? createAdminClient().storage
     : isSupabaseConfigured()
@@ -583,13 +603,13 @@ export async function getPortfolioImages(): Promise<PortfolioImage[]> {
   const images: PortfolioImage[] = [];
   const pageSize = 100;
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await storage.from(PORTFOLIO_BUCKET).list("", {
+    const { data, error } = await storage.from(bucket).list("", {
       limit: pageSize,
       offset,
       sortBy: { column: "name", order: "asc" },
     });
     if (error) {
-      console.error("getPortfolioImages", error.message);
+      console.error(`listPublicBucketImages(${bucket})`, error.message);
       break;
     }
     if (!data || data.length === 0) break;
@@ -598,9 +618,7 @@ export async function getPortfolioImages(): Promise<PortfolioImage[]> {
       // Skip folder placeholders (id is null) and non-image objects.
       if (!object.id || !isImageFile(object.name)) continue;
       const path = object.name;
-      const { data: pub } = storage
-        .from(PORTFOLIO_BUCKET)
-        .getPublicUrl(path);
+      const { data: pub } = storage.from(bucket).getPublicUrl(path);
       images.push({
         id: path,
         name: object.name,
