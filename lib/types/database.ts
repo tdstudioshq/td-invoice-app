@@ -421,40 +421,6 @@ export interface Database {
           },
         ];
       };
-      leads: {
-        Row: {
-          id: string;
-          owner_id: string;
-          instagram_id: string;
-          username: string;
-          full_name: string | null;
-          is_private: boolean;
-          is_verified: boolean;
-          profile_pic_url: string | null;
-          relationship_type: "followers" | "following";
-          source_username: string;
-          source_file: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          owner_id?: string;
-          instagram_id: string;
-          username: string;
-          full_name?: string | null;
-          is_private?: boolean;
-          is_verified?: boolean;
-          profile_pic_url?: string | null;
-          relationship_type: "followers" | "following";
-          source_username: string;
-          source_file?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
-        Relationships: [];
-      };
       profiles: {
         Row: {
           id: string;
@@ -648,7 +614,6 @@ export type ClientProject =
   Database["public"]["Tables"]["client_projects"]["Row"];
 export type FileActivity =
   Database["public"]["Tables"]["file_activity"]["Row"];
-export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
 export type QrGeneration =

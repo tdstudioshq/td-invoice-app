@@ -88,7 +88,7 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0002_auth_and_owner_scoping.sql` — adds `owner_id` to every table and **tightens RLS to `auth.uid()`** (no more permissive anon access).
   - `0003_client_portal.sql` — `client_users`, `client_file_folders`, `client_files`, `file_activity`; additive portal-scoped `SELECT` policies (via `portal_client_id()`) with admin write policies preserved.
   - `0004_client_files_storage.sql` — creates the **private `client-files` Storage bucket** and `storage.objects` policies mirroring the table policies.
-  - `0005_instagram_leads.sql` — owner-scoped Instagram Leads CRM records.
+  - `0005_instagram_leads.sql` — (removed) created the Instagram Leads CRM `leads` table; dropped again by `0020`. Kept only as historical record.
   - `0006_social_hub.sql` — (removed) created the dormant Instagram Social Hub tables; dropped again by `0011`. Kept only as historical record.
   - `0007_qr_codes.sql` — owner-scoped `qr_codes` (saved/dynamic QR codes) plus the `SECURITY DEFINER` `resolve_qr_slug()` helper for the anonymous redirect (superseded in 0008).
   - `0008_qr_scans.sql` — append-only `qr_scans` analytics, the `qr_code_scan_counts` (`security_invoker`) view, and the `SECURITY DEFINER` `resolve_qr_target()` / `log_qr_scan()` helpers that the public `/q/<slug>` route uses.
@@ -101,6 +101,8 @@ A Supabase-backed invoicing app: clients, auto-numbered invoices with line items
   - `0016_client_projects.sql` — the **client-projects** layer over the portal (see **Client portals & secure file storage**): `project_status` enum + owner-scoped `client_projects` table; adds `client_files.project_id` / `archived_at` / `display_order` and `client_users.must_change_password`; portal SELECT policies hiding draft/archived projects and archived files (and files of hidden projects); the `SECURITY DEFINER` `clear_must_change_password()` RPC (a user clears only their own flag — an UPDATE policy would leak `can_upload`); and sets the `client-files` bucket `file_size_limit` to 25 MB for the new direct-to-Storage upload path.
   - `0017_portal_write_hardening.sql` — **security fix** for a latent gap in the `0003` portal `*_admin_all` policies: they gated writes only on `owner_id = auth.uid()` (the column default), so any authenticated user could INSERT self-owned rows into `client_users`/`client_file_folders`/`client_files`/`client_projects` — worst case, mapping their own auth user to another client's portal. Now every `*_admin_all` policy (and the `file_activity` insert policy) additionally requires the caller to **own the referenced `clients` row** (the check `0004`'s storage policies always made). Admins pass; portal users and self-signup customers don't. Caught by the feature's RLS verification probes.
   - `0018_portal_storage_hide_archived.sql` — **security fix** closing the Storage-layer half of the `0016` archival guarantee: the `client_files_portal_select` policy on `storage.objects` (from `0004`) still granted portal users a coarse "first path segment == your client id" read, so archived files / files of draft-or-archived projects — hidden by the *table* RLS — could still be listed and fetched directly from Storage. The policy now requires a portal-**visible** `client_files` row for the exact object key (same predicate as the table policy). Admin storage access and the portal upload policy are untouched.
+  - `0019_portal_dam.sql` — the portal file-browser layer: per-user `client_file_favorites` (RLS: own rows only, and only for files the caller can already see) and the portal SELECT policy on `file_activity` (timeline).
+  - `0020_drop_instagram_leads.sql` — drops the `leads` table; the Instagram Leads CRM (`/leads`) was removed entirely.
 - `lib/types/database.ts` is a **hand-maintained mirror** of that schema (the `Database` generic typing all Supabase clients). When you change the SQL, update this file too — or regenerate with `supabase gen types typescript --local > lib/types/database.ts`.
 - **RLS is owner-scoped:** every table carries an `owner_id` and is scoped to `auth.uid()`. The public anon key cannot read or write data; users only see their own records, and portal users only see their one client's rows. Server Actions and the PDF route run through the cookie-scoped client (no RLS bypass) — only `lib/supabase/admin.ts` bypasses RLS, for the narrow portal-user-creation case.
 
@@ -152,18 +154,9 @@ Transactional email is sent via **Resend** (`lib/email/`: `client.ts` exposes `g
 - **Safety limits** (`lib/cutline/limits.ts`, shared client+server): JPG/PNG only (MIME or extension), ≤ 30 MB per image, ≤ 25 images per batch; anything else is rejected on both sides.
 - **Reusable presets:** `lib/cutline/presets.ts` (server+client-safe metadata) is the swap point — add a preset `{ id, label, file }` and drop its PDF under `public/assets/cutlines/` (`CUTLINE_ASSET_DIR`). The asset is read with `fs` at runtime, so each preset file must be listed in `outputFileTracingIncludes` in `next.config.ts` (mirroring the invoice-logo entry) to be bundled into the function on Vercel.
 
-### Instagram Leads CRM
-
-- Read-only admin page at `/leads` (`app/(app)/leads/page.tsx`), backed by `getLeads()` in `lib/data.ts` against the owner-scoped `instagram_leads` table (`0005_instagram_leads.sql`). Supports `?q=` search and `?page=` pagination via `searchParams`. Like all reads, it returns an empty state when Supabase is unconfigured. Lead *creation* (follower-to-Leads sync) and lead scoring/CRM conversion are paused roadmap items — there is no write action yet.
-
 ### PWA & mobile
 
 - Ships a Web App Manifest (`app/manifest.ts`) and maskable icons; installable and launches standalone to `/dashboard`. Shells apply `env(safe-area-inset-*)` padding for notch/home-indicator safety, and invoice/line-item layouts have dedicated mobile treatments.
-
-### Roadmap stubs
-
-Lead *creation* (follower-to-Leads sync) and lead scoring/CRM conversion remain
-paused roadmap items — the Leads CRM (`/leads`) is read-only for now.
 
 ## Mobile companion app (`mobile/`)
 

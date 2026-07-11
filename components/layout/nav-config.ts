@@ -6,7 +6,6 @@ import {
   FolderLock,
   QrCode,
   Settings,
-  UserSearch,
 } from "lucide-react";
 
 export interface NavItem {
@@ -19,7 +18,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/leads", label: "Leads", icon: UserSearch },
   { href: "/qr", label: "QR Codes", icon: QrCode },
   { href: "/client-portals", label: "Client Portals", icon: FolderLock },
   { href: "/settings", label: "Settings", icon: Settings },

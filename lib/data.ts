@@ -23,7 +23,6 @@ import type {
   FileActivity,
   InvoiceWithClient,
   InvoiceWithRelations,
-  Lead,
   QrCodeRecord,
   QrScan,
 } from "@/lib/types/database";
@@ -242,64 +241,6 @@ export async function getCompanySettings(): Promise<CompanySettings | null> {
     return null;
   }
   return data;
-}
-
-// ---------------------------------------------------------------------------
-// Leads
-// ---------------------------------------------------------------------------
-
-export interface LeadsPageData {
-  leads: Lead[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-export async function getLeads({
-  query = "",
-  page = 1,
-  pageSize = 50,
-}: {
-  query?: string;
-  page?: number;
-  pageSize?: number;
-} = {}): Promise<LeadsPageData> {
-  const safePage = Math.max(1, Math.floor(page));
-  const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize)));
-
-  if (!isSupabaseConfigured()) {
-    return { leads: [], total: 0, page: safePage, pageSize: safePageSize };
-  }
-
-  const supabase = await createClient();
-  const from = (safePage - 1) * safePageSize;
-  const to = from + safePageSize - 1;
-
-  let request = supabase
-    .from("leads")
-    .select("*", { count: "exact" })
-    .order("username", { ascending: true })
-    .range(from, to);
-
-  const search = query.replace(/[,%()]/g, " ").trim();
-  if (search) {
-    request = request.or(
-      `username.ilike.%${search}%,full_name.ilike.%${search}%`,
-    );
-  }
-
-  const { data, error, count } = await request;
-  if (error) {
-    console.error("getLeads", error.message);
-    return { leads: [], total: 0, page: safePage, pageSize: safePageSize };
-  }
-
-  return {
-    leads: data ?? [],
-    total: count ?? 0,
-    page: safePage,
-    pageSize: safePageSize,
-  };
 }
 
 // ---------------------------------------------------------------------------
