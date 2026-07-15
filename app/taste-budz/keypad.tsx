@@ -5,16 +5,28 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { BackspaceIcon } from "@phosphor-icons/react";
 
 import { enterTasteBudzCodeAction } from "@/app/taste-budz/access";
+import type { ActionState } from "@/app/actions/types";
 import { cn } from "@/lib/utils";
 
 const CODE_LENGTH = 4;
 
 /**
  * Phone-style keypad gate. Collects a 4-digit code and auto-submits it to the
- * server action, which validates and sets the access cookie; on success the
- * revalidated /taste-budz re-renders with the gallery.
+ * given server action (defaults to the TASTE BUDZ one), which validates and
+ * sets the access cookie; on success the revalidated page re-renders with the
+ * gallery. Reused by /designs with its own action.
  */
-export function TasteBudzKeypad({ logoUrl }: { logoUrl: string }) {
+export function TasteBudzKeypad({
+  logoUrl,
+  logoAlt = "TASTE BUDZ",
+  logoClassName = "w-full max-w-xs",
+  action = enterTasteBudzCodeAction,
+}: {
+  logoUrl: string;
+  logoAlt?: string;
+  logoClassName?: string;
+  action?: (prev: ActionState, formData: FormData) => Promise<ActionState>;
+}) {
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
@@ -32,7 +44,7 @@ export function TasteBudzKeypad({ logoUrl }: { logoUrl: string }) {
     startTransition(async () => {
       const formData = new FormData();
       formData.set("code", code);
-      const result = await enterTasteBudzCodeAction({}, formData);
+      const result = await action({}, formData);
       if (result.error) {
         setError(result.error);
         setDigits("");
@@ -42,7 +54,7 @@ export function TasteBudzKeypad({ logoUrl }: { logoUrl: string }) {
       }
       // On success revalidatePath re-renders the server page to the gallery.
     });
-  }, []);
+  }, [action]);
 
   const press = (d: string) => {
     // Compute the next code here in the event handler — never inside the
@@ -57,7 +69,7 @@ export function TasteBudzKeypad({ logoUrl }: { logoUrl: string }) {
 
   return (
     <div className="flex flex-col items-center gap-8">
-      <img src={logoUrl} alt="TASTE BUDZ" className="w-full max-w-xs" />
+      <img src={logoUrl} alt={logoAlt} className={logoClassName} />
 
       <div className="flex flex-col items-center gap-6">
         <div

@@ -11,19 +11,80 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  finalizeDesignRequestUploadsAction,
+  mintDesignRequestUploadsAction,
+} from "@/app/actions/design-requests";
+import { ACCEPT_ATTRIBUTE, ALLOWED_TYPES_LABEL } from "@/lib/uploads";
 
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/movkvrpz";
-
-// Accepted upload types: images, PDFs, and common design source files. The
-// browser only surfaces what it recognizes — extensions cover formats with no
-// reliable MIME type (AI/EPS/PSD).
-const FILE_ACCEPT =
-  "image/*,application/pdf,.ai,.eps,.psd,.svg,application/postscript,application/illustrator,application/vnd.adobe.photoshop,image/svg+xml";
 
 const fieldClass =
   "rounded-xl border-white/15 bg-white/[0.05] px-3.5 text-white placeholder:text-white/40 dark:bg-white/[0.05]";
 
-type Status = "idle" | "submitting" | "success" | "error";
+type Status = "idle" | "uploading" | "submitting" | "success" | "error";
+
+/**
+ * Formspree rejects file attachments on the free plan, so files never ride
+ * along in the POST. Instead they upload straight to the private
+ * `design-requests` Storage bucket via server-minted signed upload URLs
+ * (app/actions/design-requests.ts), and the Formspree email carries 30-day
+ * signed download links as a plain text field.
+ */
+async function uploadAssets(
+  files: File[],
+): Promise<{ links: { name: string; url: string }[] } | { error: string }> {
+  const minted = await mintDesignRequestUploadsAction({
+    files: files.map((f) => ({
+      name: f.name,
+      size: f.size,
+      type: f.type || null,
+    })),
+  });
+  if (minted.error || !minted.tickets || !minted.requestId) {
+    return { error: minted.error ?? "Could not prepare the file upload." };
+  }
+
+  const rejected = minted.tickets.filter((t) => !t.ok);
+  if (rejected.length > 0) {
+    return { error: rejected.map((t) => `${t.name}: ${t.error}`).join(" ") };
+  }
+
+  const uploaded: string[] = [];
+  for (const ticket of minted.tickets) {
+    if (!ticket.ok) continue;
+    const file = files.find((f) => f.name === ticket.name);
+    if (!file) continue;
+    // Same request shape as storage-js's uploadToSignedUrl (PUT + x-upsert),
+    // mirroring components/portal/admin-multi-upload.tsx.
+    const response = await fetch(ticket.signedUrl, {
+      method: "PUT",
+      headers: { "Content-Type": ticket.contentType, "x-upsert": "false" },
+      body: file,
+    });
+    if (!response.ok) {
+      return { error: `Uploading ${ticket.name} failed. Please try again.` };
+    }
+    uploaded.push(ticket.path);
+  }
+  if (uploaded.length === 0) {
+    return { error: "No files could be uploaded. Please try again." };
+  }
+
+  const finalized = await finalizeDesignRequestUploadsAction({
+    requestId: minted.requestId,
+    paths: uploaded,
+  });
+  if (finalized.error || !finalized.links) {
+    return { error: finalized.error ?? "Could not finish the file upload." };
+  }
+  if (finalized.failed && finalized.failed.length > 0) {
+    return {
+      error: `These files did not upload cleanly: ${finalized.failed.join(", ")}. Please try again.`,
+    };
+  }
+  return { links: finalized.links };
+}
 
 export function CustomDesignForm() {
   const [status, setStatus] = useState<Status>("idle");
@@ -32,13 +93,38 @@ export function CustomDesignForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    setStatus("submitting");
     setError(null);
 
     try {
+      const formData = new FormData(form);
+
+      // Pull the files out of the POST body — Formspree's free plan rejects
+      // any multipart submission that carries a file.
+      const files = formData
+        .getAll("assets")
+        .filter((v): v is File => v instanceof File && v.size > 0);
+      formData.delete("assets");
+
+      if (files.length > 0) {
+        setStatus("uploading");
+        const result = await uploadAssets(files);
+        if ("error" in result) {
+          setError(result.error);
+          setStatus("error");
+          return;
+        }
+        formData.set(
+          "assets",
+          result.links
+            .map((link) => `${link.name}: ${link.url}`)
+            .join("\n\n"),
+        );
+      }
+
+      setStatus("submitting");
       const response = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
-        body: new FormData(form),
+        body: formData,
         headers: { Accept: "application/json" },
       });
 
@@ -213,11 +299,12 @@ export function CustomDesignForm() {
           name="assets"
           type="file"
           multiple
-          accept={FILE_ACCEPT}
+          accept={ACCEPT_ATTRIBUTE}
           className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:text-white ${fieldClass}`}
         />
         <p className="text-muted-foreground text-xs">
-          Images, PDFs, and AI/PSD/EPS/SVG files. You can select multiple.
+          {ALLOWED_TYPES_LABEL} files, up to 25 MB each. You can select
+          multiple.
         </p>
       </div>
 
@@ -230,11 +317,15 @@ export function CustomDesignForm() {
 
       <Button
         type="submit"
-        disabled={status === "submitting"}
+        disabled={status === "uploading" || status === "submitting"}
         className="h-11 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90"
       >
         <PaperPlaneTiltIcon weight="bold" className="size-4" />
-        {status === "submitting" ? "Sending…" : "Send Request"}
+        {status === "uploading"
+          ? "Uploading files…"
+          : status === "submitting"
+            ? "Sending…"
+            : "Send Request"}
       </Button>
     </form>
   );

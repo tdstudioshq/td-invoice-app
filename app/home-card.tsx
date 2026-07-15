@@ -9,7 +9,6 @@ import {
   ImagesIcon,
   LockIcon,
   PaintBrushIcon,
-  QrCodeIcon,
   SquaresFourIcon,
   type Icon,
 } from "@phosphor-icons/react";
@@ -49,12 +48,6 @@ const BIO_LINKS: {
     label: "Request Custom Design",
     href: "/custom-design-request",
     icon: PaintBrushIcon,
-    internal: true,
-  },
-  {
-    label: "QR Code Generator",
-    href: "/qr-generator",
-    icon: QrCodeIcon,
     internal: true,
   },
 ];

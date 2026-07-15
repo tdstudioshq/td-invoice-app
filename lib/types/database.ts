@@ -19,6 +19,10 @@ export type ProjectStatus =
   | "completed"
   | "archived";
 
+// Dashboard task manager (migration 0022).
+export type TaskStatus = "todo" | "in_progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
+
 export type Json =
   | string
   | number
@@ -532,6 +536,43 @@ export interface Database {
           },
         ];
       };
+      tasks: {
+        Row: {
+          id: string;
+          owner_id: string;
+          client_id: string | null;
+          title: string;
+          notes: string | null;
+          status: TaskStatus;
+          priority: TaskPriority;
+          due_date: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id?: string;
+          client_id?: string | null;
+          title: string;
+          notes?: string | null;
+          status?: TaskStatus;
+          priority?: TaskPriority;
+          due_date?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["tasks"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey";
+            columns: ["client_id"];
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -592,6 +633,8 @@ export interface Database {
       invoice_status: InvoiceStatus;
       file_category: FileCategory;
       project_status: ProjectStatus;
+      task_status: TaskStatus;
+      task_priority: TaskPriority;
     };
     CompositeTypes: Record<never, never>;
   };
@@ -619,8 +662,12 @@ export type QrCodeRecord = Database["public"]["Tables"]["qr_codes"]["Row"];
 export type QrGeneration =
   Database["public"]["Tables"]["qr_generations"]["Row"];
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
+export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 
 // Composed shapes returned by joined queries.
+export type TaskWithClient = Task & {
+  client: Pick<Client, "id" | "company_name"> | null;
+};
 export type InvoiceWithClient = Invoice & {
   client: Pick<Client, "id" | "company_name" | "contact_name" | "email"> | null;
 };

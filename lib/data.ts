@@ -25,6 +25,7 @@ import type {
   InvoiceWithRelations,
   QrCodeRecord,
   QrScan,
+  TaskWithClient,
 } from "@/lib/types/database";
 
 export interface QrScanSummary {
@@ -61,6 +62,20 @@ export async function getClients(): Promise<Client[]> {
     return [];
   }
   return data ?? [];
+}
+
+export async function getTasks(): Promise<TaskWithClient[]> {
+  if (!isSupabaseConfigured()) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tasks")
+    .select("*, client:clients(id, company_name)")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("getTasks", error.message);
+    return [];
+  }
+  return (data ?? []) as unknown as TaskWithClient[];
 }
 
 export async function getQrCodes(): Promise<QrCodeRecord[]> {
@@ -547,6 +562,27 @@ export const TASTE_BUDZ_LOGO_FILE = "TASTE BUDS READY LOGO.png";
 export async function getTasteBudzImages(): Promise<PortfolioImage[]> {
   const images = await listPublicBucketImages(TASTE_BUDZ_BUCKET);
   return images.filter((image) => image.name !== TASTE_BUDZ_LOGO_FILE);
+}
+
+/**
+ * The public `GSO` bucket backing the `/gso` gallery. Same model as the
+ * portfolio: upload to the bucket, the page picks it up next request.
+ */
+export const GSO_BUCKET = "GSO";
+
+export async function getGsoImages(): Promise<PortfolioImage[]> {
+  return listPublicBucketImages(GSO_BUCKET);
+}
+
+/**
+ * The public `MAFIA terpz` bucket backing the `/mafiaterpz` gallery. Same model
+ * as the portfolio: upload to the bucket, the page picks it up next request.
+ * Rename this constant to match whatever public bucket you create in Supabase.
+ */
+export const MAFIA_TERPZ_BUCKET = "MAFIA terpz";
+
+export async function getMafiaTerpzImages(): Promise<PortfolioImage[]> {
+  return listPublicBucketImages(MAFIA_TERPZ_BUCKET);
 }
 
 async function listPublicBucketImages(

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { HomeCard } from "@/app/home-card";
 
@@ -10,6 +12,16 @@ export default async function Home(props: PageProps<"/">) {
   const sp = await props.searchParams;
   const target = typeof sp.redirect === "string" ? sp.redirect : undefined;
   const justReset = sp.reset === "success";
+
+  // If Supabase's Redirect URLs allowlist is missing /auth/callback, OAuth
+  // falls back to the Site URL (here) with the PKCE `?code=` attached. Forward
+  // it to the real callback so the exchange + role routing still happen.
+  const code = typeof sp.code === "string" ? sp.code : undefined;
+  if (code) {
+    const params = new URLSearchParams({ code });
+    if (target) params.set("redirect", target);
+    redirect(`/auth/callback?${params.toString()}`);
+  }
 
   return (
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">

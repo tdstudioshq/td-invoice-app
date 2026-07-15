@@ -27,6 +27,10 @@ const PUBLIC_PATHS = new Set<string>([
   "/custom-design-request",
   "/portfolio",
   "/taste-budz",
+  "/gso",
+  "/designs",
+  "/martyig",
+  "/mafiaterpz",
   "/tools/cutline-generator",
   "/tools/mockup-generator",
   // The static mylar shop (public/mylar/index.html): /mylar is the rewritten

@@ -1,103 +1,59 @@
-import Link from "next/link";
-import {
-  AlertTriangle,
-  FileText,
-  Plus,
-  Receipt,
-  Wallet,
-} from "lucide-react";
+import { AlertTriangle, CalendarClock, ListTodo, Loader } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { InvoicesTable } from "@/components/invoices/invoices-table";
-import { EmptyState } from "@/components/shared/empty-state";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { getDashboardStats, getInvoices } from "@/lib/data";
-import { formatCurrency } from "@/lib/format";
+import { TaskManager } from "@/components/dashboard/task-manager";
+import { getClients, getTasks } from "@/lib/data";
+import { isDueToday, isOverdue, todayISODate } from "@/lib/tasks";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const invoices = await getInvoices();
-  const stats = await getDashboardStats(invoices);
-  const recent = invoices.slice(0, 8);
+  const [tasks, clients] = await Promise.all([getTasks(), getClients()]);
+  const today = todayISODate();
+
+  const open = tasks.filter((t) => t.status !== "done");
+  const inProgress = open.filter((t) => t.status === "in_progress");
+  const dueToday = open.filter((t) => isDueToday(t, today));
+  const overdue = open.filter((t) => isOverdue(t, today));
 
   return (
     <>
       <PageHeader
         title="Dashboard"
-        description="An overview of your invoicing activity."
-      >
-        <Button asChild>
-          <Link href="/invoices/new">
-            <Plus />
-            New invoice
-          </Link>
-        </Button>
-      </PageHeader>
+        description="Every job you're juggling, in one list."
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Total invoiced"
-          value={formatCurrency(stats.totalInvoiced)}
-          hint="Excludes drafts"
-          icon={Receipt}
+          label="Open tasks"
+          value={String(open.length)}
+          icon={ListTodo}
         />
         <StatCard
-          label="Total paid"
-          value={formatCurrency(stats.totalPaid)}
-          icon={Wallet}
+          label="In progress"
+          value={String(inProgress.length)}
+          icon={Loader}
         />
         <StatCard
-          label="Outstanding"
-          value={formatCurrency(stats.outstanding)}
-          hint="Awaiting payment"
-          icon={FileText}
+          label="Due today"
+          value={String(dueToday.length)}
+          icon={CalendarClock}
+          accent={dueToday.length > 0 ? "warning" : "default"}
         />
         <StatCard
           label="Overdue"
-          value={formatCurrency(stats.overdueAmount)}
-          hint={`${stats.overdueCount} invoice${stats.overdueCount === 1 ? "" : "s"} past due`}
+          value={String(overdue.length)}
+          hint={overdue.length > 0 ? "Needs attention" : "Nothing slipping"}
           icon={AlertTriangle}
-          accent={stats.overdueCount > 0 ? "warning" : "default"}
+          accent={overdue.length > 0 ? "warning" : "default"}
         />
       </div>
 
-      <Card className="mt-8">
-        <CardHeader className="flex-row items-center justify-between border-b border-glass-border">
-          <CardTitle>Recent invoices</CardTitle>
-          {invoices.length > 0 ? (
-            <Button asChild variant="outline" size="sm">
-              <Link href="/invoices">View all</Link>
-            </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent>
-          {recent.length === 0 ? (
-            <EmptyState
-              icon={Receipt}
-              title="No invoices yet"
-              description="Create your first invoice to start tracking revenue."
-              action={
-                <Button asChild>
-                  <Link href="/invoices/new">
-                    <Plus />
-                    New invoice
-                  </Link>
-                </Button>
-              }
-            />
-          ) : (
-            <InvoicesTable invoices={recent} />
-          )}
-        </CardContent>
-      </Card>
+      <TaskManager
+        tasks={tasks}
+        clients={clients.map(({ id, company_name }) => ({ id, company_name }))}
+      />
     </>
   );
 }
