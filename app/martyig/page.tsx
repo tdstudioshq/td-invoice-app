@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import { AtSign, UserRound, Users } from "lucide-react";
 
-import { AnimatedBackground } from "@/app/login/animated-background";
 import { enterMartyigCodeAction, hasMartyigAccess } from "@/app/martyig/access";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -37,8 +36,7 @@ export default async function MartyigPage() {
 
   if (!unlocked) {
     return (
-      <main className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
-        <AnimatedBackground />
+      <main className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-black px-4 py-12">
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
           <TasteBudzKeypad
             logoUrl={LOGO}
@@ -62,8 +60,7 @@ export default async function MartyigPage() {
   const named = leads.filter((lead) => lead.name).length;
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
-      <AnimatedBackground />
+    <main className="relative flex min-h-svh flex-col items-center overflow-hidden bg-black px-4 py-12">
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
         <header className="flex flex-col items-center gap-3 text-center">
           <img src={LOGO} alt="Marty IG Leads" className="w-full max-w-[13rem]" />
