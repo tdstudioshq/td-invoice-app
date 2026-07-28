@@ -20,8 +20,8 @@ const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 // use this page is statically generated, so the directory is read at build —
 // where the files exist — and the resulting list is baked into the page.
 async function getDesignImages(): Promise<string[]> {
+  const dir = join(process.cwd(), "public", "promoimages");
   try {
-    const dir = join(process.cwd(), "public", "promoimages");
     const files = await readdir(dir);
     return files
       .filter((name) =>
@@ -29,7 +29,14 @@ async function getDesignImages(): Promise<string[]> {
       )
       .sort()
       .map((name) => `/promoimages/${name}`);
-  } catch {
+  } catch (error) {
+    // The empty-state fallback below is indistinguishable from "no designs
+    // uploaded yet", so a failed read would otherwise vanish silently. This
+    // runs on the server only (build or function) — nothing reaches the browser.
+    console.error(
+      `[premade-designs] Failed to read promo images from ${dir} — rendering an empty gallery.`,
+      error,
+    );
     return [];
   }
 }

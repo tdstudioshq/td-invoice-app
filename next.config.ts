@@ -25,23 +25,15 @@ const nextConfig: NextConfig = {
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.
     "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
+    // The premade-designs gallery lists this directory with fs.readdir at
+    // render time. It is statically prerendered today (so the read happens on
+    // the build machine), but tracing the files in means the page keeps working
+    // if it ever renders dynamically — otherwise readdir would throw and the
+    // page's catch would silently render an empty gallery.
+    "/qr-generator/designs": ["./public/promoimages/**"],
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**.cdninstagram.com",
-        port: "",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "**.fbcdn.net",
-        port: "",
-        pathname: "/**",
-      },
-    ],
-  },
+  // No `images.remotePatterns`: every next/image source is local (public/ or a
+  // same-origin route). Add a pattern here before rendering any remote image.
 };
 
 export default nextConfig;
