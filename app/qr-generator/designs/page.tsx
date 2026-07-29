@@ -27,7 +27,13 @@ async function getDesignImages(): Promise<string[]> {
       .filter((name) =>
         IMAGE_EXTENSIONS.has(name.slice(name.lastIndexOf(".")).toLowerCase()),
       )
+      // Newest design first. These are Instagram exports whose leading media ID
+      // is 9 digits for every current file and climbs over time, so a reversed
+      // string sort is also reverse-chronological. Sorting by mtime would not
+      // work — the whole folder shares one timestamp from a single bulk copy.
+      // Adding a file whose leading ID is a different length breaks this.
       .sort()
+      .reverse()
       .map((name) => `/promoimages/${name}`);
   } catch (error) {
     // The empty-state fallback below is indistinguishable from "no designs

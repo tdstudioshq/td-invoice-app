@@ -5,10 +5,11 @@ import Image from "next/image";
 import { GlassCard } from "@developer-hub/liquid-glass";
 import { toast } from "sonner";
 import {
+  AppleLogoIcon,
   ArrowLeftIcon,
   ChatCircleTextIcon,
+  CurrencyDollarIcon,
   ImagesIcon,
-  LockIcon,
   PaintBrushIcon,
   SquaresFourIcon,
   type Icon,
@@ -19,6 +20,7 @@ import { ForgotPasswordForm } from "@/app/login/forgot-password-form";
 import { GoogleSignInButton } from "@/app/login/google-sign-in-button";
 import { LoginForm } from "@/app/login/login-form";
 import { CardDescription, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 /**
  * The "link in bio" buttons. Edit the labels and `href`s here to point at the
@@ -63,21 +65,40 @@ const BIO_LINKS: {
 ];
 
 /**
- * Social/contact links, shown as colored icon buttons under the TD STUDIOS
- * title. Rendered with react-social-icons, which picks the brand icon + color
- * from the URL (wa.me → WhatsApp, mailto → email, …).
+ * Chime publishes no per-user pay URL for a $ChimeSign — the handle only works
+ * inside their app — so the Chime badge copies this to the clipboard instead of
+ * linking anywhere. Replace the badge with an `<a>` if Chime ever ships one.
  */
-const SOCIAL_LINKS: { label: string; href: string }[] = [
-  { label: "Instagram", href: "https://instagram.com/tdstudiosco" },
-  { label: "WhatsApp", href: "https://wa.me/19297528373" },
-  { label: "Email", href: "mailto:tyler@tdstudiosny.com" },
-];
+const CHIME_SIGN = "$tyler-diorio-1";
+
+/**
+ * Chime's mark ships in neither react-social-icons nor Phosphor, so this is a
+ * stand-in: the thick open ring from their logo. Drop in the official asset if
+ * you have it.
+ */
+function ChimeMarkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M17.5 7a7 7 0 1 0 0 10"
+        stroke="currentColor"
+        strokeWidth="3.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 const glassButton =
   "inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-white/[0.12] active:translate-y-px";
 
-const iconButton =
-  "inline-flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-white/[0.12] active:translate-y-px";
+/**
+ * The round brand badges under the title. Sized to the 40px circle that
+ * react-social-icons renders for Instagram so the row reads as one set; each
+ * badge supplies its own brand background.
+ */
+const socialBadge =
+  "inline-flex size-10 items-center justify-center rounded-full transition-transform hover:scale-110 active:translate-y-px";
 
 type Mode = "bio" | "signin" | "forgot";
 
@@ -99,6 +120,17 @@ export function HomeCard({
 
   const isBio = mode === "bio";
   const isSignin = mode === "signin";
+
+  // Clipboard writes reject on insecure origins and when the browser withholds
+  // permission — surface the handle in the toast so it stays usable either way.
+  const copyChimeSign = async () => {
+    try {
+      await navigator.clipboard.writeText(CHIME_SIGN);
+      toast.success(`Chime handle ${CHIME_SIGN} copied`);
+    } catch {
+      toast.error(`Couldn't copy — my Chime is ${CHIME_SIGN}`);
+    }
+  };
 
   return (
     <GlassCard
@@ -126,24 +158,42 @@ export function HomeCard({
                 TD STUDIOS
               </CardTitle>
               <div className="flex items-center justify-center gap-3 pt-1">
-                {SOCIAL_LINKS.map(({ label, href }) => (
-                  <SocialIcon
-                    key={label}
-                    url={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={label}
-                    className="transition-transform hover:scale-110 active:translate-y-px"
-                    style={{ height: 40, width: 40 }}
-                  />
-                ))}
+                {/* Instagram is the only one of the four react-social-icons
+                    ships a brand mark for; the rest are hand-built badges. */}
+                <SocialIcon
+                  url="https://instagram.com/tdstudiosco"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="transition-transform hover:scale-110 active:translate-y-px"
+                  style={{ height: 40, width: 40 }}
+                />
+                <a
+                  href="https://cash.app/$tdiorio23"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Cash App $tdiorio23"
+                  className={cn(socialBadge, "bg-[#00D632] text-white")}
+                >
+                  <CurrencyDollarIcon weight="bold" className="size-5" />
+                </a>
+                {/* Same sms: handoff as the Text Me button, and same reason for
+                    no target="_blank" — the OS takes the navigation and would
+                    leave an empty tab behind. */}
+                <a
+                  href="sms:+19297528373"
+                  aria-label="Text me"
+                  className={cn(socialBadge, "bg-white text-black")}
+                >
+                  <AppleLogoIcon weight="fill" className="size-5" />
+                </a>
                 <button
                   type="button"
-                  onClick={() => setMode("signin")}
-                  aria-label="Admin sign in"
-                  className={iconButton}
+                  onClick={copyChimeSign}
+                  aria-label={`Copy my Chime handle ${CHIME_SIGN}`}
+                  className={cn(socialBadge, "bg-[#1EC677] text-white")}
                 >
-                  <LockIcon weight="bold" className="size-5" />
+                  <ChimeMarkIcon className="size-5" />
                 </button>
               </div>
             </>
