@@ -10,6 +10,7 @@ import {
   ChatCircleTextIcon,
   CurrencyDollarIcon,
   ImagesIcon,
+  ListNumbersIcon,
   PaintBrushIcon,
   SquaresFourIcon,
   type Icon,
@@ -41,6 +42,12 @@ const BIO_LINKS: {
     label: "Text Me",
     href: "sms:+19297528373",
     icon: ChatCircleTextIcon,
+    sameTab: true,
+  },
+  {
+    label: "How to Order",
+    href: "/how-to-order",
+    icon: ListNumbersIcon,
     sameTab: true,
   },
   {

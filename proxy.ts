@@ -25,6 +25,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/qr-generator",
   "/qr-generator/designs",
   "/custom-design-request",
+  "/how-to-order",
   "/portfolio",
   "/taste-budz",
   "/gso",
