@@ -1,12 +1,10 @@
-import { readdir } from "node:fs/promises";
-import { join } from "node:path";
-
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { DesignsGallery } from "@/app/qr-generator/designs/gallery";
+import { getDesignsImages } from "@/lib/data";
 
 export const metadata = {
   title: "Premade Designs",
@@ -14,41 +12,15 @@ export const metadata = {
     "Browse TD Studios premade printing designs — a gallery of ready-to-order artwork.",
 };
 
-const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
-
-// Read the promo images from /public at render time. With no dynamic APIs in
-// use this page is statically generated, so the directory is read at build —
-// where the files exist — and the resulting list is baked into the page.
-async function getDesignImages(): Promise<string[]> {
-  const dir = join(process.cwd(), "public", "promoimages");
-  try {
-    const files = await readdir(dir);
-    return files
-      .filter((name) =>
-        IMAGE_EXTENSIONS.has(name.slice(name.lastIndexOf(".")).toLowerCase()),
-      )
-      // Newest design first. These are Instagram exports whose leading media ID
-      // is 9 digits for every current file and climbs over time, so a reversed
-      // string sort is also reverse-chronological. Sorting by mtime would not
-      // work — the whole folder shares one timestamp from a single bulk copy.
-      // Adding a file whose leading ID is a different length breaks this.
-      .sort()
-      .reverse()
-      .map((name) => `/promoimages/${name}`);
-  } catch (error) {
-    // The empty-state fallback below is indistinguishable from "no designs
-    // uploaded yet", so a failed read would otherwise vanish silently. This
-    // runs on the server only (build or function) — nothing reaches the browser.
-    console.error(
-      `[premade-designs] Failed to read promo images from ${dir} — rendering an empty gallery.`,
-      error,
-    );
-    return [];
-  }
-}
+// Reads the DESIGNS Storage bucket per request, so designs uploaded later appear
+// automatically without a redeploy. This replaced an fs.readdir over
+// public/promoimages, which baked the list in at build time.
+export const dynamic = "force-dynamic";
 
 export default async function PremadeDesignsPage() {
-  const images = await getDesignImages();
+  // getDesignsImages() already returns newest-first and swallows listing errors
+  // into an empty array (logged server-side in listPublicBucketImages).
+  const images = (await getDesignsImages()).map((image) => image.url);
 
   return (
     <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">

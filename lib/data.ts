@@ -585,6 +585,23 @@ export async function getMafiaTerpzImages(): Promise<PortfolioImage[]> {
   return listPublicBucketImages(MAFIA_TERPZ_BUCKET);
 }
 
+/**
+ * The public `DESIGNS` bucket backing the `/qr-generator/designs` premade-designs
+ * gallery. Same model as the portfolio: upload to the bucket, the page picks it
+ * up next request.
+ *
+ * Newest first, unlike the other galleries. `listPublicBucketImages` sorts by
+ * name ascending and these are Instagram exports whose 9-digit leading media ID
+ * climbs over time, so reversing that is also reverse-chronological. Uploading a
+ * file whose leading ID is a different length — or a human-readable name —
+ * breaks the ordering and would sort to an arbitrary spot.
+ */
+export const DESIGNS_BUCKET = "DESIGNS";
+
+export async function getDesignsImages(): Promise<PortfolioImage[]> {
+  return (await listPublicBucketImages(DESIGNS_BUCKET)).reverse();
+}
+
 async function listPublicBucketImages(
   bucket: string,
 ): Promise<PortfolioImage[]> {

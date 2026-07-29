@@ -25,15 +25,20 @@ const nextConfig: NextConfig = {
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.
     "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
-    // The premade-designs gallery lists this directory with fs.readdir at
-    // render time. It is statically prerendered today (so the read happens on
-    // the build machine), but tracing the files in means the page keeps working
-    // if it ever renders dynamically — otherwise readdir would throw and the
-    // page's catch would silently render an empty gallery.
-    "/qr-generator/designs": ["./public/promoimages/**"],
   },
-  // No `images.remotePatterns`: every next/image source is local (public/ or a
-  // same-origin route). Add a pattern here before rendering any remote image.
+  images: {
+    // The premade-designs gallery (/qr-generator/designs) is the one place that
+    // renders bucket images through next/image, so its Supabase Storage host has
+    // to be allow-listed here. The other bucket galleries (portfolio, gso,
+    // taste-budz, mafiaterpz) deliberately use plain <img>, so they need nothing.
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "tbgyyyffbxveukbihnhp.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
