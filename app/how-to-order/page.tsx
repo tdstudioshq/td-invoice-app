@@ -49,9 +49,6 @@ export default function HowToOrderPage() {
           <h1 className="text-2xl font-bold tracking-tight text-white">
             How to Order
           </h1>
-          <p className="text-muted-foreground max-w-md text-sm">
-            Ordering takes two steps. Text me and we&apos;ll handle the rest.
-          </p>
         </header>
 
         <ol className="flex flex-col gap-4">
