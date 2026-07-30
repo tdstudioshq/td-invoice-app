@@ -23,7 +23,7 @@ const PUBLIC_PATHS = new Set<string>([
   // OAuth code exchange — must be reachable mid-flow, before cookies exist.
   "/auth/callback",
   "/qr-generator",
-  "/qr-generator/designs",
+  "/premadedesigns",
   "/custom-design-request",
   "/how-to-order",
   "/portfolio",

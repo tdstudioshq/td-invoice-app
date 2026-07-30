@@ -50,7 +50,7 @@ export default async function AccountPage() {
             <PaintBrushIcon weight="bold" className="size-4" />
             Request a design
           </Link>
-          <Link href="/qr-generator/designs" className={linkClass}>
+          <Link href="/premadedesigns" className={linkClass}>
             <ImagesIcon weight="bold" className="size-4" />
             Premade designs
           </Link>

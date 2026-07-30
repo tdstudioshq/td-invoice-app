@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
-import { DesignsGallery } from "@/app/qr-generator/designs/gallery";
+import { DesignsGallery } from "@/app/premadedesigns/gallery";
 import { getDesignsImages } from "@/lib/data";
 
 export const metadata = {
@@ -43,7 +43,7 @@ export default async function PremadeDesignsPage() {
             Premade Designs
           </h1>
           <p className="text-muted-foreground max-w-md text-sm">
-            Browse our ready-to-order artwork. Tap any design to expand it.
+            ADD YOUR LOGO &amp; QR CODE &amp; RECEIVE YOUR FILE VIA GOOGLE DRIVE
           </p>
         </header>
 
@@ -86,11 +86,11 @@ export default async function PremadeDesignsPage() {
         )}
 
         <Link
-          href="/qr-generator"
+          href="/"
           className="text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
         >
           <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to QR Code Generator
+          Back to TD Studios
         </Link>
       </div>
     </main>

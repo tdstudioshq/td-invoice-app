@@ -52,7 +52,7 @@ const BIO_LINKS: {
   },
   {
     label: "Premade Designs",
-    href: "/qr-generator/designs",
+    href: "/premadedesigns",
     icon: ImagesIcon,
     sameTab: true,
   },

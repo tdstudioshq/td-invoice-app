@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/mylar", destination: "/mylar/index.html" }];
   },
+  // The premade-designs gallery used to live under the QR generator at
+  // /qr-generator/designs. It is unrelated to that tool, so it moved to its own
+  // top-level /premadedesigns route; this keeps any already-shared old link
+  // working instead of 404ing.
+  async redirects() {
+    return [
+      {
+        source: "/qr-generator/designs",
+        destination: "/premadedesigns",
+        permanent: true,
+      },
+    ];
+  },
   outputFileTracingIncludes: {
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
@@ -27,7 +40,7 @@ const nextConfig: NextConfig = {
     "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
   },
   images: {
-    // The premade-designs gallery (/qr-generator/designs) is the one place that
+    // The premade-designs gallery (/premadedesigns) is the one place that
     // renders bucket images through next/image, so its Supabase Storage host has
     // to be allow-listed here. The other bucket galleries (portfolio, gso,
     // taste-budz, mafiaterpz) deliberately use plain <img>, so they need nothing.
