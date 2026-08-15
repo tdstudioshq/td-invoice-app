@@ -150,13 +150,16 @@ export function HomeCard({
           resize when switching between the bio links and the sign-in form. */}
       <div className="flex w-[min(21rem,calc(100vw-2rem))] flex-col gap-6 p-8">
         <div className="flex flex-col items-center gap-2 text-center">
+          {/* The artwork is already a circular badge with its own white outer
+              ring, so no ring/inset highlight here — they'd trace a second
+              edge just outside the mark. */}
           <Image
-            src="/logo.png"
+            src="/td-studios-lottery-logo.png"
             alt="TD Studios"
-            width={56}
-            height={56}
+            width={112}
+            height={112}
             priority
-            className="size-14 rounded-full shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] ring-1 ring-white/25"
+            className="size-28 rounded-full drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)]"
           />
           {isBio ? (
             <>
