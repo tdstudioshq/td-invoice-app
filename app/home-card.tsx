@@ -51,10 +51,12 @@ const BIO_LINKS: {
     sameTab: true,
   },
   {
+    // Points at the Instagram grid rather than the in-app /premadedesigns
+    // gallery. External, so it deliberately drops `sameTab` and opens in a new
+    // tab — leaving the bio card behind in the original one.
     label: "Premade Designs",
-    href: "/premadedesigns",
+    href: "https://instagram.com/tdstudiosco",
     icon: ImagesIcon,
-    sameTab: true,
   },
   {
     label: "Request Custom Design",
