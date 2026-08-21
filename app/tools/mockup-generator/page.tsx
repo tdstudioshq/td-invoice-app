@@ -17,10 +17,10 @@ export const metadata = {
 // Supabase. The die-line geometry lives in `lib/mockup/geometry.ts`.
 export default function PublicMockupGeneratorPage() {
   return (
-    <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
       <AnimatedBackground />
-      <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header className="flex flex-col items-center gap-3 text-center">
+      <div className="text-on-photo relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-8">
+        <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
           <h1 className="text-2xl font-bold tracking-tight text-white">
             Mylar Bag Mockup Generator
@@ -37,25 +37,25 @@ export default function PublicMockupGeneratorPage() {
         <div className="flex flex-col items-center gap-2">
           <Link
             href="/tools/bag-mockup-grid"
-            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+            className="text-on-photo text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             Got a whole lineup? Bag Mockup Grid →
           </Link>
           <Link
             href="/tools/8pc-mockup-generator"
-            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+            className="text-on-photo text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             Need a full sheet of 8 designs? 8-Piece Mockup Generator →
           </Link>
           <Link
             href="/tools/cutline-generator"
-            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+            className="text-on-photo text-muted-foreground hover:text-foreground text-xs transition-colors"
           >
             Need print-ready PDFs instead? Cutline Generator →
           </Link>
           <Link
             href="/"
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
+            className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
           >
             <ArrowLeftIcon weight="bold" className="size-3.5" />
             Back to TD Studios

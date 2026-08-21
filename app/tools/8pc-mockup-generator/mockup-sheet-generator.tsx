@@ -572,7 +572,7 @@ export function MockupSheetGenerator() {
             "flex cursor-pointer flex-col items-center gap-1.5 rounded-xl border border-dashed px-4 py-6 text-center transition-colors",
             dragActive
               ? "border-primary bg-primary/5"
-              : "border-border bg-card/50 hover:border-muted-foreground/40",
+              : "border-border bg-card/85 hover:border-muted-foreground/40",
           )}
         >
           <UploadSimpleIcon className="text-muted-foreground size-6" />

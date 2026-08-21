@@ -76,7 +76,7 @@ export function InquirySummary({
   return (
     <section
       aria-labelledby="printing-request-summary"
-      className="rounded-2xl border border-white/12 bg-white/[0.05] p-5 sm:p-6"
+      className="rounded-2xl border border-white/12 bg-black/35 p-5 sm:p-6"
     >
       <h3
         id="printing-request-summary"

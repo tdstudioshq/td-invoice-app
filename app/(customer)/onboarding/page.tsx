@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
 
   return (
     <>
-      <header className="flex flex-col items-center gap-3 text-center">
+      <header className="text-on-photo flex flex-col items-center gap-3 text-center">
         <HomeLogoLink />
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Set up your profile

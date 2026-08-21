@@ -38,7 +38,7 @@ export function InquirySuccess({
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/15 bg-white/[0.06] px-5 py-3">
+        <div className="rounded-xl border border-white/15 bg-black/35 px-5 py-3">
           <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
             Reference
           </p>

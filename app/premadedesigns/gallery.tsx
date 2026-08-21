@@ -41,7 +41,7 @@ export function DesignsGallery({ images }: { images: string[] }) {
             type="button"
             onClick={() => setOpenIndex(i)}
             aria-label="Expand design"
-            className="group relative block aspect-[4/5] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] transition-all hover:border-white/25 hover:bg-white/[0.08]"
+            className="group relative block aspect-[4/5] overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] transition-all hover:border-white/25 hover:bg-black/25"
           >
             <Image
               src={src}

@@ -34,10 +34,10 @@ export default async function PremadeDesignsPage() {
   const images = (await getDesignsImages()).map((image) => image.url);
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8">
-        <header className="flex flex-col items-center gap-3 text-center">
+        <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
           <h1 className="text-2xl font-bold tracking-tight text-white">
             Premade Designs
@@ -53,7 +53,7 @@ export default async function PremadeDesignsPage() {
         >
           <h2
             id="pricing-heading"
-            className="text-center text-xs tracking-[0.25em] text-white/50"
+            className="text-center text-xs tracking-[0.2em] text-white/70"
           >
             PRICING
           </h2>
@@ -61,7 +61,7 @@ export default async function PremadeDesignsPage() {
             {PRICING_TIERS.map(({ label, price }) => (
               <div
                 key={label}
-                className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/15 bg-white/[0.06] px-2 py-4 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:px-4"
+                className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/15 bg-black/35 px-2 py-4 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:px-4"
               >
                 <span className="text-muted-foreground text-[0.7rem] leading-tight sm:text-sm">
                   {label}
@@ -87,7 +87,7 @@ export default async function PremadeDesignsPage() {
 
         <Link
           href="/"
-          className="text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
+          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
         >
           <ArrowLeftIcon weight="bold" className="size-3.5" />
           Back to TD Studios

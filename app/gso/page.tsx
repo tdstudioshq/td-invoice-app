@@ -19,10 +19,10 @@ export default async function GsoPage() {
   const images = await getGsoImages();
 
   return (
-    <main className="relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
-        <header className="flex flex-col items-center gap-3 text-center">
+        <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
           <h1 className="text-2xl font-bold tracking-tight text-white">GSO</h1>
         </header>
@@ -35,7 +35,7 @@ export default async function GsoPage() {
 
         <Link
           href="/"
-          className="text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
+          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
         >
           <ArrowLeftIcon weight="bold" className="size-3.5" />
           Back to TD Studios

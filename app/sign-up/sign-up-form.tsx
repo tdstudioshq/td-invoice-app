@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const fieldClass =
-  "h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]";
+  "h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35";
 
 export function SignUpForm() {
   const [state, formAction] = useActionState(signUpAction, initialActionState);
@@ -20,7 +20,7 @@ export function SignUpForm() {
   // session is issued immediately, so a `success` state means "confirm first".
   if (state.success) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
         <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-white">Check your email</h2>
@@ -42,7 +42,7 @@ export function SignUpForm() {
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
+      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
     >
       {state.error ? (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-300">

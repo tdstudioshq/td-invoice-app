@@ -58,7 +58,7 @@ export function QuantityStep({
               "h-12 rounded-xl border text-sm transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none",
               value === preset
                 ? "border-white/45 bg-white/[0.14] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
-                : "border-white/15 bg-white/[0.04] text-white/80 hover:border-white/30 hover:bg-white/[0.09]",
+                : "border-white/15 bg-black/40 text-white/80 hover:border-white/30 hover:bg-black/25",
             )}
           >
             {preset.toLocaleString()}
@@ -77,7 +77,7 @@ export function QuantityStep({
             onClick={() => onChange(clamp(value - QUANTITY_STEP))}
             disabled={value <= MIN_QUANTITY}
             aria-label={`Decrease quantity by ${QUANTITY_STEP} pieces`}
-            className="size-12 shrink-0 rounded-xl border-white/15 bg-white/[0.05] p-0 text-white hover:bg-white/[0.12]"
+            className="size-12 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
             <MinusIcon weight="bold" className="size-4" />
           </Button>
@@ -111,7 +111,7 @@ export function QuantityStep({
             variant="outline"
             onClick={() => onChange(clamp(value + QUANTITY_STEP))}
             aria-label={`Increase quantity by ${QUANTITY_STEP} pieces`}
-            className="size-12 shrink-0 rounded-xl border-white/15 bg-white/[0.05] p-0 text-white hover:bg-white/[0.12]"
+            className="size-12 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
             <PlusIcon weight="bold" className="size-4" />
           </Button>

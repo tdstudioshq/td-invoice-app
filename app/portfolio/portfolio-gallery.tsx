@@ -26,10 +26,10 @@ export function PortfolioGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-20 text-center">
-        <ImageIcon weight="duotone" className="size-10 text-white/40" />
+      <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-black/35 px-6 py-20 text-center">
+        <ImageIcon weight="duotone" className="size-10 text-white/55" />
         <p className="text-sm font-medium text-white/80">{emptyTitle}</p>
-        <p className="max-w-sm text-xs text-white/50">{emptyHint}</p>
+        <p className="max-w-sm text-sm text-white/70">{emptyHint}</p>
       </div>
     );
   }

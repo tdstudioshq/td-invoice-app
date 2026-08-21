@@ -230,10 +230,10 @@ export function ArtworkUploader({
             "flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition-all",
             "focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none",
             disabled
-              ? "cursor-not-allowed border-white/10 bg-white/[0.02] opacity-50"
+              ? "cursor-not-allowed border-white/10 bg-black/30 opacity-50"
               : dragging
                 ? "border-white/60 bg-white/[0.12]"
-                : "border-white/20 bg-white/[0.03] hover:border-white/35 hover:bg-white/[0.07]",
+                : "border-white/20 bg-black/35 hover:border-white/35 hover:bg-black/25",
           )}
         >
           <UploadSimpleIcon weight="bold" className="size-6 text-white/70" />
@@ -248,7 +248,7 @@ export function ArtworkUploader({
             "flex min-h-44 flex-col gap-3 rounded-2xl border p-4",
             status === "failed"
               ? "border-red-500/40 bg-red-500/[0.06]"
-              : "border-white/15 bg-white/[0.05]",
+              : "border-white/15 bg-black/35",
           )}
         >
           <div className="flex min-w-0 items-start gap-3">
@@ -262,10 +262,10 @@ export function ArtworkUploader({
                 className="size-14 shrink-0 rounded-lg border border-white/10 object-cover"
               />
             ) : (
-              <span className="flex size-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-white/10 bg-white/[0.06]">
+              <span className="flex size-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-white/10 bg-black/35">
                 <FileIcon weight="bold" className="size-5 text-white/70" />
                 {extension ? (
-                  <span className="text-[9px] tracking-wider text-white/60 uppercase">
+                  <span className="text-[11px] tracking-wider text-white/75 uppercase">
                     {extension}
                   </span>
                 ) : null}
@@ -295,7 +295,7 @@ export function ArtworkUploader({
             {status === "failed" ? (
               <WarningCircleIcon
                 weight="fill"
-                className="size-5 shrink-0 text-red-400"
+                className="size-5 shrink-0 text-red-300"
               />
             ) : null}
           </div>
@@ -332,7 +332,7 @@ export function ArtworkUploader({
                   const file = pendingFileRef.current;
                   if (file) void startUpload(file);
                 }}
-                className="gap-1.5 border-white/15 bg-white/[0.05] text-white hover:bg-white/[0.12]"
+                className="gap-1.5 border-white/15 bg-black/35 text-white hover:bg-black/25"
               >
                 <ArrowClockwiseIcon weight="bold" className="size-3.5" />
                 Retry
@@ -345,7 +345,7 @@ export function ArtworkUploader({
                   variant="outline"
                   size="sm"
                   onClick={() => inputRef.current?.click()}
-                  className="gap-1.5 border-white/15 bg-white/[0.05] text-white hover:bg-white/[0.12]"
+                  className="gap-1.5 border-white/15 bg-black/35 text-white hover:bg-black/25"
                 >
                   <ArrowsClockwiseIcon weight="bold" className="size-3.5" />
                   Replace
@@ -355,7 +355,7 @@ export function ArtworkUploader({
                   variant="outline"
                   size="sm"
                   onClick={handleRemove}
-                  className="gap-1.5 border-white/15 bg-white/[0.05] text-white hover:bg-white/[0.12]"
+                  className="gap-1.5 border-white/15 bg-black/35 text-white hover:bg-black/25"
                 >
                   <TrashIcon weight="bold" className="size-3.5" />
                   Remove

@@ -88,7 +88,7 @@ export function OrderForm() {
 
   if (status === "success") {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
         <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-white">Order sent!</h2>
@@ -100,7 +100,7 @@ export function OrderForm() {
           type="button"
           variant="outline"
           onClick={() => setStatus("idle")}
-          className="border-white/15 bg-white/[0.05] text-white hover:bg-white/[0.12]"
+          className="border-white/15 bg-black/35 text-white hover:bg-black/25"
         >
           Send another order
         </Button>
@@ -114,7 +114,7 @@ export function OrderForm() {
       action={FORMSPREE_ENDPOINT}
       method="POST"
       encType="multipart/form-data"
-      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
+      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
     >
       {/* Subject line for the email Formspree sends. */}
       <input type="hidden" name="_subject" value="New Order Request" />

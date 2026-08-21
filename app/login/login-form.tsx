@@ -39,7 +39,7 @@ export function LoginForm({
           autoComplete="email"
           required
           aria-invalid={Boolean(state.fieldErrors?.email)}
-          className="h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
+          className="h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35"
         />
         {state.fieldErrors?.email ? (
           <p className="text-destructive text-xs">{state.fieldErrors.email}</p>
@@ -64,7 +64,7 @@ export function LoginForm({
           autoComplete="current-password"
           required
           aria-invalid={Boolean(state.fieldErrors?.password)}
-          className="h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]"
+          className="h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35"
         />
         {state.fieldErrors?.password ? (
           <p className="text-destructive text-xs">

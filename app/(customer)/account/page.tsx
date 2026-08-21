@@ -15,7 +15,7 @@ import { requireCustomer } from "@/lib/auth";
 export const metadata = { title: "Your account" };
 
 const linkClass =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-white/[0.12]";
+  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-black/35 px-4 py-3 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25";
 
 export default async function AccountPage() {
   const ctx = await requireCustomer();
@@ -33,7 +33,7 @@ export default async function AccountPage() {
 
   return (
     <>
-      <header className="flex flex-col items-center gap-3 text-center">
+      <header className="text-on-photo flex flex-col items-center gap-3 text-center">
         <HomeLogoLink />
         <h1 className="text-2xl font-bold tracking-tight text-white">
           {profile.fullName ? `Welcome, ${profile.fullName}` : "Your account"}
@@ -77,7 +77,7 @@ export default async function AccountPage() {
       <form action={signOutAction} className="flex justify-center">
         <button
           type="submit"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
+          className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
         >
           <SignOutIcon weight="bold" className="size-3.5" />
           Sign out

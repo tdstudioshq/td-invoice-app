@@ -18,13 +18,13 @@ import { cn } from "@/lib/utils";
  */
 
 export const fieldClass =
-  "rounded-xl border-white/15 bg-white/[0.05] px-3.5 text-white placeholder:text-white/40 dark:bg-white/[0.05]";
+  "rounded-xl border-white/15 bg-black/35 px-3.5 text-white placeholder:text-white/60 dark:bg-black/35";
 
 export const primaryButtonClass =
-  "h-12 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90 disabled:opacity-40";
+  "h-12 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90 disabled:opacity-60";
 
 export const panelClass =
-  "rounded-2xl border border-white/10 bg-white/[0.04] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md";
+  "rounded-2xl border border-white/10 bg-black/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md";
 
 /** Question + one-line explainer at the top of each step. */
 export function StepHeading({
@@ -79,7 +79,7 @@ export function OptionCard({
         "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-transparent",
         checked
           ? "border-white/45 bg-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
-          : "border-white/15 bg-white/[0.04] hover:border-white/30 hover:bg-white/[0.09]",
+          : "border-white/15 bg-black/40 hover:border-white/30 hover:bg-black/25",
         className,
       )}
     >
@@ -136,7 +136,7 @@ export function OptionCard({
  */
 export function BagPreview({ src }: { src: string }) {
   return (
-    <span className="relative block size-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.05] md:size-20 lg:size-24">
+    <span className="relative block size-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:size-20 lg:size-24">
       {/* `unoptimized`: these sources are already stored at exactly the size
           they render (192px = 2x the 96px max), so running them through the
           image optimizer would buy nothing — and this project's Vercel image

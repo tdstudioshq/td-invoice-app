@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const fieldClass =
-  "h-11 rounded-xl border-white/15 bg-white/[0.05] px-3.5 dark:bg-white/[0.05]";
+  "h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35";
 
 export interface ProfileDefaults {
   fullName: string | null;
@@ -34,7 +34,7 @@ export function AccountProfileForm({ profile }: { profile: ProfileDefaults }) {
   return (
     <form
       action={formAction}
-      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
+      className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-1.5">

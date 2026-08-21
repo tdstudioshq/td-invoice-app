@@ -318,7 +318,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
           "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center transition-colors",
           dragActive
             ? "border-primary bg-primary/5"
-            : "border-white/20 hover:border-white/40 hover:bg-white/[0.03]",
+            : "border-white/20 bg-black/35 hover:border-white/40 hover:bg-black/25",
         )}
       >
         <UploadSimpleIcon className="size-7 text-white/70" weight="bold" />
@@ -396,7 +396,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
             return (
               <li
                 key={it.id}
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

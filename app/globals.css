@@ -203,6 +203,53 @@
     background-image: var(--ambient-blooms);
   }
 
+  /*
+   * Text sitting on top of photography rather than a solid surface.
+   *
+   * The public pages render over `AnimatedBackground` — a diamond photo whose
+   * bright specular regions measure ~250/255 luminance, not the flat dark that
+   * the admin app's solid `--card` / `--background` provide. `--muted-foreground`
+   * is a mid-gray tuned for those solid surfaces (7.3:1 on `--card`, perfectly
+   * fine there); composited over a bright diamond it collapses to ~1.1:1 and
+   * effectively disappears. That is the faint-secondary-text problem.
+   *
+   * Rescoping the token on the page wrapper fixes every `text-muted-foreground`
+   * descendant at once — ~80 call sites across 21 public routes — instead of
+   * patching each one, and it preserves the hierarchy rather than flattening
+   * everything to pure white: primary stays `text-white`, secondary becomes a
+   * translucent white that holds up against both the dark and the bright parts
+   * of the photo.
+   *
+   * Scoped, so the admin/portal app is untouched and keeps its zinc palette.
+   */
+  .on-glass {
+    --muted-foreground: oklch(1 0 0 / 72%);
+  }
+
+  /*
+   * Text with NO panel between it and the photograph.
+   *
+   * `.on-glass` is enough for anything inside a tinted panel, because the panel
+   * does the isolating. Page headers, sub-headings and the footer links sit
+   * outside that panel, directly on the diamonds — and the brightest diamonds
+   * are centre-frame, right where a centred header lands. No colour alone
+   * survives that: against a 250-luminance highlight even pure white is only
+   * ~1.1:1.
+   *
+   * So this pairs a lifted tone with a shadow that travels with the glyphs,
+   * which is the one case where a text-shadow is the right tool rather than a
+   * crutch — the "overlay" has to be per-letter because the text is scattered
+   * over the image instead of sitting on a solid block. Two layers: a tight
+   * offset one for edge definition, a wide soft one that darkens the halo the
+   * glyph sits in.
+   */
+  .text-on-photo {
+    --muted-foreground: oklch(1 0 0 / 88%);
+    text-shadow:
+      0 1px 2px oklch(0 0 0 / 85%),
+      0 0 8px oklch(0 0 0 / 55%);
+  }
+
   .subtle-grid {
     --grid-line: oklch(1 0 0 / 3.5%);
     background-image:

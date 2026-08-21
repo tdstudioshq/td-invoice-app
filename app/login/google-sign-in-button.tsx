@@ -74,7 +74,7 @@ export function GoogleSignInButton({
       disabled={pending}
       className={cn(
         className ??
-          "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-white/[0.05] text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/[0.1] active:translate-y-px",
+          "inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-white/15 bg-black/35 text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/[0.1] active:translate-y-px",
         "disabled:pointer-events-none disabled:opacity-60",
       )}
     >

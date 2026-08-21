@@ -25,7 +25,7 @@ export default async function Home(props: PageProps<"/">) {
   }
 
   return (
-    <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
+    <main className="on-glass relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
       {/* Mobile gets the scratch-off ticket art; md+ keeps the animated diamonds. */}
       <HomeMobileBackground />
       <div className="absolute inset-0 hidden md:block">

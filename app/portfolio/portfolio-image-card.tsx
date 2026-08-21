@@ -53,7 +53,7 @@ export function PortfolioImageCard({
       type="button"
       onClick={onOpen}
       aria-label={`Open ${image.title}`}
-      className="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_18px_50px_-12px_rgba(0,0,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+      className="group relative mb-4 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-white/10 bg-black/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:shadow-[0_18px_50px_-12px_rgba(0,0,0,0.7)] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
     >
       <div
         className="relative w-full"

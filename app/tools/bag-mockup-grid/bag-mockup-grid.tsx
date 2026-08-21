@@ -177,7 +177,7 @@ function AddTile({ onClick, prominent }: { onClick: () => void; prominent: boole
       onClick={onClick}
       style={prominent ? undefined : { aspectRatio: `${PAGE_W} / ${PAGE_H}` }}
       className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card/50 text-center transition-colors hover:border-muted-foreground/40 hover:bg-card",
+        "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card/85 text-center transition-colors hover:border-muted-foreground/40 hover:bg-card",
         prominent && "col-span-4 py-16",
       )}
     >

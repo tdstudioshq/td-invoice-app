@@ -96,7 +96,7 @@ function ChimeMarkIcon({ className }: { className?: string }) {
 }
 
 const glassButton =
-  "inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-white/[0.06] px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-white/[0.12] active:translate-y-px";
+  "inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-black/35 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px";
 
 /**
  * The round brand badges under the title. Sized to the 40px circle that
@@ -247,7 +247,7 @@ export function HomeCard({
             <button
               type="button"
               onClick={() => setMode("bio")}
-              className="text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
+              className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
             >
               <ArrowLeftIcon weight="bold" className="size-3.5" />
               Back

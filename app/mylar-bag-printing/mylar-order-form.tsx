@@ -144,7 +144,7 @@ export function MylarOrderForm() {
 
   if (status === "success") {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
         <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-white">Order sent!</h2>
@@ -157,7 +157,7 @@ export function MylarOrderForm() {
           type="button"
           variant="outline"
           onClick={() => setStatus("idle")}
-          className="border-white/15 bg-white/[0.05] text-white hover:bg-white/[0.12]"
+          className="border-white/15 bg-black/35 text-white hover:bg-black/25"
         >
           Place another order
         </Button>
@@ -173,7 +173,7 @@ export function MylarOrderForm() {
       action={FORMSPREE_ENDPOINT}
       method="POST"
       encType="multipart/form-data"
-      className="flex flex-col gap-7 rounded-2xl border border-white/10 bg-white/[0.04] p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
+      className="flex flex-col gap-7 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
     >
       {/* Subject line for the email Formspree sends. */}
       <input type="hidden" name="_subject" value="New Mylar Bag Order" />
@@ -197,7 +197,7 @@ export function MylarOrderForm() {
                 className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-all active:translate-y-px ${
                   selected
                     ? "border-white/40 bg-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
-                    : "border-white/15 bg-white/[0.04] hover:border-white/25 hover:bg-white/[0.09]"
+                    : "border-white/15 bg-black/40 hover:border-white/25 hover:bg-black/25"
                 }`}
               >
                 <span className="flex flex-col gap-0.5">
@@ -236,7 +236,7 @@ export function MylarOrderForm() {
             onClick={() => nudge(-1)}
             disabled={amount <= min}
             aria-label={`Decrease quantity by ${STEP[mode]} ${mode === "pounds" ? "lb" : "pcs"}`}
-            className="size-11 shrink-0 rounded-xl border-white/15 bg-white/[0.05] p-0 text-white hover:bg-white/[0.12]"
+            className="size-11 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
             <MinusIcon weight="bold" className="size-4" />
           </Button>
@@ -267,7 +267,7 @@ export function MylarOrderForm() {
             variant="outline"
             onClick={() => nudge(1)}
             aria-label={`Increase quantity by ${STEP[mode]} ${mode === "pounds" ? "lb" : "pcs"}`}
-            className="size-11 shrink-0 rounded-xl border-white/15 bg-white/[0.05] p-0 text-white hover:bg-white/[0.12]"
+            className="size-11 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
             <PlusIcon weight="bold" className="size-4" />
           </Button>
@@ -396,7 +396,7 @@ export function MylarOrderForm() {
 
       {/* Restate the order right above the button — the two choices live far
           enough apart on mobile that they scroll out of view before submit. */}
-      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3">
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-black/35 px-4 py-3">
         <span className="text-muted-foreground text-xs">Your order</span>
         <span className="text-right text-sm leading-tight text-white">
           {bagType.label} &middot; {summary}

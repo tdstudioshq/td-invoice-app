@@ -69,7 +69,7 @@ export function ArtworkStep({
         best, but we can work from what you have.
       </p>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3.5 text-sm text-white transition-colors hover:bg-white/[0.08] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70">
+      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-sm text-white transition-colors hover:bg-black/25 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70">
         <input
           type="checkbox"
           checked={comingLater}
