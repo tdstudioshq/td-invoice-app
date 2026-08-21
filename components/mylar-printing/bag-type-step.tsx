@@ -1,6 +1,10 @@
 "use client";
 
-import { BagGlyph, OptionCard, StepHeading } from "@/components/mylar-printing/wizard-ui";
+import {
+  BagPreview,
+  OptionCard,
+  StepHeading,
+} from "@/components/mylar-printing/wizard-ui";
 import { MYLAR_BAG_OPTIONS, type MylarBagType } from "@/lib/mylar-printing/types";
 
 /** Step 1 — which bag style we're printing. */
@@ -34,7 +38,7 @@ export function BagTypeStep({
             title={option.label}
             meta={option.dimensions}
             detail={option.detail}
-            visual={<BagGlyph ratio={option.ratio} />}
+            visual={<BagPreview src={option.image} />}
           />
         ))}
       </div>

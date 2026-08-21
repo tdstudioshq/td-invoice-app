@@ -25,11 +25,16 @@ export interface MylarBagOption {
   /** One-line description under the dimensions. */
   detail: string;
   /**
-   * Aspect ratio of the little bag silhouette drawn on the option card
-   * (width / height). Purely presentational — keeps the four thumbnails
-   * honest about portrait vs landscape vs oversized.
+   * Preview image shown on the option card, as a path under `public/`.
+   *
+   * Files are named after the option id (`public/mylar-bags/<id>.png`), so the
+   * mapping is self-evident. The pound bag is still on the shared placeholder;
+   * to give it its real mockup, drop `pound-bag.png` in that folder and change
+   * this one line — nothing else needs touching. Any aspect ratio works: the card renders it
+   * `object-contain` inside a fixed square box, so portrait, landscape, and
+   * oversized bags all sit correctly without cropping.
    */
-  ratio: number;
+  image: string;
 }
 
 export const MYLAR_BAG_OPTIONS: readonly MylarBagOption[] = [
@@ -38,28 +43,28 @@ export const MYLAR_BAG_OPTIONS: readonly MylarBagOption[] = [
     label: "3.5g Standard Bag",
     dimensions: '4" × 5"',
     detail: "Portrait orientation. The everyday eighth bag.",
-    ratio: 4 / 5,
+    image: "/mylar-bags/3.5g-4x5.png",
   },
   {
     id: "3.5g-sideways-5x4",
     label: "3.5g Sideways Bag",
     dimensions: '5" × 4"',
     detail: "Landscape orientation, same capacity.",
-    ratio: 5 / 4,
+    image: "/mylar-bags/3.5g-sideways-5x4.png",
   },
   {
     id: "2in1-8x5",
     label: "2-in-1 Split Bag",
     dimensions: '8" × 5"',
     detail: "Double / split mylar bag with two compartments.",
-    ratio: 8 / 5,
+    image: "/mylar-bags/2in1-8x5.png",
   },
   {
     id: "pound-bag",
     label: "Pound Bag",
     dimensions: null,
     detail: "Large-format mylar packaging for bulk.",
-    ratio: 3 / 4,
+    image: "/mylar-bags/placeholder.jpg",
   },
 ] as const;
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { CheckIcon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
@@ -116,41 +117,33 @@ export function OptionCard({
 }
 
 /**
- * The little bag silhouette on each bag-type card — a proportional rounded
- * rectangle with a heat-seal band, so portrait / landscape / oversized read at
- * a glance without shipping four product photos.
+ * Preview thumbnail on a bag-type card.
+ *
+ * A fixed SQUARE box with the artwork `object-contain`ed inside it, rather than
+ * a box shaped to each bag: the four styles are portrait, landscape, and
+ * oversized, so a per-bag box would make the grid ragged, while cropping a
+ * mockup to fill a shared box would cut the artwork. Contain keeps every bag
+ * whole and the grid even; the letterboxing itself reads as the bag's shape
+ * once the real per-style mockups replace the shared placeholder.
+ *
+ * The thumbnail deliberately does NOT grow at `sm`. That is where the option
+ * grid switches to two columns, which makes each card its NARROWEST (~265px)
+ * — growing the image there squeezes the title into two lines. It scales at
+ * `md`/`lg` instead, where the cards are actually wide enough to afford it.
+ *
+ * `alt` is intentionally empty — the card's own title names the bag, so giving
+ * the image a label would make a screen reader announce it twice.
  */
-export function BagGlyph({ ratio }: { ratio: number }) {
-  const height = 44;
-  const width = Math.round(height * ratio);
+export function BagPreview({ src }: { src: string }) {
   return (
-    <span
-      className="flex size-14 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]"
-      aria-hidden
-    >
-      <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        fill="none"
-        className="text-white/70"
-      >
-        <rect
-          x="1"
-          y="1"
-          width={width - 2}
-          height={height - 2}
-          rx="4"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
-        <path
-          d={`M1 9 H${width - 1}`}
-          stroke="currentColor"
-          strokeWidth="1.5"
-          opacity="0.6"
-        />
-      </svg>
+    <span className="relative block size-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.05] md:size-20 lg:size-24">
+      <Image
+        src={src}
+        alt=""
+        fill
+        sizes="(min-width: 1024px) 96px, (min-width: 768px) 80px, 64px"
+        className="object-contain p-1"
+      />
     </span>
   );
 }
