@@ -48,28 +48,31 @@ export const MYLAR_BAG_OPTIONS: readonly MylarBagOption[] = [
     id: "3.5g-4x5",
     label: "3.5g Standard Bag",
     dimensions: '4" × 5"',
-    detail: "Portrait orientation. The everyday eighth bag.",
+    detail: "HEAVY DUTY, INDUSTRY STANDARD 1/8th Bags",
     image: "/mylar-bags/3.5g-4x5.png",
   },
   {
     id: "3.5g-sideways-5x4",
     label: "3.5g Sideways Bag",
     dimensions: '5" × 4"',
-    detail: "Landscape orientation, same capacity.",
+    detail:
+      "HEAVY DUTY 1/8th Bags turned landscape. Same 3.5g capacity, wider face for your artwork.",
     image: "/mylar-bags/3.5g-sideways-5x4.png",
   },
   {
     id: "2in1-8x5",
     label: "2-in-1 Split Bag",
     dimensions: '8" × 5"',
-    detail: "Double / split mylar bag with two compartments.",
+    detail:
+      "Double / Split mylar bag with two 3.5g compartments seamed together down the middle. Perfect for 7g & 14g portions.",
     image: "/mylar-bags/2in1-8x5.png",
   },
   {
     id: "pound-bag",
     label: "Pound Bag",
     dimensions: null,
-    detail: "Large-format mylar packaging for bulk.",
+    detail:
+      "HEAVY DUTY large-format mylar. Built for full-pound bulk packaging.",
     image: "/mylar-bags/pound-bag.png",
   },
 ] as const;

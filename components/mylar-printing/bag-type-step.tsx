@@ -19,7 +19,7 @@ export function BagTypeStep({
     <div className="flex flex-col gap-6">
       <StepHeading
         title="What type of Mylar bag do you need?"
-        subtitle="Select the bag style you want us to print."
+        subtitle="Select the bag style you want us to print.HIGH QUALITY - 6 MIL HEAVY DUTY VINYL"
       />
       {/* One column on phones so the whole card stays an easy tap target;
           two from sm up, where four cards would otherwise run very long. */}
