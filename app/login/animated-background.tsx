@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import diamonds from "@/public/login-diamonds.jpg";
+import diamonds from "@/public/login-diamonds.webp";
 
 /**
  * Full-screen background for the sign-in screen.
@@ -21,13 +21,33 @@ export function AnimatedBackground() {
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
     >
-      {/* Base diamond photo. */}
+      {/*
+        Base diamond photo.
+
+        `unoptimized` + a pre-sized source, deliberately. This background
+        renders on ~21 public pages, and the project's Vercel image
+        optimization allowance is exhausted: every uncached transform returns
+        402 (OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED), which is what made this
+        render as a blank black panel in production. Upgrading to Next 16.3.1
+        changed static-media hashing, so every previously cached transform
+        became a miss at once and the breakage surfaced sitewide.
+
+        The source is therefore stored at its delivery size instead of being
+        transformed on demand: 2560px WebP, which covers retina desktop for an
+        image sitting behind a vignette, drifting glows, and a grid overlay.
+        That took it from 5824x3264 / 4.9MB JPEG to 2560x1435 / 144KB WebP, so
+        serving it directly is far lighter than it ever was via the optimizer.
+
+        No `sizes`: with `unoptimized` there is no srcset to select from, so it
+        would be inert. `placeholder="blur"` still works — the blurDataURL is
+        produced from the static import at build time, not by the optimizer.
+      */}
       <Image
         src={diamonds}
         alt=""
         fill
         priority
-        sizes="100vw"
+        unoptimized
         placeholder="blur"
         className="object-cover"
       />
