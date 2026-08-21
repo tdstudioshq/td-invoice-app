@@ -80,6 +80,72 @@ const artworkFileSchema = z.object({
 export type ArtworkFileInput = z.infer<typeof artworkFileSchema>;
 
 /**
+ * One design: a stable id, its bag allocation, and up to one file per side.
+ *
+ * The id is a uuid because it becomes both the `mylar_designs` primary key and
+ * a segment of every artwork object key for that design — an index would break
+ * the moment a design is removed, silently re-pointing the next design's files.
+ */
+export const designSchema = z.object({
+  id: z.string().uuid(),
+  quantity: z
+    .number()
+    .int("Enter a whole number of bags.")
+    .min(1, "Give every design at least 1 bag.")
+    .max(MAX_QUANTITY, "That quantity is too large."),
+  frontArtwork: artworkFileSchema.nullable(),
+  backArtwork: artworkFileSchema.nullable(),
+});
+
+export type DesignInput = z.infer<typeof designSchema>;
+
+export const designsSchema = z
+  .array(designSchema)
+  .min(1, "Add at least one design.")
+  .max(MAX_DESIGN_COUNT, "That's more designs than we can quote here.")
+  // Two designs sharing an id would collide on the primary key and, worse,
+  // share an artwork prefix — so one could claim the other's files.
+  .refine(
+    (designs) => new Set(designs.map((d) => d.id)).size === designs.length,
+    { message: "Those designs aren't distinct. Reload and try again." },
+  );
+
+/** Bags assigned across every design. Shared by the wizard and the action. */
+export function totalAllocated(
+  designs: readonly { quantity: number }[],
+): number {
+  return designs.reduce(
+    (sum, design) => sum + (Number.isFinite(design.quantity) ? design.quantity : 0),
+    0,
+  );
+}
+
+/**
+ * The allocation rule, in one place so the Continue gate, the submit-time
+ * client check, and the server all read the identical sentence. Returns a
+ * customer-facing message, or null when the split balances.
+ */
+export function allocationError(
+  designs: readonly { quantity: number }[],
+  orderQuantity: number,
+): string | null {
+  if (designs.length === 0) return "Add at least one design.";
+  if (designs.some((design) => !Number.isInteger(design.quantity) || design.quantity < 1)) {
+    return "Give every design at least 1 bag.";
+  }
+  const allocated = totalAllocated(designs);
+  if (allocated < orderQuantity) {
+    const short = orderQuantity - allocated;
+    return `${short.toLocaleString()} ${short === 1 ? "bag" : "bags"} still need to be assigned to a design.`;
+  }
+  if (allocated > orderQuantity) {
+    const over = allocated - orderQuantity;
+    return `You've allocated ${over.toLocaleString()} more ${over === 1 ? "bag" : "bags"} than your order quantity.`;
+  }
+  return null;
+}
+
+/**
  * The complete submission. `inquiryId` is the uuid the server minted when the
  * customer first uploaded artwork; it becomes the row's primary key AND the
  * artwork path prefix, which is what lets the server prove an artwork object
@@ -103,8 +169,7 @@ export const mylarInquirySubmissionSchema = z
     quantity: quantitySchema,
     designCount: designCountSchema,
     artworkComingLater: z.boolean(),
-    frontArtwork: artworkFileSchema.nullable(),
-    backArtwork: artworkFileSchema.nullable(),
+    designs: designsSchema,
     customerName: customerNameSchema,
     customerEmail: customerEmailSchema,
     customerPhone: customerPhoneSchema,
@@ -114,15 +179,32 @@ export const mylarInquirySubmissionSchema = z
   })
   // "Send artwork later" and actually attaching artwork are mutually
   // exclusive — otherwise the summary and the notification email disagree
-  // about whether files are coming.
+  // about whether files are coming. Design ALLOCATIONS are unaffected: a
+  // deferred-artwork order still records how the bags split.
   .refine(
     (value) =>
-      !value.artworkComingLater || (!value.frontArtwork && !value.backArtwork),
+      !value.artworkComingLater ||
+      value.designs.every(
+        (design) => !design.frontArtwork && !design.backArtwork,
+      ),
     {
       message: "Uncheck “I’ll send my artwork later” to attach files.",
       path: ["artworkComingLater"],
     },
-  );
+  )
+  // The allocation must balance. Re-checked here rather than trusted from the
+  // wizard: the client gate is UX, this is the rule.
+  .refine((value) => allocationError(value.designs, value.quantity) === null, {
+    message: "Your design quantities don't add up to your order quantity.",
+    path: ["designs"],
+  })
+  // designCount is what the customer said on step 3; designs.length is what
+  // they actually built. Letting them disagree would put a figure in the quote
+  // that contradicts the artwork attached to it.
+  .refine((value) => value.designs.length === value.designCount, {
+    message: "Your number of designs doesn't match the designs you set up.",
+    path: ["designs"],
+  });
 
 export type MylarInquirySubmission = z.infer<
   typeof mylarInquirySubmissionSchema
@@ -132,6 +214,8 @@ export type MylarInquirySubmission = z.infer<
 export const mintArtworkUploadSchema = z.object({
   /** Omitted on the first upload; the server mints and returns one. */
   inquiryId: z.string().uuid().nullable(),
+  /** The design this file belongs to. Client-generated, becomes the row id. */
+  designId: z.string().uuid(),
   side: z.enum(["front", "back"]),
   name: z.string().min(1).max(MAX_ARTWORK_NAME_LENGTH),
   size: z.number().int().positive(),

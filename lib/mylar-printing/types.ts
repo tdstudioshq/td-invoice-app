@@ -12,7 +12,11 @@
  * step (see WIZARD_STEPS) — not reworking this model.
  */
 
-import type { MylarBagType, MylarInquiryStatus } from "@/lib/types/database";
+import type {
+  MylarArtworkSideValue,
+  MylarBagType,
+  MylarInquiryStatus,
+} from "@/lib/types/database";
 
 export type { MylarBagType, MylarInquiryStatus };
 
@@ -28,9 +32,11 @@ export interface MylarBagOption {
    * Preview image shown on the option card, as a path under `public/`.
    *
    * Files are named after the option id (`public/mylar-bags/<id>.png`), so the
-   * mapping is self-evident. The pound bag is still on the shared placeholder;
-   * to give it its real mockup, drop `pound-bag.png` in that folder and change
-   * this one line — nothing else needs touching. Any aspect ratio works: the card renders it
+   * mapping is self-evident. To add or swap a mockup, drop `<id>.png` in that
+   * folder and change this one line — nothing else needs touching.
+   * `placeholder.png` stays as the fallback for any style added before its
+   * artwork exists. Store the file at 192px, the size `BagPreview` renders it
+   * `unoptimized` at. Any aspect ratio works: the card renders it
    * `object-contain` inside a fixed square box, so portrait, landscape, and
    * oversized bags all sit correctly without cropping.
    */
@@ -64,7 +70,7 @@ export const MYLAR_BAG_OPTIONS: readonly MylarBagOption[] = [
     label: "Pound Bag",
     dimensions: null,
     detail: "Large-format mylar packaging for bulk.",
-    image: "/mylar-bags/placeholder.png",
+    image: "/mylar-bags/pound-bag.png",
   },
 ] as const;
 
@@ -146,9 +152,88 @@ export interface MylarArtworkFile {
   mimeType: string;
 }
 
-export type MylarArtworkSide = "front" | "back";
+/** Mirrors the `side` check constraint on mylar_artwork_files (migration 0024). */
+export type MylarArtworkSide = MylarArtworkSideValue;
 
 export const ARTWORK_SIDES: readonly MylarArtworkSide[] = ["front", "back"];
+
+export function artworkSideLabel(side: MylarArtworkSide): string {
+  return side === "front" ? "Front" : "Back";
+}
+
+/** Hard ceiling on designs in one order; mirrors the DB check constraint. */
+export const MAX_DESIGNS_PER_ORDER = MAX_DESIGN_COUNT;
+
+/**
+ * One design in the order: its own bag allocation and its own artwork.
+ *
+ * `id` is a client-generated uuid that becomes the `mylar_designs` row id AND
+ * the design segment of every artwork object key, exactly as `inquiryId`
+ * already does one level up. That single identity is what proves an uploaded
+ * object belongs to the design claiming it. It is a STABLE id, never an array
+ * index — removing Design 2 must not silently re-point Design 3's artwork.
+ */
+export interface MylarDesignDraft {
+  id: string;
+  quantity: number;
+  frontArtwork?: MylarArtworkFile;
+  backArtwork?: MylarArtworkFile;
+}
+
+/**
+ * Split `total` across `count` designs as evenly as possible, largest share
+ * first, so the parts always sum back to `total` exactly.
+ *
+ *   1000 / 4 -> [250, 250, 250, 250]
+ *   1000 / 3 -> [334, 333, 333]
+ *
+ * Integer arithmetic only: a float split plus rounding drifts off the total,
+ * and the whole point of this step is that the allocation balances.
+ */
+export function distributeQuantity(total: number, count: number): number[] {
+  if (count <= 0) return [];
+  const safeTotal = Math.max(0, Math.floor(total));
+  const base = Math.floor(safeTotal / count);
+  const remainder = safeTotal - base * count;
+  return Array.from({ length: count }, (_, index) =>
+    index < remainder ? base + 1 : base,
+  );
+}
+
+/** Sum of every design's allocation. */
+export function allocatedQuantity(
+  designs: readonly MylarDesignDraft[],
+): number {
+  return designs.reduce(
+    (sum, design) => sum + (Number.isFinite(design.quantity) ? design.quantity : 0),
+    0,
+  );
+}
+
+/**
+ * Build `count` designs holding `total` bags between them, preserving anything
+ * already captured for the designs that survive.
+ *
+ * Called when the customer changes the design count on step 3 and when the
+ * artwork step first initialises. Existing entries keep their id — and so keep
+ * their uploaded artwork, which is keyed by that id — while quantities are
+ * redistributed, because the previous split no longer adds up once the number
+ * of designs changes.
+ */
+export function resizeDesigns(
+  existing: readonly MylarDesignDraft[],
+  count: number,
+  total: number,
+  makeId: () => string,
+): MylarDesignDraft[] {
+  const shares = distributeQuantity(total, count);
+  return shares.map((quantity, index) => {
+    const previous = existing[index];
+    return previous
+      ? { ...previous, quantity }
+      : { id: makeId(), quantity };
+  });
+}
 
 /**
  * Everything the wizard collects. `quantity` is a number because the stepper
@@ -161,8 +246,12 @@ export interface MylarPrintingDraft {
   quantity: number;
   designCount?: number;
   artworkComingLater: boolean;
-  frontArtwork?: MylarArtworkFile;
-  backArtwork?: MylarArtworkFile;
+  /**
+   * One entry per design, each with its own allocation and artwork. Seeded
+   * from `designCount` when the artwork step opens, so a customer who said
+   * "4 designs" is not asked to press "Add another design" four times.
+   */
+  designs: MylarDesignDraft[];
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -172,6 +261,7 @@ export interface MylarPrintingDraft {
 export const EMPTY_DRAFT: MylarPrintingDraft = {
   quantity: MIN_QUANTITY,
   artworkComingLater: false,
+  designs: [],
   customerName: "",
   customerEmail: "",
   customerPhone: "",

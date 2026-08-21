@@ -38,17 +38,20 @@ type UploadStatus = "idle" | "uploading" | "uploaded" | "failed";
 type UploadPhase = "idle" | "uploading" | "failed";
 
 /**
- * One artwork slot (FRONT or BACK).
+ * One artwork slot — one side of one design.
  *
  * Each slot uploads independently the moment a file is chosen, so a failed BACK
- * never invalidates a succeeded FRONT — the failed card keeps the File in state
- * and offers Retry, no re-picking and no restarting the wizard.
+ * on Design 2 never invalidates a succeeded FRONT on Design 1 — the failed card
+ * keeps the File in state and offers Retry, no re-picking and no restarting the
+ * wizard.
  *
  * Bytes go browser → Supabase Storage over a one-shot signed URL (see
  * lib/mylar-printing/upload-client.ts). Only the object key reaches the draft,
  * so a 40 MB PSD never touches a Server Action body.
  */
 export function ArtworkUploader({
+  designId,
+  designNumber,
   side,
   value,
   inquiryId,
@@ -56,6 +59,9 @@ export function ArtworkUploader({
   onUploaded,
   onRemove,
 }: {
+  designId: string;
+  /** 1-based, for accessible labels only — never used as an identifier. */
+  designNumber: number;
   side: MylarArtworkSide;
   value: MylarArtworkFile | undefined;
   inquiryId: string | null;
@@ -64,7 +70,10 @@ export function ArtworkUploader({
   onRemove: () => void;
 }) {
   const label = side === "front" ? "Front" : "Back";
-  const inputId = `artwork-${side}`;
+  // Scoped by design id: several designs render this component at once, and
+  // duplicate input ids would make every label point at the first one.
+  const inputId = `artwork-${designId}-${side}`;
+  const slotLabel = `Design ${designNumber} ${label.toLowerCase()}`;
 
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [progress, setProgress] = useState(0);
@@ -122,6 +131,7 @@ export function ArtworkUploader({
       const previous = value;
       const result = await uploadArtwork({
         file,
+        designId,
         side,
         inquiryId,
         onProgress: setProgress,
@@ -143,6 +153,7 @@ export function ArtworkUploader({
         setPreview(null);
         void discardMylarArtworkAction({
           inquiryId: result.inquiryId,
+          designId,
           side,
           path: result.file.path,
         });
@@ -157,12 +168,13 @@ export function ArtworkUploader({
       if (previous && previous.path !== result.file.path) {
         void discardMylarArtworkAction({
           inquiryId: result.inquiryId,
+          designId,
           side,
           path: previous.path,
         });
       }
     },
-    [inquiryId, onUploaded, setPreview, side, value],
+    [designId, inquiryId, onUploaded, setPreview, side, value],
   );
 
   function handleFiles(files: FileList | null) {
@@ -182,7 +194,12 @@ export function ArtworkUploader({
     setPhase("idle");
     onRemove();
     if (removed && inquiryId) {
-      void discardMylarArtworkAction({ inquiryId, side, path: removed.path });
+      void discardMylarArtworkAction({
+        inquiryId,
+        designId,
+        side,
+        path: removed.path,
+      });
     }
   }
 
@@ -225,7 +242,7 @@ export function ArtworkUploader({
             setDragging(false);
             handleFiles(event.dataTransfer.files);
           }}
-          aria-label={`Upload ${label.toLowerCase()} artwork. Drag and drop, or press to browse. ${ARTWORK_TYPES_LABEL}, up to ${formatArtworkBytes(MAX_ARTWORK_BYTES)}.`}
+          aria-label={`Upload ${slotLabel} artwork. Drag and drop, or press to browse. ${ARTWORK_TYPES_LABEL}, up to ${formatArtworkBytes(MAX_ARTWORK_BYTES)}.`}
           className={cn(
             "flex min-h-44 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-4 py-8 text-center transition-all",
             "focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none",
@@ -306,7 +323,7 @@ export function ArtworkUploader({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={progress}
-              aria-label={`${label} artwork upload progress`}
+              aria-label={`${slotLabel} artwork upload progress`}
               className="h-1 w-full overflow-hidden rounded-full bg-white/10"
             >
               <div

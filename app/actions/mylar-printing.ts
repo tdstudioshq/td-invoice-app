@@ -23,8 +23,13 @@ import {
   mintArtworkUploadSchema,
   mylarInquirySubmissionSchema,
   type ArtworkFileInput,
+  type DesignInput,
 } from "@/lib/mylar-printing/schema";
-import { bagTypeLabel, type MylarBagType } from "@/lib/mylar-printing/types";
+import {
+  ARTWORK_SIDES,
+  bagTypeLabel,
+  type MylarBagType,
+} from "@/lib/mylar-printing/types";
 import { getAdminEmails } from "@/lib/auth";
 import {
   EMAIL_FROM,
@@ -105,6 +110,7 @@ export type MintArtworkResult =
  */
 export async function mintMylarArtworkUploadAction(input: {
   inquiryId: string | null;
+  designId: string;
   side: "front" | "back";
   name: string;
   size: number;
@@ -116,7 +122,7 @@ export async function mintMylarArtworkUploadAction(input: {
 
   const parsed = mintArtworkUploadSchema.safeParse(input);
   if (!parsed.success) return { error: GENERIC_REJECTION };
-  const { side, name, size, type } = parsed.data;
+  const { designId, side, name, size, type } = parsed.data;
 
   const hash = await submitterHash();
   if (
@@ -135,7 +141,7 @@ export async function mintMylarArtworkUploadAction(input: {
   // only ever scopes them to their own folder — the submission re-derives the
   // same prefix, so it cannot be used to reach another inquiry's artwork.
   const inquiryId = parsed.data.inquiryId ?? randomUUID();
-  const path = buildArtworkPath(inquiryId, side, randomUUID(), name);
+  const path = buildArtworkPath(inquiryId, designId, side, randomUUID(), name);
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.storage
@@ -194,14 +200,16 @@ type VerifiedArtwork = {
 async function verifyArtwork(
   supabase: ReturnType<typeof createAdminClient>,
   inquiryId: string,
+  designId: string,
+  designNumber: number,
   side: "front" | "back",
   file: ArtworkFileInput,
 ): Promise<{ ok: true; value: VerifiedArtwork } | { ok: false; error: string }> {
-  const label = side === "front" ? "Front" : "Back";
+  const label = `Design ${designNumber} ${side === "front" ? "front" : "back"}`;
 
   // A path outside this inquiry's own prefix is never touched — not read, not
   // removed. It may well belong to somebody else's request.
-  if (!isOwnArtworkPath(file.path, inquiryId, side)) {
+  if (!isOwnArtworkPath(file.path, inquiryId, side, designId)) {
     return { ok: false, error: GENERIC_REJECTION };
   }
   const ext = artworkExtensionOf(file.name);
@@ -322,34 +330,45 @@ export async function submitMylarInquiryAction(
   // here is safe. The only thing lost is retry idempotency for that request.
   const inquiryId = submission.inquiryId ?? randomUUID();
 
-  // --- Artwork: verified against Storage before any of it is persisted.
-  let front: VerifiedArtwork | null = null;
-  let back: VerifiedArtwork | null = null;
-  if (!submission.artworkComingLater) {
-    if (submission.frontArtwork) {
-      const result = await verifyArtwork(
-        supabase,
-        inquiryId,
-        "front",
-        submission.frontArtwork,
-      );
-      if (!result.ok) return { error: result.error };
-      front = result.value;
+  // --- Artwork: every file on every design verified against Storage before any
+  // of it is persisted. One design's bad file rejects the whole submission
+  // rather than silently dropping that slot, so the customer is never told a
+  // request landed with artwork it does not actually have.
+  const verifiedDesigns: {
+    design: DesignInput;
+    designNumber: number;
+    front: VerifiedArtwork | null;
+    back: VerifiedArtwork | null;
+  }[] = [];
+
+  for (const [index, design] of submission.designs.entries()) {
+    const designNumber = index + 1;
+    let front: VerifiedArtwork | null = null;
+    let back: VerifiedArtwork | null = null;
+
+    if (!submission.artworkComingLater) {
+      for (const side of ARTWORK_SIDES) {
+        const file = side === "front" ? design.frontArtwork : design.backArtwork;
+        if (!file) continue;
+        const result = await verifyArtwork(
+          supabase,
+          inquiryId,
+          design.id,
+          designNumber,
+          side,
+          file,
+        );
+        if (!result.ok) return { error: result.error };
+        if (side === "front") front = result.value;
+        else back = result.value;
+      }
     }
-    if (submission.backArtwork) {
-      const result = await verifyArtwork(
-        supabase,
-        inquiryId,
-        "back",
-        submission.backArtwork,
-      );
-      if (!result.ok) return { error: result.error };
-      back = result.value;
-    }
+    verifiedDesigns.push({ design, designNumber, front, back });
   }
-  const uploadedPaths = [front?.path, back?.path].filter(
-    (path): path is string => Boolean(path),
-  );
+
+  const uploadedPaths = verifiedDesigns
+    .flatMap(({ front, back }) => [front?.path, back?.path])
+    .filter((path): path is string => Boolean(path));
 
   // --- Insert. The row id IS the artwork prefix, which also makes a duplicate
   // submit idempotent: a repeated click hits the primary key and we hand back
@@ -360,14 +379,11 @@ export async function submitMylarInquiryAction(
     quantity: submission.quantity,
     design_count: submission.designCount,
     artwork_coming_later: submission.artworkComingLater,
-    front_artwork_path: front?.path ?? null,
-    front_artwork_name: front?.name ?? null,
-    front_artwork_size: front?.size ?? null,
-    front_artwork_mime_type: front?.mimeType ?? null,
-    back_artwork_path: back?.path ?? null,
-    back_artwork_name: back?.name ?? null,
-    back_artwork_size: back?.size ?? null,
-    back_artwork_mime_type: back?.mimeType ?? null,
+    // The legacy front_artwork_* / back_artwork_* columns are deliberately not
+    // written. Migration 0024 backfilled them into mylar_designs /
+    // mylar_artwork_files and left them in place for one release; writing both
+    // would give an inquiry two sources of truth that drift the moment a
+    // customer adds a second design. They are dropped in a later migration.
     customer_name: submission.customerName,
     customer_email: submission.customerEmail,
     customer_phone: submission.customerPhone || null,
@@ -415,14 +431,85 @@ export async function submitMylarInquiryAction(
     return { error: "We couldn't save your request. Please try again." };
   }
 
+  // --- Designs + their artwork. Two child inserts rather than one nested
+  // write, because PostgREST has no multi-table transaction: designs first (so
+  // the artwork rows have a design_id to point at), then every file in one
+  // batch.
+  //
+  // The design ids come from the client, which is safe and load-bearing: they
+  // are the same uuids the artwork was uploaded under, and verifyArtwork has
+  // already proved each object key sits under `{inquiryId}/{designId}/`. A
+  // forged id therefore cannot claim anything — its files would not verify.
+  const designRows = verifiedDesigns.map(({ design, designNumber }) => ({
+    id: design.id,
+    inquiry_id: inquiryId,
+    design_number: designNumber,
+    quantity: design.quantity,
+  }));
+
+  const { error: designError } = await supabase
+    .from("mylar_designs")
+    .insert(designRows);
+
+  if (designError) {
+    // A duplicate key here means this exact submission already landed (the
+    // inquiry insert above is idempotent on the same primary key, so a retry
+    // reaches this point with the designs already stored). Anything else is a
+    // real failure, and the inquiry row it belongs to has to go with it —
+    // an inquiry with no designs would show as an empty order to the studio.
+    if (designError.code !== "23505") {
+      console.error("mylar designs insert", designError.code, designError.message);
+      await supabase.from("mylar_printing_inquiries").delete().eq("id", inquiryId);
+      await removeObjects(supabase, uploadedPaths);
+      return {
+        error:
+          "We couldn't save your designs. Please try again in a moment — nothing was charged or committed.",
+      };
+    }
+  }
+
+  const artworkRows = verifiedDesigns.flatMap(({ design, front, back }) =>
+    ARTWORK_SIDES.flatMap((side) => {
+      const file = side === "front" ? front : back;
+      return file
+        ? [
+            {
+              design_id: design.id,
+              side,
+              storage_path: file.path,
+              file_name: file.name,
+              file_size: file.size,
+              mime_type: file.mimeType,
+            },
+          ]
+        : [];
+    }),
+  );
+
+  if (artworkRows.length > 0) {
+    // `unique (design_id, side)` makes this idempotent on a retry, so a
+    // duplicate-key error means the files are already recorded.
+    const { error: artworkError } = await supabase
+      .from("mylar_artwork_files")
+      .insert(artworkRows);
+    if (artworkError && artworkError.code !== "23505") {
+      // The inquiry and its designs are stored and the objects exist; only the
+      // artwork index failed. Losing the whole request over that would be worse
+      // than filing it with the files unlinked, so this is logged loudly for
+      // manual repair (the object keys carry the inquiry and design ids) and
+      // the customer still gets their reference number.
+      console.error(
+        "mylar artwork files insert",
+        artworkError.code,
+        artworkError.message,
+        uploadedPaths,
+      );
+    }
+  }
+
   // --- Notification. Best effort: an email failure must never lose an inquiry
   // that is already safely stored, so it is logged and swallowed.
-  await notifyStudio(
-    { ...submission, inquiryId },
-    referenceNumber,
-    front,
-    back,
-  );
+  await notifyStudio({ ...submission, inquiryId }, referenceNumber, verifiedDesigns);
 
   revalidatePath("/mylar-requests");
   return { referenceNumber };
@@ -441,18 +528,36 @@ async function notifyStudio(
     inquiryId: string;
   },
   referenceNumber: string,
-  front: VerifiedArtwork | null,
-  back: VerifiedArtwork | null,
+  designs: {
+    design: DesignInput;
+    designNumber: number;
+    front: VerifiedArtwork | null;
+    back: VerifiedArtwork | null;
+  }[],
 ) {
   const recipients = getAdminEmails();
   if (!isResendConfigured() || recipients.length === 0) return;
 
+  // One line per design so the studio can see the split and which files belong
+  // to which allocation without opening the dashboard. The email template takes
+  // this as an opaque string, so no template change is needed.
+  const allocation = designs
+    .map(
+      ({ design, designNumber }) =>
+        `Design ${designNumber}: ${design.quantity.toLocaleString()} pcs`,
+    )
+    .join(" · ");
+
   const artworkSummary = submission.artworkComingLater
-    ? "Customer is sending artwork later"
-    : [
-        front ? `Front: ${front.name}` : "Front: not provided",
-        back ? `Back: ${back.name}` : "Back: not provided",
-      ].join(" · ");
+    ? `Customer is sending artwork later — ${allocation}`
+    : designs
+        .map(
+          ({ designNumber, design, front, back }) =>
+            `Design ${designNumber} (${design.quantity.toLocaleString()} pcs) — front: ${
+              front ? front.name : "not provided"
+            }, back: ${back ? back.name : "not provided"}`,
+        )
+        .join("\n");
 
   const email = mylarInquiryEmail({
     referenceNumber,
@@ -499,14 +604,15 @@ async function notifyStudio(
  */
 export async function discardMylarArtworkAction(input: {
   inquiryId: string;
+  designId?: string;
   side: "front" | "back";
   path: string;
 }): Promise<void> {
   if (!isSupabaseAdminConfigured()) return;
 
-  const { inquiryId, side, path } = input;
+  const { inquiryId, designId, side, path } = input;
   if (side !== "front" && side !== "back") return;
-  if (!isOwnArtworkPath(path, inquiryId, side)) return;
+  if (!isOwnArtworkPath(path, inquiryId, side, designId)) return;
 
   try {
     const supabase = createAdminClient();

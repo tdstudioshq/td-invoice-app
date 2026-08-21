@@ -5,6 +5,7 @@ import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { formatArtworkBytes } from "@/lib/mylar-printing/artwork";
 import {
   bagTypeLabel,
+  type MylarArtworkFile,
   type MylarPrintingDraft,
   type WizardStepId,
 } from "@/lib/mylar-printing/types";
@@ -25,9 +26,8 @@ export function InquirySummary({
   draft: MylarPrintingDraft;
   onEdit?: (step: WizardStepId) => void;
 }) {
-  const artworkLabel = (side: "front" | "back") => {
+  const artworkLabel = (file: MylarArtworkFile | undefined) => {
     if (draft.artworkComingLater) return "Sending later";
-    const file = side === "front" ? draft.frontArtwork : draft.backArtwork;
     if (!file) return "Not provided";
     return `${file.name} (${formatArtworkBytes(file.size)})`;
   };
@@ -46,22 +46,10 @@ export function InquirySummary({
     },
     {
       label: "Designs",
-      value: draft.designCount
-        ? `${draft.designCount} ${draft.designCount === 1 ? "design" : "designs"}`
+      value: draft.designs.length
+        ? `${draft.designs.length} ${draft.designs.length === 1 ? "design" : "designs"}`
         : "—",
       step: "designs",
-    },
-    {
-      label: "Front Artwork",
-      value: artworkLabel("front"),
-      step: "artwork",
-      truncate: true,
-    },
-    {
-      label: "Back Artwork",
-      value: artworkLabel("back"),
-      step: "artwork",
-      truncate: true,
     },
   ];
 
@@ -118,6 +106,73 @@ export function InquirySummary({
           </div>
         ))}
       </dl>
+
+      {/*
+        Per-design breakdown, below the flat rows rather than folded into them.
+        A single "Front Artwork" row cannot describe three designs, and stacking
+        six rows into the definition list would bury the order details above it.
+        Each design gets its allocation and its two filenames, which is exactly
+        what the customer needs to check before submitting.
+      */}
+      {draft.designs.length > 0 ? (
+        <div className="mt-5 border-t border-white/8 pt-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h4 className="text-muted-foreground text-xs tracking-wider uppercase">
+              Designs
+            </h4>
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={() => onEdit("artwork")}
+                className="text-muted-foreground hover:text-foreground -mr-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+              >
+                <PencilSimpleIcon weight="bold" className="size-3" />
+                <span>Edit</span>
+                <span className="sr-only"> designs and artwork</span>
+              </button>
+            ) : null}
+          </div>
+
+          <ul className="space-y-3">
+            {draft.designs.map((design, index) => (
+              <li
+                key={design.id}
+                className="rounded-xl border border-white/10 bg-black/25 p-3.5"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm text-white">Design {index + 1}</p>
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {design.quantity.toLocaleString()}{" "}
+                    {design.quantity === 1 ? "piece" : "pieces"}
+                  </p>
+                </div>
+                <dl className="mt-2 space-y-1">
+                  <ArtworkLine
+                    label="Front"
+                    value={artworkLabel(design.frontArtwork)}
+                  />
+                  <ArtworkLine
+                    label="Back"
+                    value={artworkLabel(design.backArtwork)}
+                  />
+                </dl>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+/** "Front: design-a-front.ai (2.1 MB)" — one artwork line inside a design. */
+function ArtworkLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 gap-2 text-xs">
+      <dt className="text-muted-foreground shrink-0">{label}:</dt>
+      <dd className="truncate text-white/85" title={value}>
+        {value}
+      </dd>
+    </div>
   );
 }

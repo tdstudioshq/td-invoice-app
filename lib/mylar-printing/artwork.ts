@@ -174,40 +174,72 @@ export function sanitizeArtworkName(name: string): string {
 
 /**
  * Build the object key for one artwork file:
- *   {inquiryId}/{side}/{objectId}-{sanitized-name}
+ *   {inquiryId}/{designId}/{side}/{objectId}-{sanitized-name}
  *
- * `inquiryId` is the server-minted uuid that becomes the inquiry row's primary
- * key, and `objectId` is a fresh random uuid, so keys are never guessable and
- * two uploads of the same filename never collide. Both uuids are generated
- * server-side; this function only composes them.
+ * Three ids, each doing a job. `inquiryId` is the uuid that becomes the inquiry
+ * row's primary key; `designId` becomes the mylar_designs row id; `objectId` is
+ * a fresh random uuid so two uploads of the same filename never collide. The
+ * first two segments are what let the server prove an object belongs to the
+ * design claiming it, without trusting anything the browser says.
+ *
+ * Migration 0024 widened this from the flat `{inquiryId}/{side}/…` of 0023.
+ * Objects uploaded under the old shape keep their key — see `isOwnArtworkPath`.
  */
 export function buildArtworkPath(
   inquiryId: string,
+  designId: string,
   side: "front" | "back",
   objectId: string,
   fileName: string,
 ): string {
-  return `${inquiryId}/${side}/${objectId}-${sanitizeArtworkName(fileName)}`;
+  return `${inquiryId}/${designId}/${side}/${objectId}-${sanitizeArtworkName(fileName)}`;
 }
 
-/** Matches exactly what buildArtworkPath produces for this inquiry + side. */
+/** Matches exactly what buildArtworkPath produces. */
 const UUID_RE =
   "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+const UUID_ONLY = new RegExp(`^${UUID_RE}$`);
+
+/** The `{objectId}-{sanitized-name}` leaf, common to both key shapes. */
+const LEAF_RE = `${UUID_RE}-[\\w.\\-]{1,${MAX_ARTWORK_NAME_LENGTH}}`;
 
 /**
  * Whether `path` is a key this inquiry could legitimately own. Used server-side
  * before an uploaded object is claimed by a submission: the caller supplies the
- * inquiry id, so a client can never point a submission at another inquiry's
- * folder (or anywhere else in the bucket).
+ * ids, so a client can never point a submission at another inquiry's folder (or
+ * anywhere else in the bucket).
+ *
+ * Accepts BOTH key shapes, and that is not a weakening:
+ *
+ *   {inquiryId}/{designId}/{side}/{leaf}   — current (0024)
+ *   {inquiryId}/{side}/{leaf}              — legacy  (0023)
+ *
+ * Both are anchored to the same unguessable inquiry uuid, so neither can reach
+ * outside the caller's own prefix. The legacy form still has to be accepted
+ * because the wizard mirrors uploaded artwork keys into sessionStorage: a
+ * customer who uploaded before a deploy and submits after it is holding old-
+ * shaped keys, and rejecting them would lose their files for no security gain.
+ * `designId` is only required for the current shape — a legacy key predates
+ * designs entirely and cannot encode one.
  */
 export function isOwnArtworkPath(
   path: string,
   inquiryId: string,
   side: "front" | "back",
+  designId?: string,
 ): boolean {
-  if (!new RegExp(`^${UUID_RE}$`).test(inquiryId)) return false;
-  const pattern = new RegExp(
-    `^${inquiryId}/${side}/${UUID_RE}-[\\w.\\-]{1,${MAX_ARTWORK_NAME_LENGTH}}$`,
-  );
-  return pattern.test(path);
+  if (!UUID_ONLY.test(inquiryId)) return false;
+
+  if (designId) {
+    if (!UUID_ONLY.test(designId)) return false;
+    if (
+      new RegExp(`^${inquiryId}/${designId}/${side}/${LEAF_RE}$`).test(path)
+    ) {
+      return true;
+    }
+  }
+
+  // Legacy 0023 key: inquiry-scoped, no design segment.
+  return new RegExp(`^${inquiryId}/${side}/${LEAF_RE}$`).test(path);
 }

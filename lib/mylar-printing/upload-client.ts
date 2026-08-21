@@ -16,8 +16,9 @@ import type { MylarArtworkFile, MylarArtworkSide } from "@/lib/mylar-printing/ty
  * the path. Progress is reported through XMLHttpRequest, which (unlike fetch)
  * exposes upload progress events.
  *
- * Each side uploads independently, so a failed BACK never invalidates a
- * succeeded FRONT — the caller just retries the one that failed.
+ * Every slot uploads independently — each side of each design — so a failed
+ * BACK on Design 2 never invalidates a succeeded FRONT on Design 1. The caller
+ * just retries the one that failed.
  */
 
 export type UploadArtworkResult =
@@ -81,13 +82,15 @@ function putWithProgress(
 
 export async function uploadArtwork(params: {
   file: File;
+  /** The design this file belongs to; becomes a segment of the object key. */
+  designId: string;
   side: MylarArtworkSide;
   /** null on the very first upload; the server mints and returns one. */
   inquiryId: string | null;
   onProgress: (percent: number) => void;
   signal?: AbortSignal;
 }): Promise<UploadArtworkResult> {
-  const { file, side, inquiryId, onProgress, signal } = params;
+  const { file, designId, side, inquiryId, onProgress, signal } = params;
 
   // Fail fast client-side for UX. The server re-runs the identical check —
   // this pre-check saves a round trip, it does not grant anything.
@@ -96,6 +99,7 @@ export async function uploadArtwork(params: {
 
   const minted = await mintMylarArtworkUploadAction({
     inquiryId,
+    designId,
     side,
     name: file.name,
     size: file.size,

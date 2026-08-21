@@ -40,6 +40,11 @@ export type MylarInquiryStatus =
   | "completed"
   | "cancelled";
 
+// Artwork slot on a design (migration 0024). Same text + check reasoning as
+// above: adding a third slot later widens a constraint instead of altering an
+// enum type. `MylarArtworkSide` in lib/mylar-printing/types.ts re-exports this.
+export type MylarArtworkSideValue = "front" | "back";
+
 export type Json =
   | string
   | number
@@ -644,6 +649,52 @@ export interface Database {
         >;
         Relationships: [];
       };
+      mylar_designs: {
+        Row: {
+          id: string;
+          inquiry_id: string;
+          design_number: number;
+          quantity: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          inquiry_id: string;
+          design_number: number;
+          quantity: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["mylar_designs"]["Insert"]>;
+        Relationships: [];
+      };
+      mylar_artwork_files: {
+        Row: {
+          id: string;
+          design_id: string;
+          side: MylarArtworkSideValue;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          design_id: string;
+          side: MylarArtworkSideValue;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["mylar_artwork_files"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -736,6 +787,24 @@ export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
 export type MylarPrintingInquiry =
   Database["public"]["Tables"]["mylar_printing_inquiries"]["Row"];
+export type MylarDesignRow = Database["public"]["Tables"]["mylar_designs"]["Row"];
+export type MylarArtworkFileRow =
+  Database["public"]["Tables"]["mylar_artwork_files"]["Row"];
+
+/**
+ * An inquiry with its designs and each design's artwork, as assembled by
+ * lib/mylar-printing/queries.ts. The legacy front_artwork_* / back_artwork_*
+ * columns are still on `MylarPrintingInquiry` (migration 0024 backfilled rather
+ * than dropped them) — read `designs` instead; nothing in the app writes the
+ * legacy columns any more.
+ */
+export type MylarDesignWithArtwork = MylarDesignRow & {
+  artwork: MylarArtworkFileRow[];
+};
+
+export type MylarInquiryWithDesigns = MylarPrintingInquiry & {
+  designs: MylarDesignWithArtwork[];
+};
 
 // Composed shapes returned by joined queries.
 export type TaskWithClient = Task & {

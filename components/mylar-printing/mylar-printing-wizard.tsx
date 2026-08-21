@@ -23,17 +23,23 @@ import {
   submitMylarInquiryAction,
 } from "@/app/actions/mylar-printing";
 import {
+  allocationError,
   designCountSchema,
   firstError,
   mylarInquirySubmissionSchema,
   quantitySchema,
 } from "@/lib/mylar-printing/schema";
 import {
+  ARTWORK_SIDES,
   EMPTY_DRAFT,
   STEP_COUNT,
   WIZARD_STEPS,
+  distributeQuantity,
+  resizeDesigns,
   stepIndexOf,
   type MylarArtworkFile,
+  type MylarArtworkSide,
+  type MylarDesignDraft,
   type MylarPrintingDraft,
   type WizardStepId,
 } from "@/lib/mylar-printing/types";
@@ -73,8 +79,7 @@ const STEP_FOR_FIELD: Record<string, WizardStepId> = {
   quantity: "quantity",
   designCount: "designs",
   artworkComingLater: "artwork",
-  frontArtwork: "artwork",
-  backArtwork: "artwork",
+  designs: "artwork",
   customerName: "details",
   customerEmail: "details",
   customerPhone: "details",
@@ -187,9 +192,63 @@ export function MylarPrintingWizard() {
     [goTo],
   );
 
+  /**
+   * A stable uuid for a new design. Web Crypto only exists in a secure context;
+   * on plain http (a LAN IP while testing on a phone) it is undefined, so this
+   * falls back to a v4-shaped random string. Either way the id is a real
+   * identifier that survives reordering — never an array index, which would
+   * silently re-point a design's artwork the moment one above it is removed.
+   */
+  const makeDesignId = useCallback(() => {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    const hex = "0123456789abcdef";
+    let out = "";
+    for (let i = 0; i < 36; i += 1) {
+      if (i === 8 || i === 13 || i === 18 || i === 23) out += "-";
+      else if (i === 14) out += "4";
+      else if (i === 19) out += hex[8 + Math.floor(Math.random() * 4)];
+      else out += hex[Math.floor(Math.random() * 16)];
+    }
+    return out;
+  }, []);
+
+  /**
+   * Seed the design list when the artwork step opens.
+   *
+   * This is the whole "don't make them press Add four times" behaviour: the
+   * count from step 3 and the total from step 2 become N cards with the total
+   * distributed evenly between them. It only fires when the list is EMPTY or
+   * its length has fallen out of step with `designCount` — editing a quantity
+   * must never be undone by a re-seed, and neither must an uploaded file.
+   * `resizeDesigns` preserves surviving entries by id, so artwork already
+   * attached to Design 1 stays on Design 1 when Design 4 is added.
+   */
+  useEffect(() => {
+    if (!hydrated.current) return;
+    if (WIZARD_STEPS[step].id !== "artwork") return;
+    const wanted = draft.designCount ?? 1;
+    if (draft.designs.length === wanted) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraft((current) => {
+      if (current.designs.length === wanted) return current;
+      return {
+        ...current,
+        designs: resizeDesigns(
+          current.designs,
+          wanted,
+          current.quantity,
+          makeDesignId,
+        ),
+      };
+    });
+  }, [draft.designCount, draft.designs.length, makeDesignId, step]);
+
   const handleArtworkChange = useCallback(
     (
-      side: "front" | "back",
+      designId: string,
+      side: MylarArtworkSide,
       nextInquiryId: string | null,
       file: MylarArtworkFile | undefined,
     ) => {
@@ -199,12 +258,97 @@ export function MylarPrintingWizard() {
         // dropped: attaching it would contradict the checkbox and fail the
         // schema at submit time.
         if (file && current.artworkComingLater) return current;
-        return side === "front"
-          ? { ...current, frontArtwork: file }
-          : { ...current, backArtwork: file };
+        return {
+          ...current,
+          designs: current.designs.map((design) =>
+            design.id === designId
+              ? side === "front"
+                ? { ...design, frontArtwork: file }
+                : { ...design, backArtwork: file }
+              : design,
+          ),
+        };
       });
     },
     [],
+  );
+
+  const handleDesignQuantityChange = useCallback(
+    (designId: string, quantity: number) => {
+      setDraft((current) => ({
+        ...current,
+        designs: current.designs.map((design) =>
+          design.id === designId ? { ...design, quantity } : design,
+        ),
+      }));
+    },
+    [],
+  );
+
+  /**
+   * Add a design, and give it whatever is still unallocated.
+   *
+   * Handing the new card the remaining bags (rather than 0) means the common
+   * "split this order one more way" gesture lands on a balanced allocation
+   * immediately; when nothing is left over it starts at 1, which is the
+   * smallest value the schema accepts, so the customer is nudged to rebalance
+   * rather than blocked by a zero they did not type.
+   *
+   * `designCount` is kept in step, because the two must agree at submit time.
+   */
+  const handleAddDesign = useCallback(() => {
+    setDraft((current) => {
+      const allocated = current.designs.reduce(
+        (sum, design) => sum + (Number.isFinite(design.quantity) ? design.quantity : 0),
+        0,
+      );
+      const remaining = current.quantity - allocated;
+      const designs = [
+        ...current.designs,
+        { id: makeDesignId(), quantity: remaining > 0 ? remaining : 1 },
+      ];
+      return { ...current, designs, designCount: designs.length };
+    });
+  }, [makeDesignId]);
+
+  /**
+   * Remove a design, release any artwork it was holding, and hand its bags back
+   * to the remaining designs so the order stays balanced.
+   *
+   * The discards run here, NOT inside the setDraft updater: React may invoke an
+   * updater more than once, and a side effect in there would fire as many times.
+   */
+  const handleRemoveDesign = useCallback(
+    (designId: string) => {
+      const removed = draft.designs.find((design) => design.id === designId);
+      if (removed && inquiryId) {
+        for (const side of ARTWORK_SIDES) {
+          const file =
+            side === "front" ? removed.frontArtwork : removed.backArtwork;
+          if (file) {
+            void discardMylarArtworkAction({
+              inquiryId,
+              designId,
+              side,
+              path: file.path,
+            });
+          }
+        }
+      }
+      setDraft((current) => {
+        const kept = current.designs.filter((design) => design.id !== designId);
+        if (kept.length === 0) return current;
+        // Redistribute rather than leave the order short: the customer removed
+        // a design, they did not reduce their order.
+        const shares = distributeQuantity(current.quantity, kept.length);
+        const designs: MylarDesignDraft[] = kept.map((design, index) => ({
+          ...design,
+          quantity: shares[index],
+        }));
+        return { ...current, designs, designCount: designs.length };
+      });
+    },
+    [draft.designs, inquiryId],
   );
 
   const handleComingLater = useCallback(
@@ -213,32 +357,42 @@ export function MylarPrintingWizard() {
         patch({ artworkComingLater: false });
         return;
       }
-      // Ticking "send later" clears both slots so the summary, the stored row,
-      // and the notification email can't disagree about what's attached. The
-      // draft is the only thing holding those object keys, so the bytes are
-      // released here too rather than left in the bucket unreferenced.
+      // Ticking "send later" clears every slot on every design so the summary,
+      // the stored row, and the notification email can't disagree about what's
+      // attached. The draft is the only thing holding those object keys, so the
+      // bytes are released here too rather than left in the bucket
+      // unreferenced. The design ALLOCATIONS are untouched — deferring artwork
+      // does not mean forgetting how the order splits.
       //
       // The discards run here, NOT inside the setDraft updater: React may
       // invoke an updater more than once, and a side effect in there would fire
       // as many times.
       if (inquiryId) {
-        const slots = [
-          ["front", draft.frontArtwork],
-          ["back", draft.backArtwork],
-        ] as const;
-        for (const [side, file] of slots) {
-          if (file) {
-            void discardMylarArtworkAction({ inquiryId, side, path: file.path });
+        for (const design of draft.designs) {
+          for (const side of ARTWORK_SIDES) {
+            const file =
+              side === "front" ? design.frontArtwork : design.backArtwork;
+            if (file) {
+              void discardMylarArtworkAction({
+                inquiryId,
+                designId: design.id,
+                side,
+                path: file.path,
+              });
+            }
           }
         }
       }
-      patch({
+      setDraft((current) => ({
+        ...current,
         artworkComingLater: true,
-        frontArtwork: undefined,
-        backArtwork: undefined,
-      });
+        designs: current.designs.map((design) => ({
+          id: design.id,
+          quantity: design.quantity,
+        })),
+      }));
     },
-    [draft.backArtwork, draft.frontArtwork, inquiryId, patch],
+    [draft.designs, inquiryId, patch],
   );
 
   // --- Gate for Continue. Step 5 has no gate: its button submits and surfaces
@@ -255,6 +409,10 @@ export function MylarPrintingWizard() {
           draft.designCount !== undefined &&
           firstError(designCountSchema, draft.designCount) === null
         );
+      case "artwork":
+        // The allocation must balance before the customer can move on. Artwork
+        // itself is never gated — it is optional by design.
+        return allocationError(draft.designs, draft.quantity) === null;
       default:
         return true;
     }
@@ -274,6 +432,16 @@ export function MylarPrintingWizard() {
       toast.error("Tell us how many designs you're printing.");
       return;
     }
+    // Surfaced before the schema parse so the customer gets the specific
+    // "250 bags still need to be assigned" wording rather than the generic
+    // allocation message the submission schema carries.
+    const allocationProblem = allocationError(draft.designs, draft.quantity);
+    if (allocationProblem) {
+      setShowAllErrors(true);
+      goToStepId("artwork");
+      toast.error(allocationProblem);
+      return;
+    }
 
     // Web Crypto is only defined in a secure context; on plain http the server
     // mints the id instead (see the schema note). Generating it here when we
@@ -289,8 +457,12 @@ export function MylarPrintingWizard() {
       quantity: draft.quantity,
       designCount: draft.designCount,
       artworkComingLater: draft.artworkComingLater,
-      frontArtwork: draft.frontArtwork ?? null,
-      backArtwork: draft.backArtwork ?? null,
+      designs: draft.designs.map((design) => ({
+        id: design.id,
+        quantity: design.quantity,
+        frontArtwork: design.frontArtwork ?? null,
+        backArtwork: design.backArtwork ?? null,
+      })),
       customerName: draft.customerName,
       customerEmail: draft.customerEmail,
       customerPhone: draft.customerPhone,
@@ -391,11 +563,15 @@ export function MylarPrintingWizard() {
 
             {WIZARD_STEPS[step].id === "artwork" ? (
               <ArtworkStep
-                frontArtwork={draft.frontArtwork}
-                backArtwork={draft.backArtwork}
+                designs={draft.designs}
+                orderQuantity={draft.quantity}
                 comingLater={draft.artworkComingLater}
                 inquiryId={inquiryId}
+                showAllErrors={showAllErrors}
                 onArtworkChange={handleArtworkChange}
+                onQuantityChange={handleDesignQuantityChange}
+                onAddDesign={handleAddDesign}
+                onRemoveDesign={handleRemoveDesign}
                 onComingLaterChange={handleComingLater}
               />
             ) : null}
