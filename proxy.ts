@@ -26,6 +26,8 @@ const PUBLIC_PATHS = new Set<string>([
   "/premadedesigns",
   "/custom-design-request",
   "/how-to-order",
+  "/mylar-bag-printing",
+  "/mylar-printing",
   "/portfolio",
   "/taste-budz",
   "/gso",
@@ -34,6 +36,8 @@ const PUBLIC_PATHS = new Set<string>([
   "/mafiaterpz",
   "/tools/cutline-generator",
   "/tools/mockup-generator",
+  "/tools/8pc-mockup-generator",
+  "/tools/bag-mockup-grid",
   // The static mylar shop (public/mylar/index.html): /mylar is the rewritten
   // clean URL, and the direct file path must pass too since the matcher only
   // skips image extensions, not .html.

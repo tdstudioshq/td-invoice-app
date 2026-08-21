@@ -12,7 +12,12 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
  * IMPORTANT: if `ADMIN_EMAILS` is empty, NOBODY is an admin (the dashboard is
  * inaccessible). Set it to your admin address(es) in `.env.local` and Vercel.
  */
-function getAdminEmails(): string[] {
+/**
+ * The raw allowlist. Exported so server-side notification code (e.g. the
+ * mylar-printing inquiry email) can address the studio's own inbox without
+ * duplicating the parsing.
+ */
+export function getAdminEmails(): string[] {
   return (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((email) => email.trim().toLowerCase())

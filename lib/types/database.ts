@@ -23,6 +23,23 @@ export type ProjectStatus =
 export type TaskStatus = "todo" | "in_progress" | "done";
 export type TaskPriority = "low" | "medium" | "high";
 
+// Public Custom Mylar Printing inquiry wizard (migration 0023). Stored as
+// text + check constraints rather than pg enums so the lists stay easy to
+// extend — see lib/mylar-printing/types.ts for the labelled domain model.
+export type MylarBagType =
+  | "3.5g-4x5"
+  | "3.5g-sideways-5x4"
+  | "2in1-8x5"
+  | "pound-bag";
+export type MylarInquiryStatus =
+  | "new"
+  | "reviewing"
+  | "quoted"
+  | "approved"
+  | "printing"
+  | "completed"
+  | "cancelled";
+
 export type Json =
   | string
   | number
@@ -573,6 +590,60 @@ export interface Database {
           },
         ];
       };
+      mylar_printing_inquiries: {
+        Row: {
+          id: string;
+          reference_number: string;
+          bag_type: MylarBagType;
+          quantity: number;
+          design_count: number;
+          artwork_coming_later: boolean;
+          front_artwork_path: string | null;
+          front_artwork_name: string | null;
+          front_artwork_size: number | null;
+          front_artwork_mime_type: string | null;
+          back_artwork_path: string | null;
+          back_artwork_name: string | null;
+          back_artwork_size: number | null;
+          back_artwork_mime_type: string | null;
+          customer_name: string;
+          customer_email: string;
+          customer_phone: string | null;
+          notes: string | null;
+          status: MylarInquiryStatus;
+          submitter_hash: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reference_number: string;
+          bag_type: MylarBagType;
+          quantity: number;
+          design_count: number;
+          artwork_coming_later?: boolean;
+          front_artwork_path?: string | null;
+          front_artwork_name?: string | null;
+          front_artwork_size?: number | null;
+          front_artwork_mime_type?: string | null;
+          back_artwork_path?: string | null;
+          back_artwork_name?: string | null;
+          back_artwork_size?: number | null;
+          back_artwork_mime_type?: string | null;
+          customer_name: string;
+          customer_email: string;
+          customer_phone?: string | null;
+          notes?: string | null;
+          status?: MylarInquiryStatus;
+          submitter_hash?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["mylar_printing_inquiries"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -663,6 +734,8 @@ export type QrGeneration =
   Database["public"]["Tables"]["qr_generations"]["Row"];
 export type QrScan = Database["public"]["Tables"]["qr_scans"]["Row"];
 export type Task = Database["public"]["Tables"]["tasks"]["Row"];
+export type MylarPrintingInquiry =
+  Database["public"]["Tables"]["mylar_printing_inquiries"]["Row"];
 
 // Composed shapes returned by joined queries.
 export type TaskWithClient = Task & {

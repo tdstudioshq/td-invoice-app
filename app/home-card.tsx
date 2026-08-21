@@ -10,7 +10,7 @@ import {
   ChatCircleTextIcon,
   CurrencyDollarIcon,
   ImagesIcon,
-  ListNumbersIcon,
+  PackageIcon,
   PaintBrushIcon,
   SquaresFourIcon,
   type Icon,
@@ -45,9 +45,9 @@ const BIO_LINKS: {
     sameTab: true,
   },
   {
-    label: "How to Order",
-    href: "/how-to-order",
-    icon: ListNumbersIcon,
+    label: "Custom Mylar Printing",
+    href: "/mylar-printing",
+    icon: PackageIcon,
     sameTab: true,
   },
   {
