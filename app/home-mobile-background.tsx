@@ -1,4 +1,9 @@
+"use client";
+
+import { useRef } from "react";
 import Image from "next/image";
+
+import { useScrollParallax } from "@/app/use-home-scroll";
 
 import ticket from "@/public/home-mobile-bg.jpg";
 
@@ -27,23 +32,53 @@ import ticket from "@/public/home-mobile-bg.jpg";
  * static import at build time, not from the optimizer.
  */
 export function HomeMobileBackground() {
+  const artRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Depth on scroll. `contain` fit on a 572x1024 source leaves a tall black
+   * letterbox band above and below the art on every phone aspect ratio (~70px
+   * a side at 390x844), so shifting the art a few px inside its own frame never
+   * exposes an edge — the bands just breathe, black on black, while the artwork
+   * lags the content. Deliberately tiny: the fixed backdrop already re-composites
+   * under the card's backdrop-filter on every scroll frame, so this adds one
+   * compositor transform and no new per-frame work.
+   */
+  useScrollParallax(artRef, { factor: -0.08, max: 14 });
+
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none fixed inset-0 z-0 bg-black md:hidden"
     >
-      <Image
-        src={ticket}
-        alt=""
-        fill
-        priority
-        unoptimized
-        placeholder="blur"
-        className="object-contain"
-      />
+      <div ref={artRef} className="absolute inset-0 will-change-transform">
+        <Image
+          src={ticket}
+          alt=""
+          fill
+          priority
+          unoptimized
+          placeholder="blur"
+          className="object-contain"
+        />
+      </div>
 
-      {/* Scrim + vignette so the glass card stays legible over the busy art. */}
-      <div className="absolute inset-0 bg-black/45" />
+      {/*
+        Readability stack, in three layers rather than one flat tint.
+
+        The ticket is the brightest artwork on the site — a diamond-encrusted
+        wordmark over foil red — and `contain` fit means the crop shifts with
+        every viewport ratio, so which part of it lands behind the card is not
+        something the layout can pin down. The protection therefore has to be
+        strongest exactly where the card sits and weakest everywhere else,
+        instead of dimming the whole page until the art stops being the art.
+
+        Base tint drops from 45% to 40% so more of the ticket survives at the
+        margins; the elliptical scrim then adds ~55% over the middle band where
+        the card lands, taking the composite behind the glass to ~73% black
+        while the edges stay near where they already were.
+      */}
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_88%_52%_at_50%_47%,rgba(0,0,0,0.55),transparent_72%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_45%,rgba(0,0,0,0.7))]" />
     </div>
   );

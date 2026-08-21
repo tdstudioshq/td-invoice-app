@@ -25,15 +25,26 @@ export default async function Home(props: PageProps<"/">) {
   }
 
   return (
-    <main className="on-glass relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
+    // `min-h-svh`, not `dvh`/`vh`: the *small* viewport height is the one that
+    // holds while Safari's address bar is expanded, so the card is never sized
+    // against space the browser is about to take back. Anything taller than the
+    // shell simply scrolls. `.home-shell` supplies the padding — safe-area aware
+    // on phones, the original `px-4 py-12` box from `md` up.
+    <main className="on-glass home-shell relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
       {/* Mobile gets the scratch-off ticket art; md+ keeps the animated diamonds. */}
       <HomeMobileBackground />
       <div className="absolute inset-0 hidden md:block">
         <AnimatedBackground />
       </div>
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-[26rem] md:max-w-sm">
         <HomeCard redirectTo={target} justReset={justReset} />
       </div>
+      {/* Landing room for the floating Mylar CTA, so the last bio button is
+          still reachable at the bottom of the scroll. It doubles as the nudge
+          that lifts the card off dead-centre on phones, which is where a
+          link-in-bio card wants to sit. Removed from the flow at `md`, leaving
+          the desktop composition byte-identical. */}
+      <div aria-hidden className="h-16 shrink-0 md:hidden" />
     </main>
   );
 }

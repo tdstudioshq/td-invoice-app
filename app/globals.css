@@ -250,6 +250,103 @@
       0 0 8px oklch(0 0 0 / 55%);
   }
 
+  /*
+   * Homepage shell padding.
+   *
+   * Phones get safe-area-aware insets so the card clears the Dynamic Island,
+   * the home indicator and — in landscape — the notch rail, in standalone/PWA
+   * mode as much as in Safari (`viewportFit: "cover"` is already set in
+   * `app/layout.tsx`, which is what makes `env()` report non-zero at all).
+   * `max()` rather than addition, so a device with no inset still gets the
+   * intended 12/20px breathing room instead of collapsing to the edge.
+   *
+   * From `md` up this is exactly the `px-4 py-12` the page had before, so the
+   * desktop composition is unchanged.
+   */
+  .home-shell {
+    padding-left: max(0.75rem, env(safe-area-inset-left));
+    padding-right: max(0.75rem, env(safe-area-inset-right));
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+
+  @media (min-width: 768px) {
+    .home-shell {
+      padding: 3rem 1rem;
+    }
+  }
+
+  /*
+   * Phone-only overrides for the homepage's liquid-glass card.
+   *
+   * `GlassCard` writes `border-radius` inline and shrink-wraps `.glass` around
+   * its content, neither of which is reachable from a prop, so the phone layout
+   * has to reach in. Widening `.glass` to 100% is what lets the card's content
+   * use `w-full` and inherit its width from the shell — which is where the
+   * safe-area insets are already resolved — instead of carrying its own
+   * viewport math.
+   *
+   * `.glass__warp` is dropped because the library stacks an SVG
+   * feDisplacementMap chain *and* a second backdrop-filter on it, on top of the
+   * 22px backdrop blur the app's own `.glass` utility already applies. Two
+   * backdrop passes plus a displacement filter is the most expensive thing on
+   * this page on every scroll frame, and the edge chromatic aberration it buys
+   * is not resolvable at phone size. The frosted glass itself is untouched.
+   */
+  @media (max-width: 767px) {
+    .home-glass,
+    .home-glass > .glass {
+      border-radius: 20px !important;
+    }
+
+    /* `.glass` is `inline-flex`, and its one content wrapper is a flex item
+       sized from its own content, so widening `.glass` alone leaves the wrapper
+       shrink-wrapped and `w-full` inside it circular. Both have to be told. */
+    .home-glass > .glass,
+    .home-glass > .glass > div {
+      width: 100%;
+    }
+
+    .home-glass > .glass > .glass__warp {
+      display: none;
+    }
+
+    /*
+     * ...and put a single, stronger backdrop pass back on the card itself.
+     *
+     * Two things make this necessary rather than cosmetic. The `.glass` utility
+     * above declares `backdrop-filter` *and* `-webkit-backdrop-filter`, and
+     * Lightning CSS dedupes the pair down to the prefixed one alone — which
+     * Chrome 151 no longer implements at all (`CSS.supports(
+     * "-webkit-backdrop-filter", "blur(2px)")` is false), so on Chrome the only
+     * blur this card ever had was the inline one on `.glass__warp`, which the
+     * rule above just switched off. Declaring the standard property alone here
+     * survives the dedupe and lands on every engine.
+     *
+     * 26px also slightly exceeds the ~25px effective sigma of the old
+     * 22px + 12.3px stack, so the phone card ends up better isolated from the
+     * ticket art than before while doing one backdrop pass instead of two.
+     *
+     * NOTE: the `.glass` utility's own blur is broken in Chrome everywhere else
+     * it is used too (login panel, and any future `.glass` surface). Dropping
+     * the redundant `-webkit-` line from that utility fixes it globally, but
+     * that would change how those surfaces render on desktop, so it is left
+     * alone here.
+     */
+    .home-glass > .glass {
+      backdrop-filter: blur(26px) saturate(140%);
+    }
+
+    /*
+     * Tint the glass harder on phones. This is the half of the readability work
+     * that does not depend on backdrop-filter being supported, which matters on
+     * a backdrop this bright.
+     */
+    .home-glass {
+      --glass-background: oklch(0.13 0.006 285.9 / 76%);
+    }
+  }
+
   .subtle-grid {
     --grid-line: oklch(1 0 0 / 3.5%);
     background-image:
