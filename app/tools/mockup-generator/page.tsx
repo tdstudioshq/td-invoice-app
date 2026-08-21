@@ -36,6 +36,18 @@ export default function PublicMockupGeneratorPage() {
 
         <div className="flex flex-col items-center gap-2">
           <Link
+            href="/tools/bag-mockup-grid"
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+          >
+            Got a whole lineup? Bag Mockup Grid →
+          </Link>
+          <Link
+            href="/tools/8pc-mockup-generator"
+            className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+          >
+            Need a full sheet of 8 designs? 8-Piece Mockup Generator →
+          </Link>
+          <Link
             href="/tools/cutline-generator"
             className="text-muted-foreground hover:text-foreground text-xs transition-colors"
           >

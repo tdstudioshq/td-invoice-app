@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@developer-hub/liquid-glass": "^1.2.3",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.4.0",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/server": "^1.2.0",
@@ -21,6 +24,7 @@
     "date-fns": "^4.4.0",
     "framer-motion": "^12.42.0",
     "jszip": "^3.10.1",
+    "konva": "^10.3.0",
     "lucide-react": "^1.21.0",
     "next": "16.3.1",
     "pdf-lib": "^1.17.1",
@@ -29,6 +33,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hook-form": "^7.80.0",
+    "react-konva": "^19.2.5",
     "react-social-icons": "^6.26.0",
     "resend": "^6.14.0",
     "shadcn": "^4.11.0",
@@ -54,6 +59,6 @@
     "sharp@0.35.2": true
   },
   "optionalDependencies": {
-    "@next/swc-darwin-arm64": "^16.2.9"
+    "@next/swc-darwin-arm64": "16.3.1"
   }
 }

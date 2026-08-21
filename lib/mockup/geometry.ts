@@ -16,17 +16,20 @@ export const PAGE_W = 288; // pt (4.00 in)
 export const PAGE_H = 342; // pt (4.75 in)
 
 /** Translation the PDF applies to the die-line path (`cm 1 0 0 1 tx ty`). */
-const DIE_TX = 260.1785;
-const DIE_TY = 8.3246;
+export const DIE_TX = 260.1785;
+export const DIE_TY = 8.3246;
 
-type Seg =
+export type Seg =
   | ["m", number, number]
   | ["l", number, number]
   | ["c", number, number, number, number, number, number]
   | ["h"];
 
-/** Outer die-cut outline (local coords, y-up) — m/l/c ops from the template. */
-const DIE_PATH: Seg[] = [
+/** Outer die-cut outline (local coords, y-up) — m/l/c ops from the template.
+ * Exported so other renderers of this exact bag shape (e.g. the server-side
+ * SVG renderer in lib/bag-mockup-grid/compose.ts, which can't use a browser
+ * <canvas>) share one source of truth instead of duplicating coordinates. */
+export const DIE_PATH: Seg[] = [
   ["m", 0, 0],
   ["l", -232.355, 0],
   ["c", -240.067, 0, -246.318, 6.251, -246.318, 13.963],
@@ -47,7 +50,7 @@ const DIE_PATH: Seg[] = [
 ];
 
 /** Rounded-rect artwork clip window (absolute page coords, y-up). */
-const CLIP_PATH: Seg[] = [
+export const CLIP_PATH: Seg[] = [
   ["m", 42.005, 325.509],
   ["c", 30.673, 325.411, 21.516, 316.193, 21.516, 304.838],
   ["l", 21.516, 34.229],
@@ -60,7 +63,7 @@ const CLIP_PATH: Seg[] = [
 ];
 
 /** Artwork placement rect (absolute page coords, y-up). */
-const IMG_RECT = { x: 13.8595145, y: 13.5564966, w: 260.2807045, h: 311.9531348 };
+export const IMG_RECT = { x: 13.8595145, y: 13.5564966, w: 260.2807045, h: 311.9531348 };
 
 function tracePath(
   ctx: CanvasRenderingContext2D,

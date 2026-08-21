@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { HomeCard } from "@/app/home-card";
+import { HomeMobileBackground } from "@/app/home-mobile-background";
 
 export const metadata = { title: "TD Studios" };
 
@@ -25,7 +26,11 @@ export default async function Home(props: PageProps<"/">) {
 
   return (
     <main className="relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
-      <AnimatedBackground />
+      {/* Mobile gets the scratch-off ticket art; md+ keeps the animated diamonds. */}
+      <HomeMobileBackground />
+      <div className="absolute inset-0 hidden md:block">
+        <AnimatedBackground />
+      </div>
       <div className="relative z-10 w-full max-w-sm">
         <HomeCard redirectTo={target} justReset={justReset} />
       </div>

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Critical: Next.js version
 
-This project uses **Next.js 16.2.9** with **React 19**. The pinned guidance in `AGENTS.md` is not optional: APIs and conventions differ from older Next.js. Before writing or changing any Next.js code, read the relevant guide under `node_modules/next/dist/docs/` (`01-app`, `02-pages`, `03-architecture`).
+This project uses **Next.js 16.3.1** with **React 19**. The pinned guidance in `AGENTS.md` is not optional: APIs and conventions differ from older Next.js. Before writing or changing any Next.js code, read the relevant guide under `node_modules/next/dist/docs/` (`01-app`, `02-pages`, `03-architecture`).
 
 ## Commands
 
@@ -33,7 +33,8 @@ npm run client:create-marty  # idempotent portal-client bootstrap; runs scripts/
 | `SUPABASE_URL` / `SUPABASE_SECRET_KEY` | Service-role admin client (`lib/supabase/admin.ts`) | **Bypasses RLS** — narrow uses only (see Three Supabase clients). |
 | `ADMIN_EMAILS` | `isAdminEmail()` in `lib/auth.ts` | Server-only allowlist. **Must be set or no one can reach the admin dashboard.** |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | `lib/email/client.ts` | Server-only; invoice + portal-invite email. |
-| `NEXT_PUBLIC_SITE_URL` | `app/layout.tsx` (metadata base), `lib/email/client.ts` (link generation) | Set in production; falls back to a localhost/derived base otherwise. |
+| `NEXT_PUBLIC_SITE_URL` | `app/layout.tsx` (metadata base), `lib/email/client.ts` (link generation) | Set in production; both call sites fall back to `https://$VERCEL_URL`, then `http://localhost:3000`. |
+| `MARTY_TEMP_PASSWORD` | `scripts/create-marty-client.ts` only | **Not in `.env.example`** — pass it inline for the one-off run (see Provisioning script); only needed when a password will actually be set. |
 | `QR_SCAN_SALT` | `app/q/[slug]/page.tsx`, `lib/mylar-printing/abuse.ts` | Optional (defaults to a built-in salt); salts the hashed IP behind QR scan logging **and** the mylar-printing submission rate limit. |
 
 ## Conventions
