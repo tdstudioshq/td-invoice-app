@@ -64,7 +64,7 @@ export const MYLAR_BAG_OPTIONS: readonly MylarBagOption[] = [
     label: "Pound Bag",
     dimensions: null,
     detail: "Large-format mylar packaging for bulk.",
-    image: "/mylar-bags/placeholder.jpg",
+    image: "/mylar-bags/placeholder.png",
   },
 ] as const;
 

@@ -137,10 +137,17 @@ export function OptionCard({
 export function BagPreview({ src }: { src: string }) {
   return (
     <span className="relative block size-16 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.05] md:size-20 lg:size-24">
+      {/* `unoptimized`: these sources are already stored at exactly the size
+          they render (192px = 2x the 96px max), so running them through the
+          image optimizer would buy nothing — and this project's Vercel image
+          optimization allowance is exhausted, which makes every uncached
+          transform return 402 and the thumbnail render blank. Serving the
+          static file directly is both smaller end-to-end and immune to that. */}
       <Image
         src={src}
         alt=""
         fill
+        unoptimized
         sizes="(min-width: 1024px) 96px, (min-width: 768px) 80px, 64px"
         className="object-contain p-1"
       />
