@@ -274,11 +274,10 @@ export function HomeCard({
             !isBio && "home-card-inner--form",
           )}
         >
-          {/* Reflection layer. Sits above the content on purpose — that is what
-              a reflection does — which is why it peaks at 7.5% white: enough to
-              read as a highlight travelling over the glass, far too little to
-              move any contrast ratio in the card. */}
-          <span ref={sheenRef} aria-hidden className="home-sheen md:hidden" />
+          {/* Reflection layer. On phones it tracks scroll with a faint drift;
+              desktop gives the same layer a slow autonomous specular sweep.
+              It stays beneath the content at both sizes. */}
+          <span ref={sheenRef} aria-hidden className="home-sheen" />
 
           <div className="home-card-head flex flex-col items-center gap-2 text-center">
             {/* The artwork is already a circular badge with its own gold outer
@@ -582,21 +581,25 @@ export function HomeCard({
             pointer-events: none;
           }
 
-          /* Reflection band. Oversized so the diagonal reaches every corner as
-             it drifts, and pinned behind nothing — it is a highlight on the
-             glass surface. */
+          /* Match desktop's specular sweep. Transform carries the horizontal
+             animation while the scroll hook owns the independent translate
+             property for its small vertical parallax offset. */
           .home-sheen {
             position: absolute;
-            inset: -22% -12%;
+            inset: -32% -80%;
+            z-index: 0;
             pointer-events: none;
             background: linear-gradient(
-              118deg,
-              transparent 34%,
-              rgba(255, 255, 255, 0.075) 46%,
-              rgba(255, 255, 255, 0.02) 53%,
-              transparent 64%
+              116deg,
+              transparent 42%,
+              rgba(255, 255, 255, 0.025) 46%,
+              rgba(255, 255, 255, 0.26) 50%,
+              rgba(255, 255, 255, 0.045) 54%,
+              transparent 58%
             );
-            will-change: transform;
+            transform: translate3d(-76%, 0, 0);
+            will-change: transform, translate, opacity;
+            animation: home-glass-shine 6.8s ease-in-out infinite;
           }
 
           .home-sticky-cta {

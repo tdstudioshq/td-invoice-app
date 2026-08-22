@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 // Public, no-auth custom design request form reachable from the home "link in
-// bio" card. Submits directly to Formspree (no database, no Supabase).
+// bio" card. Submissions persist in Supabase and land in /design-requests.
 export default function CustomDesignRequestPage() {
   return (
     <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">

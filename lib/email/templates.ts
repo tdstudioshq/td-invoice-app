@@ -113,6 +113,75 @@ If you weren't expecting this, you can ignore this email.`;
   return { subject, html, text };
 }
 
+/** Internal notification for a Supabase-backed custom design request. */
+export function customDesignRequestEmail(params: {
+  referenceNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  instagramUsername: string;
+  designType: string;
+  notes: string;
+  assetCount: number;
+  adminUrl: string;
+}): EmailContent {
+  const {
+    referenceNumber,
+    customerName,
+    customerEmail,
+    customerPhone,
+    instagramUsername,
+    designType,
+    notes,
+    assetCount,
+    adminUrl,
+  } = params;
+  const rows: [string, string][] = [
+    ["Reference", referenceNumber],
+    ["Design type", designType],
+    ["Name", customerName],
+    ["Email", customerEmail],
+    ["Phone", customerPhone],
+    ["Instagram", instagramUsername],
+    ["Files", assetCount === 1 ? "1 file" : `${assetCount} files`],
+  ];
+  const rowsHtml = rows
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 0;color:#71717a;white-space:nowrap;">${escapeHtml(
+          label,
+        )}</td><td style="padding:4px 0 4px 24px;color:#18181b;">${escapeHtml(
+          value,
+        )}</td></tr>`,
+    )
+    .join("");
+
+  const subject = `New Custom Design Request — ${referenceNumber}`;
+  const html = shell(`
+    <h1 style="margin:0 0 12px;font-size:20px;">New custom design request</h1>
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#3f3f46;">
+      ${escapeHtml(customerName)} submitted a custom design request.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;font-size:14px;">
+      ${rowsHtml}
+    </table>
+    <p style="margin:0 0 20px;font-size:13px;line-height:1.6;color:#3f3f46;white-space:pre-wrap;"><strong style="color:#71717a;font-weight:600;">Request details</strong><br>${escapeHtml(
+      notes,
+    )}</p>
+    <p style="margin:0;">${button(adminUrl, "Open request")}</p>
+  `);
+  const text = `New Custom Design Request — ${referenceNumber}
+
+${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}
+
+Request details:
+${notes}
+
+Open request: ${adminUrl}`;
+
+  return { subject, html, text };
+}
+
 /**
  * Internal notification for a new Custom Mylar Printing quote request
  * (/mylar-printing). Goes to TD Studios, never to the customer — so it carries

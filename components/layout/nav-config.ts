@@ -5,6 +5,7 @@ import {
   FileText,
   FolderLock,
   Package,
+  Palette,
   QrCode,
   Settings,
 } from "lucide-react";
@@ -20,6 +21,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/mylar-requests", label: "Mylar Requests", icon: Package },
+  { href: "/design-requests", label: "Design Requests", icon: Palette },
   { href: "/qr", label: "QR Codes", icon: QrCode },
   { href: "/client-portals", label: "Client Portals", icon: FolderLock },
   { href: "/settings", label: "Settings", icon: Settings },

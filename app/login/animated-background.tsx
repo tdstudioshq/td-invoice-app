@@ -7,15 +7,15 @@ import diamonds from "@/public/login-diamonds.webp";
 /**
  * Full-screen background for the sign-in screen.
  *
- * A falling-diamonds photo sits at the base, dimmed by a dark tint + vignette
- * so the centered auth card stays legible. Over it, a few large, very dark
- * radial glows slowly drift (pure CSS, no deps). All motion is paused under
- * `prefers-reduced-motion`.
+ * A falling-diamonds photo sits at the base. By default a dark tint + vignette
+ * keep centered content legible; the homepage opts out to show the artwork at
+ * full brightness. Over it, a few radial glows slowly drift (pure CSS, no
+ * deps). All motion is paused under `prefers-reduced-motion`.
  *
  * Rendered as `absolute inset-0` inside a `relative` container (the login
  * `<main>`) so it sits above the opaque body background but behind the card.
  */
-export function AnimatedBackground() {
+export function AnimatedBackground({ dimmed = true }: { dimmed?: boolean }) {
   return (
     <div
       aria-hidden="true"
@@ -71,7 +71,7 @@ export function AnimatedBackground() {
         never covered the centre where the content sits — which is why this
         layer, not that one, is what makes centred text readable.
       */}
-      <div className="absolute inset-0 bg-black/30" />
+      {dimmed ? <div className="absolute inset-0 bg-black/30" /> : null}
 
       {/* Slowly drifting dark glows. */}
       <div className="tdbg-glow tdbg-glow-1" />
@@ -81,8 +81,11 @@ export function AnimatedBackground() {
       {/* Faint grid, masked to fade at the edges. */}
       <div className="tdbg-grid absolute inset-0" />
 
-      {/* Vignette to keep focus on the centered card. */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_55%,rgba(0,0,0,0.65))]" />
+      {/* Vignette to keep focus on centered content. The homepage opts out so
+          its background image renders at its original brightness. */}
+      {dimmed ? (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_55%,rgba(0,0,0,0.65))]" />
+      ) : null}
 
       <style>{`
         .tdbg-glow {

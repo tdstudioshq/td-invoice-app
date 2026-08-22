@@ -51,6 +51,15 @@ export type MylarArtworkSideValue = "front" | "back";
 // existed genuinely stated nothing, and null says so.
 export type MylarContactMethod = "text" | "call" | "email";
 
+export type CustomDesignType = "Bag design" | "Jar design" | "Other";
+export type CustomDesignRequestStatus =
+  | "new"
+  | "reviewing"
+  | "quoted"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+
 export type Json =
   | string
   | number
@@ -710,6 +719,64 @@ export interface Database {
         >;
         Relationships: [];
       };
+      custom_design_requests: {
+        Row: {
+          id: string;
+          reference_number: string;
+          customer_name: string;
+          customer_email: string;
+          customer_phone: string;
+          instagram_username: string;
+          design_type: CustomDesignType;
+          notes: string;
+          status: CustomDesignRequestStatus;
+          submitter_hash: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          reference_number: string;
+          customer_name: string;
+          customer_email: string;
+          customer_phone: string;
+          instagram_username: string;
+          design_type: CustomDesignType;
+          notes: string;
+          status?: CustomDesignRequestStatus;
+          submitter_hash?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["custom_design_requests"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      custom_design_request_files: {
+        Row: {
+          id: string;
+          request_id: string;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["custom_design_request_files"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -805,6 +872,13 @@ export type MylarPrintingInquiry =
 export type MylarDesignRow = Database["public"]["Tables"]["mylar_designs"]["Row"];
 export type MylarArtworkFileRow =
   Database["public"]["Tables"]["mylar_artwork_files"]["Row"];
+export type CustomDesignRequestRow =
+  Database["public"]["Tables"]["custom_design_requests"]["Row"];
+export type CustomDesignRequestFileRow =
+  Database["public"]["Tables"]["custom_design_request_files"]["Row"];
+export type CustomDesignRequestWithFiles = CustomDesignRequestRow & {
+  files: CustomDesignRequestFileRow[];
+};
 
 /**
  * An inquiry with its designs and each design's artwork, as assembled by

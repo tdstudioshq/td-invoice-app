@@ -1,8 +1,25 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  MIN_FILL_MS,
+  SUBMIT_WINDOW_MAX,
+  SUBMIT_WINDOW_MS,
+  checkBurst,
+  submitterHash,
+} from "@/lib/mylar-printing/abuse";
+import { customDesignRequestSubmissionSchema } from "@/lib/design-requests/schema";
+import { getAdminEmails } from "@/lib/auth";
+import {
+  EMAIL_FROM,
+  getResend,
+  getSiteUrl,
+  isResendConfigured,
+} from "@/lib/email/client";
+import { customDesignRequestEmail } from "@/lib/email/templates";
 import { sanitizeFileName } from "@/lib/portal";
 import {
   ALLOWED_UPLOAD_EXTENSIONS,
@@ -15,10 +32,9 @@ import {
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/admin";
 
-// Upload pipeline for the PUBLIC /custom-design-request form. Formspree (the
-// form's email backend) rejects file attachments on the free plan, so the
-// browser uploads reference files to the private `design-requests` bucket
-// (migration 0021) and the Formspree email carries signed download links.
+// Upload pipeline for the PUBLIC /custom-design-request form. The browser
+// uploads reference files to the private `design-requests` bucket and the
+// final server action records their verified paths in Supabase.
 //
 // These actions are deliberately anonymous — the form has no auth — so the
 // service-role client does the storage work. The trust boundary mirrors
@@ -131,6 +147,12 @@ export async function finalizeDesignRequestUploadsAction(input: {
 }): Promise<{
   error?: string;
   links?: { name: string; url: string }[];
+  files?: {
+    path: string;
+    name: string;
+    size: number;
+    mimeType: string;
+  }[];
   failed?: string[];
 }> {
   if (!isSupabaseAdminConfigured()) {
@@ -148,9 +170,16 @@ export async function finalizeDesignRequestUploadsAction(input: {
   const pathPattern = new RegExp(`^${requestId}/\\d+-[\\w.\\-]{1,200}$`);
 
   const links: { name: string; url: string }[] = [];
+  const files: {
+    path: string;
+    name: string;
+    size: number;
+    mimeType: string;
+  }[] = [];
   const failed: string[] = [];
   for (const path of paths) {
-    const name = path.split("/").pop() ?? path;
+    const storedName = path.split("/").pop() ?? path;
+    const name = storedName.replace(/^\d+-/, "");
     const remove = () =>
       supabase.storage
         .from(BUCKET)
@@ -184,7 +213,207 @@ export async function finalizeDesignRequestUploadsAction(input: {
       continue;
     }
     links.push({ name, url: signed.signedUrl });
+    files.push({
+      path,
+      name,
+      size: Number(info.size),
+      mimeType: info.contentType || resolveUploadContentType(name, null),
+    });
   }
 
-  return { links, failed };
+  return { links, files, failed };
+}
+
+const REFERENCE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const SUBMIT_BURST_MAX = 5;
+const GENERIC_REJECTION =
+  "We couldn't process that request. Please try again, or text us directly.";
+
+function generateReferenceNumber(): string {
+  let out = "";
+  for (let i = 0; i < 6; i += 1) {
+    out += REFERENCE_ALPHABET[randomInt(REFERENCE_ALPHABET.length)];
+  }
+  return `DES-${out}`;
+}
+
+type VerifiedAsset = {
+  path: string;
+  name: string;
+  size: number;
+  mimeType: string;
+};
+
+async function removeDesignObjects(
+  supabase: ReturnType<typeof createAdminClient>,
+  paths: string[],
+) {
+  if (paths.length === 0) return;
+  try {
+    await supabase.storage.from(BUCKET).remove(paths);
+  } catch (error) {
+    console.error("custom design asset cleanup", paths, error);
+  }
+}
+
+export type SubmitCustomDesignRequestResult =
+  | { error: string }
+  | { referenceNumber: string };
+
+/**
+ * Store a public custom-design request in Supabase. The service role is kept
+ * entirely server-side; RLS has no browser policies for either intake table.
+ */
+export async function submitCustomDesignRequestAction(
+  input: unknown,
+): Promise<SubmitCustomDesignRequestResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { error: "Requests aren't being accepted right now. Please text us directly." };
+  }
+
+  const parsed = customDesignRequestSubmissionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: "Please check your details and try again." };
+  }
+  const submission = parsed.data;
+
+  if (submission.website.trim().length > 0) return { error: GENERIC_REJECTION };
+  const elapsed = Date.now() - submission.startedAt;
+  if (elapsed >= 0 && elapsed < MIN_FILL_MS) return { error: GENERIC_REJECTION };
+
+  const hash = await submitterHash();
+  if (
+    hash &&
+    !checkBurst(`design:submit:${hash}`, SUBMIT_BURST_MAX, SUBMIT_WINDOW_MS)
+  ) {
+    return { error: "You've sent a few requests already. Please wait a few minutes." };
+  }
+
+  const supabase = createAdminClient();
+  if (hash) {
+    const since = new Date(Date.now() - SUBMIT_WINDOW_MS).toISOString();
+    const { count, error } = await supabase
+      .from("custom_design_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("submitter_hash", hash)
+      .gte("created_at", since);
+    if (!error && (count ?? 0) >= SUBMIT_WINDOW_MAX) {
+      return { error: "You've sent a few requests already. Please wait a few minutes." };
+    }
+  }
+
+  const requestId = submission.requestId ?? randomUUID();
+  const pathPattern = new RegExp(`^${requestId}/\\d+-[\\w.\\-]{1,200}$`);
+  const verifiedAssets: VerifiedAsset[] = [];
+
+  for (const asset of submission.assets) {
+    if (!pathPattern.test(asset.path)) return { error: GENERIC_REJECTION };
+    const { data: info, error } = await supabase.storage
+      .from(BUCKET)
+      .info(asset.path);
+    if (error || !info) {
+      return { error: `${asset.name} did not finish uploading. Please upload it again.` };
+    }
+    const name = (asset.path.split("/").pop() ?? asset.name).replace(/^\d+-/, "");
+    const size = Number(info.size ?? 0);
+    const mimeType = info.contentType || resolveUploadContentType(name, null);
+    const invalid = validateUploadFile(name, size, mimeType);
+    if (invalid) return { error: `${name}: ${invalid}` };
+    verifiedAssets.push({ path: asset.path, name, size, mimeType });
+  }
+
+  const row = {
+    id: requestId,
+    reference_number: "",
+    customer_name: submission.customerName,
+    customer_email: submission.customerEmail,
+    customer_phone: submission.customerPhone,
+    instagram_username: submission.instagramUsername,
+    design_type: submission.designType,
+    notes: submission.notes,
+    submitter_hash: hash,
+  };
+
+  let referenceNumber = "";
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = generateReferenceNumber();
+    const { error } = await supabase
+      .from("custom_design_requests")
+      .insert({ ...row, reference_number: candidate });
+    if (!error) {
+      referenceNumber = candidate;
+      break;
+    }
+    if (error.code === "23505" && error.message.includes("reference_number")) {
+      continue;
+    }
+    if (error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("custom_design_requests")
+        .select("reference_number")
+        .eq("id", requestId)
+        .maybeSingle();
+      if (existing) return { referenceNumber: existing.reference_number };
+    }
+    console.error("custom design request insert", error.code, error.message);
+    await removeDesignObjects(
+      supabase,
+      verifiedAssets.map((asset) => asset.path),
+    );
+    return { error: "We couldn't save your request. Please try again." };
+  }
+
+  if (!referenceNumber) {
+    await removeDesignObjects(
+      supabase,
+      verifiedAssets.map((asset) => asset.path),
+    );
+    return { error: "We couldn't create a reference number. Please try again." };
+  }
+
+  if (verifiedAssets.length > 0) {
+    const { error } = await supabase.from("custom_design_request_files").insert(
+      verifiedAssets.map((asset) => ({
+        request_id: requestId,
+        storage_path: asset.path,
+        file_name: asset.name,
+        file_size: asset.size,
+        mime_type: asset.mimeType,
+      })),
+    );
+    if (error) {
+      console.error("custom design files insert", error.code, error.message);
+      await supabase.from("custom_design_requests").delete().eq("id", requestId);
+      await removeDesignObjects(
+        supabase,
+        verifiedAssets.map((asset) => asset.path),
+      );
+      return { error: "We couldn't save your uploaded files. Please try again." };
+    }
+  }
+
+  if (isResendConfigured()) {
+    const recipients = getAdminEmails();
+    if (recipients.length > 0) {
+      const email = customDesignRequestEmail({
+        referenceNumber,
+        customerName: submission.customerName,
+        customerEmail: submission.customerEmail,
+        customerPhone: submission.customerPhone,
+        instagramUsername: submission.instagramUsername,
+        designType: submission.designType,
+        notes: submission.notes,
+        assetCount: verifiedAssets.length,
+        adminUrl: `${getSiteUrl()}/design-requests/${requestId}`,
+      });
+      try {
+        await getResend().emails.send({ from: EMAIL_FROM, to: recipients, ...email });
+      } catch (error) {
+        console.error("custom design notification", error);
+      }
+    }
+  }
+
+  revalidatePath("/design-requests");
+  return { referenceNumber };
 }

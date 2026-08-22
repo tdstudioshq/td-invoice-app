@@ -301,22 +301,17 @@
      * Prefixed-then-standard emits both, so Safari < 18 (prefix only), Safari
      * 18+ and Chrome all get the same frost.
      *
-     * A light frost on purpose: 12px here (9px on phones, where nothing else
-     * blurs) keeps the artwork behind the card plainly readable, where the old
-     * 22-26px stack ground it into a smear. The saturation lift is what stops
-     * thin glass from looking like gray haze.
+     * This is the shared fallback. The breakpoint-specific rules below tune
+     * desktop down to clear glass and phones to a single, slightly stronger
+     * blur after removing the library warp.
      */
     -webkit-backdrop-filter: blur(12px) saturate(130%);
     backdrop-filter: blur(12px) saturate(130%);
 
     /*
-     * The fill, and almost nothing else — 62% before this. 24% over the desktop
-     * backdrop's own 30% scrim leaves the photo transmitting ~53%. Measured
-     * against the rendered page, the brightest pixel behind the wordmark is
-     * rgb(61,64,69) and behind a button label rgb(74,74,75) — 10.4:1 and 8.9:1
-     * for white text, because the diamonds are specular points on near-black
-     * and the blur averages them away. The artwork now reads through the pane
-     * instead of sitting behind smoked plastic.
+     * A neutral fallback fill keeps text usable if backdrop filtering is not
+     * available. Modern desktop and phone browsers receive their lighter,
+     * composition-specific surfaces below.
      */
     background: rgba(13, 13, 16, 0.24);
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -332,6 +327,95 @@
       inset -1px 0 0 rgba(255, 255, 255, 0.05),
       inset 0 -1px 0 rgba(255, 255, 255, 0.06),
       0 12px 40px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  /*
+   * Desktop clear-glass pass.
+   *
+   * The desktop artwork has enough of its own dark contrast that the card does
+   * not need to behave like a smoked panel. Keep only a trace of neutral tint,
+   * reduce both backdrop blur passes, and let the brighter rim describe the
+   * pane. The phone treatment is intentionally separate below: its background,
+   * sizing and scroll effects are tuned as one composition.
+   */
+  @media (min-width: 768px) {
+    .home-glass > .glass {
+      -webkit-backdrop-filter: blur(2.5px) saturate(138%);
+      backdrop-filter: blur(2.5px) saturate(138%);
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.07) 0%,
+        rgba(255, 255, 255, 0.018) 36%,
+        rgba(8, 8, 12, 0.1) 100%
+      );
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 1px 0 0 rgba(255, 255, 255, 0.12),
+        inset -1px 0 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+        0 18px 50px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* GlassCard adds a second 12px blur inline. Reduce it to a trace so the
+       background stays sharp while the pane still refracts slightly. */
+    .home-glass > .glass > .glass__warp {
+      -webkit-backdrop-filter: blur(1px) saturate(124%) !important;
+      backdrop-filter: blur(1px) saturate(124%) !important;
+    }
+
+    /* A narrow specular reflection travels across the desktop pane. It lives
+       inside the library's clipped glass surface and below the card content. */
+    .home-glass .home-sheen {
+      position: absolute;
+      inset: -32% -80%;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        116deg,
+        transparent 42%,
+        rgba(255, 255, 255, 0.025) 46%,
+        rgba(255, 255, 255, 0.26) 50%,
+        rgba(255, 255, 255, 0.045) 54%,
+        transparent 58%
+      );
+      transform: translate3d(-76%, 0, 0);
+      will-change: transform, opacity;
+      animation: home-glass-shine 6.8s ease-in-out infinite;
+    }
+
+    .home-glass .home-card-head,
+    .home-glass .home-card-links,
+    .home-glass .home-card-form {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
+  @keyframes home-glass-shine {
+    0%,
+    18% {
+      opacity: 0;
+      transform: translate3d(-76%, 0, 0);
+    }
+    27% {
+      opacity: 0.9;
+    }
+    52% {
+      opacity: 0;
+      transform: translate3d(76%, 0, 0);
+    }
+    100% {
+      opacity: 0;
+      transform: translate3d(76%, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-glass .home-sheen {
+      display: none;
+      animation: none;
+    }
   }
 
   /*
@@ -496,21 +580,27 @@
     }
 
     /*
-     * With the warp gone this is the only backdrop pass, and it is deliberately
-     * the lightest frost in the file — desktop stacks the warp's 12.3px on top
-     * of its own 12px for ~17px effective, where this is a single 9px. It has
-     * to be: the ticket is the one backdrop a visitor is meant to actually look
-     * at, and it is directly behind the card rather than off to the sides.
-     *
-     * The fill is lighter than desktop's for the same reason, and because the
-     * mobile backdrop carries its own scrim under the card (see
-     * `home-mobile-background.tsx`). Those two are tuned against each other and
-     * should move together.
+     * With the warp gone this is the only backdrop pass. Three pixels gives the
+     * phone pane roughly the same effective clarity as desktop's two minimal
+     * passes, while preserving the cheaper mobile scroll path. The clear fill,
+     * bright rim and restrained shadow intentionally mirror the desktop card.
      */
     .home-glass > .glass {
-      -webkit-backdrop-filter: blur(9px) saturate(130%);
-      backdrop-filter: blur(9px) saturate(130%);
-      background: rgba(13, 13, 16, 0.14);
+      -webkit-backdrop-filter: blur(3px) saturate(138%);
+      backdrop-filter: blur(3px) saturate(138%);
+      background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.07) 0%,
+        rgba(255, 255, 255, 0.018) 36%,
+        rgba(8, 8, 12, 0.1) 100%
+      );
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 1px 0 0 rgba(255, 255, 255, 0.12),
+        inset -1px 0 0 rgba(255, 255, 255, 0.06),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+        0 18px 50px rgba(0, 0, 0, 0.2) !important;
     }
 
     /* Phones catch light at a shallower angle than a desktop pane does — the

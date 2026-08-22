@@ -1,100 +1,25 @@
-"use client";
-
-import { useRef } from "react";
-import Image from "next/image";
-
-import { useScrollParallax } from "@/app/use-home-scroll";
-
 import ticket from "@/public/home-mobile-bg.jpg";
 
 /**
  * Mobile-only backdrop for the homepage "link in bio" card.
  *
- * The scratch-off ticket artwork is a single tall graphic, so it is `contain`-fit
- * rather than cropped — nothing gets cut off on either axis and any leftover
- * space letterboxes to black. It is `fixed` (not `absolute`) so it measures the
- * viewport itself: the card can grow past one screen and scroll without the
- * artwork stretching with it.
+ * The tufted casino artwork is `cover`-fit for a full-bleed background. It is
+ * rendered as one background layer on the homepage shell.
  *
  * Hidden from `md` up, where `AnimatedBackground` takes over.
  *
- * `unoptimized` + a pre-sized source, matching `AnimatedBackground` and for the
- * same reason: the project's Vercel image optimization allowance is exhausted,
- * so every uncached transform returns 402
- * (OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED) and the image renders as a blank
- * black panel in production. The source is already stored at its delivery size
- * (572x1024 / 276KB), which is ample for a phone-width backdrop sitting behind
- * a scrim and a vignette, so serving it directly costs less than a transform
- * would have.
- *
- * No `sizes`: with `unoptimized` there is no srcset to select from, so it would
- * be inert. `placeholder="blur"` still works — the blurDataURL comes from the
- * static import at build time, not from the optimizer.
+ * A plain CSS background is deliberate. Mobile Safari can discard a fixed,
+ * GPU-promoted image layer when it sits beneath a live backdrop-filter, which
+ * reveals the black fallback after a few seconds. Painting the imported,
+ * build-hashed asset directly onto this non-transformed layer avoids that
+ * compositor path and avoids the project's exhausted image optimizer.
  */
 export function HomeMobileBackground() {
-  const artRef = useRef<HTMLDivElement>(null);
-
-  /*
-   * Depth on scroll. `contain` fit on a 572x1024 source leaves a tall black
-   * letterbox band above and below the art on every phone aspect ratio (~70px
-   * a side at 390x844), so shifting the art a few px inside its own frame never
-   * exposes an edge — the bands just breathe, black on black, while the artwork
-   * lags the content. Deliberately tiny: the fixed backdrop already re-composites
-   * under the card's backdrop-filter on every scroll frame, so this adds one
-   * compositor transform and no new per-frame work.
-   */
-  useScrollParallax(artRef, { factor: -0.08, max: 14 });
-
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 bg-black md:hidden"
-    >
-      <div ref={artRef} className="absolute inset-0 will-change-transform">
-        <Image
-          src={ticket}
-          alt=""
-          fill
-          priority
-          unoptimized
-          placeholder="blur"
-          className="object-contain"
-        />
-      </div>
-
-      {/*
-        Readability stack, in three layers rather than one flat tint.
-
-        The ticket is the brightest artwork on the site — a diamond-encrusted
-        wordmark over foil red — and `contain` fit means the crop shifts with
-        every viewport ratio, so which part of it lands behind the card is not
-        something the layout can pin down. The protection therefore has to be
-        strongest exactly where the card sits and weakest everywhere else,
-        instead of dimming the whole page until the art stops being the art.
-
-        These numbers are half of a pair: the other half is the card's own fill
-        in `globals.css` (`.home-glass > .glass`, 14% on phones). They were
-        tuned together and only make sense together — the card went from a 76%
-        tint to 14% so the artwork reads through it, which only buys anything if
-        the scrim underneath comes down too. Move one and re-check the other.
-
-        Base tint 27%; the elliptical scrim adds ~22% over the middle band where
-        the card lands, so the composite behind the glass is ~43% black, ~51%
-        once the card's own 14% fill is on top — against ~93% before, so the
-        ticket now transmits roughly seven times the light it used to.
-
-        These numbers only work because the card's frost is real. It was not:
-        an opacity keyframe on .home-glass had been putting the element in a
-        Chromium Backdrop Root, which silently switched the blur off, and the
-        tint had been escalated to 76% to compensate for the missing frost.
-        With the blur actually compositing, softening is doing the work the
-        tint used to do, and the tint can come almost all the way off. If the
-        entrance animation ever regains an opacity keyframe this page will look
-        like it did before — see the comment on .home-enter-card.
-      */}
-      <div className="absolute inset-0 bg-black/27" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_88%_52%_at_50%_47%,rgba(0,0,0,0.22),transparent_72%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_48%,rgba(0,0,0,0.64))]" />
-    </div>
+      className="pointer-events-none absolute inset-0 z-0 bg-black bg-cover bg-center bg-no-repeat md:hidden"
+      style={{ backgroundImage: `url(${ticket.src})` }}
+    />
   );
 }

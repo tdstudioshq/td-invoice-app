@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CheckCircleIcon,
   PaperPlaneTiltIcon,
@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { submitCustomDesignRequestAction } from "@/app/actions/design-requests";
 import {
-  FORMSPREE_ENDPOINT,
   formFieldClass as fieldClass,
   uploadDesignRequestAssets as uploadAssets,
 } from "@/lib/design-request-upload";
@@ -23,6 +23,12 @@ type Status = "idle" | "uploading" | "submitting" | "success" | "error";
 export function CustomDesignForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
+  const startedAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,12 +38,19 @@ export function CustomDesignForm() {
     try {
       const formData = new FormData(form);
 
-      // Pull the files out of the POST body — Formspree's free plan rejects
-      // any multipart submission that carries a file.
       const files = formData
         .getAll("assets")
         .filter((v): v is File => v instanceof File && v.size > 0);
-      formData.delete("assets");
+      let requestId: string | null =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : null;
+      let uploadedAssets: {
+        path: string;
+        name: string;
+        size: number;
+        mimeType: string;
+      }[] = [];
 
       if (files.length > 0) {
         setStatus("uploading");
@@ -47,35 +60,33 @@ export function CustomDesignForm() {
           setStatus("error");
           return;
         }
-        formData.set(
-          "assets",
-          result.links
-            .map((link) => `${link.name}: ${link.url}`)
-            .join("\n\n"),
-        );
+        requestId = result.requestId;
+        uploadedAssets = result.files;
       }
 
       setStatus("submitting");
-      const response = await fetch(FORMSPREE_ENDPOINT, {
-        method: "POST",
-        body: formData,
-        headers: { Accept: "application/json" },
+      const response = await submitCustomDesignRequestAction({
+        requestId,
+        customerName: String(formData.get("name") ?? ""),
+        customerEmail: String(formData.get("email") ?? ""),
+        customerPhone: String(formData.get("phone") ?? ""),
+        instagramUsername: String(formData.get("instagram") ?? ""),
+        designType: String(formData.get("design_type") ?? ""),
+        notes: String(formData.get("notes") ?? ""),
+        assets: uploadedAssets,
+        website: String(formData.get("website") ?? ""),
+        startedAt: startedAt.current ?? Date.now(),
       });
 
-      if (response.ok) {
-        form.reset();
-        setStatus("success");
+      if ("error" in response) {
+        setError(response.error);
+        setStatus("error");
         return;
       }
 
-      const data = (await response.json().catch(() => null)) as {
-        errors?: { message: string }[];
-      } | null;
-      setError(
-        data?.errors?.map((e) => e.message).join(", ") ||
-          "Something went wrong. Please try again.",
-      );
-      setStatus("error");
+      form.reset();
+      setReferenceNumber(response.referenceNumber);
+      setStatus("success");
     } catch {
       setError("Network error. Please check your connection and try again.");
       setStatus("error");
@@ -95,11 +106,20 @@ export function CustomDesignForm() {
             Thanks — we&apos;ll review your custom design request and get back to
             you shortly.
           </p>
+          {referenceNumber ? (
+            <p className="text-xs text-white/70">
+              Reference: <span className="font-medium text-white">{referenceNumber}</span>
+            </p>
+          ) : null}
         </div>
         <Button
           type="button"
           variant="outline"
-          onClick={() => setStatus("idle")}
+          onClick={() => {
+            startedAt.current = Date.now();
+            setReferenceNumber(null);
+            setStatus("idle");
+          }}
           className="border-white/15 bg-black/35 text-white hover:bg-black/25"
         >
           Submit another request
@@ -111,13 +131,18 @@ export function CustomDesignForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      action={FORMSPREE_ENDPOINT}
-      method="POST"
-      encType="multipart/form-data"
       className="flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md sm:p-8"
     >
-      {/* Subject line for the email Formspree sends. */}
-      <input type="hidden" name="_subject" value="New Custom Design Request" />
+      <div className="absolute left-[-10000px] top-auto size-px overflow-hidden" aria-hidden="true">
+        <label htmlFor="custom-design-website">Website</label>
+        <input
+          id="custom-design-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-1.5">

@@ -34,7 +34,7 @@ export default async function Home(props: PageProps<"/">) {
       {/* Mobile gets the scratch-off ticket art; md+ keeps the animated diamonds. */}
       <HomeMobileBackground />
       <div className="absolute inset-0 hidden md:block">
-        <AnimatedBackground />
+        <AnimatedBackground dimmed={false} />
       </div>
       <div className="home-card-slot relative z-10 w-full max-w-[26rem] md:max-w-sm">
         <HomeCard redirectTo={target} justReset={justReset} />

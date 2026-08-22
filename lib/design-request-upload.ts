@@ -8,17 +8,23 @@ import {
  * every anonymous form that accepts files (`/custom-design-request` and
  * `/how-to-order`).
  *
- * Formspree rejects file attachments on the free plan, so files never ride
- * along in the POST. Instead they upload straight to the private
- * `design-requests` Storage bucket via server-minted signed upload URLs
- * (app/actions/design-requests.ts), and the Formspree email carries 30-day
- * signed download links as a plain text field.
+ * Files upload straight to the private `design-requests` Storage bucket via
+ * server-minted signed upload URLs. The custom-design form persists the
+ * verified paths in Supabase; the two older Formspree forms use the returned
+ * 30-day links in their email payloads.
  *
- * Returns the links to put in that text field, or a user-facing error string.
+ * Returns both representations so each caller can use the appropriate one.
  */
 export async function uploadDesignRequestAssets(
   files: File[],
-): Promise<{ links: { name: string; url: string }[] } | { error: string }> {
+): Promise<
+  | {
+      requestId: string;
+      links: { name: string; url: string }[];
+      files: { path: string; name: string; size: number; mimeType: string }[];
+    }
+  | { error: string }
+> {
   const minted = await mintDesignRequestUploadsAction({
     files: files.map((f) => ({
       name: f.name,
@@ -60,7 +66,7 @@ export async function uploadDesignRequestAssets(
     requestId: minted.requestId,
     paths: uploaded,
   });
-  if (finalized.error || !finalized.links) {
+  if (finalized.error || !finalized.links || !finalized.files) {
     return { error: finalized.error ?? "Could not finish the file upload." };
   }
   if (finalized.failed && finalized.failed.length > 0) {
@@ -68,10 +74,14 @@ export async function uploadDesignRequestAssets(
       error: `These files did not upload cleanly: ${finalized.failed.join(", ")}. Please try again.`,
     };
   }
-  return { links: finalized.links };
+  return {
+    requestId: minted.requestId,
+    links: finalized.links,
+    files: finalized.files,
+  };
 }
 
-/** Formspree inbox both public forms post to; `_subject` distinguishes them. */
+/** Formspree inbox used by the two remaining legacy public forms. */
 export const FORMSPREE_ENDPOINT = "https://formspree.io/f/movkvrpz";
 
 /** Shared input styling for the dark glass forms. */
