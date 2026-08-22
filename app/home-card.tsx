@@ -271,7 +271,7 @@ export function HomeCard({
           <span ref={sheenRef} aria-hidden className="home-sheen md:hidden" />
 
           <div className="flex flex-col items-center gap-2 text-center">
-            {/* The artwork is already a circular badge with its own white outer
+            {/* The artwork is already a circular badge with its own gold outer
                 ring, so no ring/inset highlight here — they'd trace a second
                 edge just outside the mark. */}
             <div
@@ -281,7 +281,7 @@ export function HomeCard({
             >
               <span aria-hidden className="home-logo-glow" />
               <Image
-                src="/td-studios-lottery-logo.png"
+                src="/td-studios-diamond-logo.png"
                 alt="TD Studios"
                 width={112}
                 height={112}
