@@ -266,8 +266,8 @@
   .home-shell {
     padding-left: max(0.75rem, env(safe-area-inset-left));
     padding-right: max(0.75rem, env(safe-area-inset-right));
-    padding-top: max(1.25rem, env(safe-area-inset-top));
-    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   @media (min-width: 768px) {
@@ -420,9 +420,9 @@
     --home-pad: 1.25rem;
     --home-gap: 1.25rem;
     --home-head-gap: 0.5rem;
-    --home-logo: 6rem;
+    --home-logo: 8rem;
     --home-social-gap: 0.75rem;
-    --home-link-gap: 0.75rem;
+    --home-link-gap: 0.875rem;
     --home-link-h: 3.5rem;
     --home-cta-room: 4rem;
   }
@@ -434,9 +434,9 @@
       --home-pad: 1.125rem;
       --home-gap: 1rem;
       --home-head-gap: 0.375rem;
-      --home-logo: 5.5rem;
+      --home-logo: 7rem;
       --home-social-gap: 0.625rem;
-      --home-link-gap: 0.625rem;
+      --home-link-gap: 0.75rem;
       --home-link-h: 3.25rem;
       --home-cta-room: 3.25rem;
     }
@@ -449,9 +449,9 @@
       --home-pad: 1rem;
       --home-gap: 0.875rem;
       --home-head-gap: 0.25rem;
-      --home-logo: 4.75rem;
+      --home-logo: 5rem;
       --home-social-gap: 0.5rem;
-      --home-link-gap: 0.5rem;
+      --home-link-gap: 0.625rem;
       --home-link-h: 3rem;
       /* Nothing is given up here: at this tier the whole card clears the fold,
          so the floating CTA never triggers and this strip is pure slack. */
@@ -488,6 +488,7 @@
     .home-glass > .glass,
     .home-glass > .glass > div {
       width: 100%;
+      height: 100%;
     }
 
     .home-glass > .glass > .glass__warp {
@@ -536,6 +537,7 @@
     /* The scale, applied. Every one of these overrides a Tailwind utility of
        lower specificity, so the markup keeps its own desktop values. */
     .home-glass .home-card-inner {
+      height: 100%;
       padding: var(--home-pad);
       gap: var(--home-gap);
     }
@@ -559,14 +561,101 @@
 
     /* `min-height` keeps the touch target honest while the vertical padding
        collapses, so a shorter button never means a smaller tap area than the
-       number says. */
+       number says. It is a floor, not a height — see the fill rules below. */
     .home-glass .home-btn {
       min-height: var(--home-link-h);
       padding-block: 0.5rem;
     }
 
+    /*
+     * Where the height goes.
+     *
+     * The block under the header — the bio links, or the sign-in form when the
+     * card is flipped — takes every pixel the header does not, so neither view
+     * leaves a void at the bottom of a full-height card.
+     *
+     * The links spend theirs on the buttons rather than on the gaps between
+     * them: uncapped `flex` keeps the stack reading as one set at every screen
+     * height, where capping the buttons pushes the remainder into the gaps and
+     * a tall phone ends up with the five links drifting apart. The gaps above
+     * grew a little to match: buttons land around 55px on an SE and 100-115px
+     * on a 6.1" phone and up, which needs the extra separation not to read as
+     * one slab.
+     *
+     * `min-height` on the buttons still applies as a floor, so this only ever
+     * makes a target bigger.
+     */
+    .home-glass .home-card-links {
+      flex: 1 1 auto;
+    }
+
+    .home-glass .home-card-links > .home-btn {
+      flex: 1 1 auto;
+    }
+
+    /*
+     * The sign-in view has nothing that wants stretching — a password field
+     * pulled to 200px is just wrong — so instead of filling from the top, its
+     * whole group (mark, heading, form) centres in the card as one block, which
+     * is what a full-height sign-in screen should look like anyway.
+     */
+    .home-glass .home-card-inner--form {
+      justify-content: center;
+    }
+
     .home-shell .home-cta-room {
       height: var(--home-cta-room);
+    }
+
+    /*
+     * Full-bleed height: the card fills the viewport instead of floating in it.
+     *
+     * Six elements sit between the shell and the card's content, two of them
+     * written by the library, so the height has to be handed down explicitly at
+     * every step — `height: 100%` stops dead at the first ancestor that has no
+     * height of its own. The chain is: shell (min-height: 100svh, flex column)
+     * -> slot -> GlassCard's own display:flex wrapper -> .home-glass -> .glass
+     * -> the library's content wrapper -> .home-card-inner.
+     *
+     * `flex: 1 1 auto` with the default `min-height: auto`, deliberately: the
+     * card GROWS into spare height but never shrinks below its content, so a
+     * screen too short to hold it scrolls exactly as it did before rather than
+     * squashing the buttons.
+     */
+    .home-card-slot {
+      display: flex;
+      flex: 1 1 auto;
+    }
+
+    /*
+     * The two library wrappers. `GlassCard` renders a `position: relative` div
+     * (block) and `GlassContainer` renders a `display: flex` div inside it
+     * before anything with a class appears, so BOTH have to be told to grow —
+     * height stops at the first one that does not.
+     *
+     * `:first-child` rather than a bare `> div`: the floating CTA is the slot's
+     * second child. It is fixed, so out of flow either way, but there is no
+     * reason to hand it a flex value.
+     */
+    .home-card-slot > div:first-child {
+      display: flex;
+      flex: 1 1 auto;
+    }
+
+    .home-card-slot > div:first-child > div,
+    .home-card-slot .home-glass {
+      flex: 1 1 auto;
+    }
+
+    /*
+     * The landing strip goes away with the gap it was compensating for. It
+     * existed so the floating CTA had somewhere to sit without covering the
+     * last button; now that the card reaches the bottom of the viewport, the
+     * whole stack is in view, the CTA's IntersectionObserver never fires, and
+     * the strip is just the open space at the bottom this rule set removes.
+     */
+    .home-shell .home-cta-room {
+      display: none;
     }
   }
 

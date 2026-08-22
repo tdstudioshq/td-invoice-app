@@ -264,7 +264,16 @@ export function HomeCard({
             inner `.glass` element a width below `md`, which makes `w-full`
             resolvable and hands width control to the page padding, where the
             safe-area insets are already accounted for. */}
-        <div className="home-card-inner relative flex w-full flex-col gap-5 p-5 md:w-[min(21rem,calc(100vw-2rem))] md:gap-6 md:p-8">
+        <div
+          className={cn(
+            "home-card-inner relative flex w-full flex-col gap-5 p-5 md:w-[min(21rem,calc(100vw-2rem))] md:gap-6 md:p-8",
+            // The bio view fills the card's height with its buttons; the
+            // sign-in view is a fixed-size block, so it centres as one group
+            // instead. A modifier class rather than `:has()` — the state is
+            // already in hand here, and this needs no selector support.
+            !isBio && "home-card-inner--form",
+          )}
+        >
           {/* Reflection layer. Sits above the content on purpose — that is what
               a reflection does — which is why it peaks at 7.5% white: enough to
               read as a highlight travelling over the glass, far too little to
@@ -393,7 +402,7 @@ export function HomeCard({
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="home-card-form flex flex-col gap-4">
               {isSignin ? (
                 <LoginForm
                   redirectTo={redirectTo}

@@ -36,7 +36,7 @@ export default async function Home(props: PageProps<"/">) {
       <div className="absolute inset-0 hidden md:block">
         <AnimatedBackground />
       </div>
-      <div className="relative z-10 w-full max-w-[26rem] md:max-w-sm">
+      <div className="home-card-slot relative z-10 w-full max-w-[26rem] md:max-w-sm">
         <HomeCard redirectTo={target} justReset={justReset} />
       </div>
       {/* Landing room for the floating Mylar CTA, so the last bio button is
