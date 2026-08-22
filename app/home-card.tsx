@@ -280,12 +280,20 @@ export function HomeCard({
               onAnimationEnd={endTap}
             >
               <span aria-hidden className="home-logo-glow" />
+              {/* `unoptimized`: this project's Vercel image-optimization
+                  allowance is exhausted, so every UNCACHED transform returns
+                  402 and the image renders blank — which is exactly what a
+                  freshly-swapped logo is. The source is already stored at
+                  384px against a 112px max render, so the optimizer was buying
+                  ~50 KB and costing the whole mark. Same treatment as
+                  BagPreview and the site backgrounds. */}
               <Image
                 src="/td-studios-diamond-logo.png"
                 alt="TD Studios"
                 width={112}
                 height={112}
                 priority
+                unoptimized
                 className="home-logo-img size-24 rounded-full drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] md:size-28"
               />
             </div>
