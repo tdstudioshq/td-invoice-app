@@ -788,6 +788,10 @@ export interface Database {
       };
     };
     Functions: {
+      list_premade_design_paths: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
       next_invoice_number: {
         Args: Record<string, never>;
         Returns: string;

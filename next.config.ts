@@ -40,15 +40,14 @@ const nextConfig: NextConfig = {
     "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
   },
   images: {
-    // The premade-designs gallery (/premadedesigns) is the one place that
-    // renders bucket images through next/image, so its Supabase Storage host has
-    // to be allow-listed here. The other bucket galleries (portfolio, gso,
-    // taste-budz, mafiaterpz) deliberately use plain <img>, so they need nothing.
+    // The password-protected premade gallery uses short-lived URLs from its
+    // private Storage bucket. Keep the allow-list limited to signed objects on
+    // this project's Supabase host.
     remotePatterns: [
       {
         protocol: "https",
         hostname: "tbgyyyffbxveukbihnhp.supabase.co",
-        pathname: "/storage/v1/object/public/**",
+        pathname: "/storage/v1/object/sign/**",
       },
     ],
   },

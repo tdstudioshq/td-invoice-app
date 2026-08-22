@@ -20,11 +20,13 @@ export function TasteBudzKeypad({
   logoUrl,
   logoAlt = "TASTE BUDZ",
   logoClassName = "w-full max-w-xs",
+  hint = "Enter the code to come inside.",
   action = enterTasteBudzCodeAction,
 }: {
   logoUrl: string;
   logoAlt?: string;
   logoClassName?: string;
+  hint?: string;
   action?: (prev: ActionState, formData: FormData) => Promise<ActionState>;
 }) {
   const [digits, setDigits] = useState("");
@@ -113,7 +115,7 @@ export function TasteBudzKeypad({
           className={cn("h-4 text-xs", error ? "text-red-300" : "text-white/70")}
           role={error ? "alert" : undefined}
         >
-          {pending ? "Checking…" : (error ?? "Enter the code to come inside.")}
+          {pending ? "Checking…" : (error ?? hint)}
         </p>
       </div>
 
