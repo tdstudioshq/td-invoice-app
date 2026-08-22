@@ -277,7 +277,190 @@
   }
 
   /*
-   * Phone-only overrides for the homepage's liquid-glass card.
+   * Homepage "link in bio" card — the glass material.
+   *
+   * Scoped to `.home-glass`, so the shared `.glass` utility is untouched and the
+   * login panel (the only other `GlassCard` in the app) keeps its tinted-panel
+   * look. This card is the opposite problem: it sits on photography that is
+   * meant to be seen, so it overrides the utility's fill, border, shadow and
+   * blur outright rather than nudging the tokens.
+   *
+   * `GlassCard` writes `border-radius`, `padding`, `overflow` and `box-shadow`
+   * inline on its inner `.glass` element. The shadow therefore needs
+   * `!important` to beat the library's own `0 16px 70px rgba(0,0,0,0.75)` —
+   * a 70px spread at 75% black, which pools well inside the card's own
+   * footprint and was a large part of why the surface read as a dark slab.
+   */
+  .home-glass > .glass {
+    /*
+     * Prefixed FIRST, standard second — the order is load-bearing, not style.
+     * Lightning CSS collapses the pair, and standard-then-prefixed leaves only
+     * `-webkit-backdrop-filter`, which Chrome 151 no longer implements
+     * (`CSS.supports("-webkit-backdrop-filter", "blur(2px)")` is false). That
+     * dedupe is why the `.glass` utility's own blur never lands in Chrome.
+     * Prefixed-then-standard emits both, so Safari < 18 (prefix only), Safari
+     * 18+ and Chrome all get the same frost.
+     *
+     * A light frost on purpose: 12px here (9px on phones, where nothing else
+     * blurs) keeps the artwork behind the card plainly readable, where the old
+     * 22-26px stack ground it into a smear. The saturation lift is what stops
+     * thin glass from looking like gray haze.
+     */
+    -webkit-backdrop-filter: blur(12px) saturate(130%);
+    backdrop-filter: blur(12px) saturate(130%);
+
+    /*
+     * The fill, and almost nothing else — 62% before this. 24% over the desktop
+     * backdrop's own 30% scrim leaves the photo transmitting ~53%. Measured
+     * against the rendered page, the brightest pixel behind the wordmark is
+     * rgb(61,64,69) and behind a button label rgb(74,74,75) — 10.4:1 and 8.9:1
+     * for white text, because the diamonds are specular points on near-black
+     * and the blur averages them away. The artwork now reads through the pane
+     * instead of sitting behind smoked plastic.
+     */
+    background: rgba(13, 13, 16, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    /*
+     * The lit rim of a real sheet: a bright top edge, fainter sides and base.
+     * Then one restrained drop shadow, purely to separate the card from the
+     * photo rather than to darken it.
+     */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.24),
+      inset 1px 0 0 rgba(255, 255, 255, 0.07),
+      inset -1px 0 0 rgba(255, 255, 255, 0.05),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+      0 12px 40px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  /*
+   * Gloss — light reflecting off the pane.
+   *
+   * A pseudo-element rather than extra `background` layers on `.glass`, because
+   * the library's `.glass__warp` span sits between the two with its own
+   * `backdrop-filter`: anything painted in `.glass`'s background is behind the
+   * warp and gets blurred back out on desktop. `::after` comes after the warp
+   * in tree order, so it paints on top of it — and below the content wrapper,
+   * which the library gives `z-index: 1`, so the reflection can never wash out
+   * a label or an icon.
+   *
+   * Three passes: a broad sheet across the upper-left shoulder, a soft bleed
+   * down from the top edge, and one narrow specular streak. Peak is 14% white,
+   * which is a highlight you can see and not a gradient pasted over the UI.
+   */
+  .home-glass > .glass::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.14) 0%,
+        rgba(255, 255, 255, 0.04) 28%,
+        transparent 48%
+      ),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 42%),
+      linear-gradient(
+        122deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.07) 42%,
+        rgba(255, 255, 255, 0.014) 50%,
+        transparent 62%
+      );
+  }
+
+  /*
+   * With the pane this clear, white text is effectively sitting on the
+   * photograph rather than on a panel, so the glyphs carry their own
+   * separation — the same trade `.text-on-photo` makes, at roughly half the
+   * strength because there is still glass in between. Deliberately not applied
+   * to the sign-in inputs, whose own field background already does this job and
+   * where a shadow on typed characters reads as a rendering fault.
+   */
+  .home-glass .home-card-head,
+  .home-glass .home-btn {
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+  }
+
+  /*
+   * The wordmark gets a second, tighter layer. It is the one piece of text with
+   * no button tint under it, and it lands on the busiest part of the backdrop
+   * on phones — measured, the brightest pixel behind it is 133/255, or 3.9:1.
+   * That already clears AA for large bold text (3:1, and this is 30px Bebas),
+   * but it is the brand mark, so it gets edge definition rather than the
+   * benefit of the doubt. Cheaper than darkening the glass, which would cost
+   * every other pixel of the card to fix one element.
+   */
+  .home-glass .home-enter-title {
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.72),
+      0 0 10px rgba(0, 0, 0, 0.5);
+  }
+
+  /*
+   * Viewport-height spacing scale for the phone layout.
+   *
+   * One set of custom properties drives every vertical measurement in the card,
+   * so "make it fit the screen" is a matter of stepping the scale down at a
+   * couple of height breakpoints instead of re-tuning a dozen rules. The values
+   * here are exactly today's spacing, so the tallest phones render unchanged;
+   * the tiers below trade padding first, then logo size, then button height —
+   * the order in which the space is least missed.
+   *
+   * Keyed to HEIGHT, not width: a 390px-wide phone can be 667px or 932px tall,
+   * and it is the height that decides whether the last button clears the fold.
+   * Declared on the shell so the floating-CTA landing strip, which is a sibling
+   * of the card rather than a descendant, reads the same scale.
+   */
+  .home-shell {
+    --home-pad: 1.25rem;
+    --home-gap: 1.25rem;
+    --home-head-gap: 0.5rem;
+    --home-logo: 6rem;
+    --home-social-gap: 0.75rem;
+    --home-link-gap: 0.75rem;
+    --home-link-h: 3.5rem;
+    --home-cta-room: 4rem;
+  }
+
+  /* Most phones in portrait. Slightly tighter than the base scale so the card
+     reads as sized for the viewport rather than merely fitting inside it. */
+  @media (max-width: 767px) and (max-height: 850px) {
+    .home-shell {
+      --home-pad: 1.125rem;
+      --home-gap: 1rem;
+      --home-head-gap: 0.375rem;
+      --home-logo: 5.5rem;
+      --home-social-gap: 0.625rem;
+      --home-link-gap: 0.625rem;
+      --home-link-h: 3.25rem;
+      --home-cta-room: 3.25rem;
+    }
+  }
+
+  /* Short phones — an SE-class screen, or any phone whose browser chrome is
+     eating more than usual. Compact, and still nowhere near a 44px target. */
+  @media (max-width: 767px) and (max-height: 700px) {
+    .home-shell {
+      --home-pad: 1rem;
+      --home-gap: 0.875rem;
+      --home-head-gap: 0.25rem;
+      --home-logo: 4.75rem;
+      --home-social-gap: 0.5rem;
+      --home-link-gap: 0.5rem;
+      --home-link-h: 3rem;
+      /* Nothing is given up here: at this tier the whole card clears the fold,
+         so the floating CTA never triggers and this strip is pure slack. */
+      --home-cta-room: 1.5rem;
+    }
+  }
+
+  /*
+   * Phone-only structural overrides for the card.
    *
    * `GlassCard` writes `border-radius` inline and shrink-wraps `.glass` around
    * its content, neither of which is reachable from a prop, so the phone layout
@@ -288,10 +471,10 @@
    *
    * `.glass__warp` is dropped because the library stacks an SVG
    * feDisplacementMap chain *and* a second backdrop-filter on it, on top of the
-   * 22px backdrop blur the app's own `.glass` utility already applies. Two
-   * backdrop passes plus a displacement filter is the most expensive thing on
-   * this page on every scroll frame, and the edge chromatic aberration it buys
-   * is not resolvable at phone size. The frosted glass itself is untouched.
+   * backdrop blur this file already applies. Two backdrop passes plus a
+   * displacement filter is the most expensive thing on this page on every
+   * scroll frame, and the edge chromatic aberration it buys is not resolvable
+   * at phone size.
    */
   @media (max-width: 767px) {
     .home-glass,
@@ -312,38 +495,78 @@
     }
 
     /*
-     * ...and put a single, stronger backdrop pass back on the card itself.
+     * With the warp gone this is the only backdrop pass, and it is deliberately
+     * the lightest frost in the file — desktop stacks the warp's 12.3px on top
+     * of its own 12px for ~17px effective, where this is a single 9px. It has
+     * to be: the ticket is the one backdrop a visitor is meant to actually look
+     * at, and it is directly behind the card rather than off to the sides.
      *
-     * Two things make this necessary rather than cosmetic. The `.glass` utility
-     * above declares `backdrop-filter` *and* `-webkit-backdrop-filter`, and
-     * Lightning CSS dedupes the pair down to the prefixed one alone — which
-     * Chrome 151 no longer implements at all (`CSS.supports(
-     * "-webkit-backdrop-filter", "blur(2px)")` is false), so on Chrome the only
-     * blur this card ever had was the inline one on `.glass__warp`, which the
-     * rule above just switched off. Declaring the standard property alone here
-     * survives the dedupe and lands on every engine.
-     *
-     * 26px also slightly exceeds the ~25px effective sigma of the old
-     * 22px + 12.3px stack, so the phone card ends up better isolated from the
-     * ticket art than before while doing one backdrop pass instead of two.
-     *
-     * NOTE: the `.glass` utility's own blur is broken in Chrome everywhere else
-     * it is used too (login panel, and any future `.glass` surface). Dropping
-     * the redundant `-webkit-` line from that utility fixes it globally, but
-     * that would change how those surfaces render on desktop, so it is left
-     * alone here.
+     * The fill is lighter than desktop's for the same reason, and because the
+     * mobile backdrop carries its own scrim under the card (see
+     * `home-mobile-background.tsx`). Those two are tuned against each other and
+     * should move together.
      */
     .home-glass > .glass {
-      backdrop-filter: blur(26px) saturate(140%);
+      -webkit-backdrop-filter: blur(9px) saturate(130%);
+      backdrop-filter: blur(9px) saturate(130%);
+      background: rgba(13, 13, 16, 0.14);
     }
 
-    /*
-     * Tint the glass harder on phones. This is the half of the readability work
-     * that does not depend on backdrop-filter being supported, which matters on
-     * a backdrop this bright.
-     */
-    .home-glass {
-      --glass-background: oklch(0.13 0.006 285.9 / 76%);
+    /* Phones catch light at a shallower angle than a desktop pane does — the
+       card is nearly the width of the screen — so the gloss runs marginally
+       hotter to stay visible at that size. */
+    .home-glass > .glass::after {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.15) 0%,
+          rgba(255, 255, 255, 0.045) 28%,
+          transparent 48%
+        ),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 42%),
+        linear-gradient(
+          122deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.075) 42%,
+          rgba(255, 255, 255, 0.016) 50%,
+          transparent 62%
+        );
+    }
+
+    /* The scale, applied. Every one of these overrides a Tailwind utility of
+       lower specificity, so the markup keeps its own desktop values. */
+    .home-glass .home-card-inner {
+      padding: var(--home-pad);
+      gap: var(--home-gap);
+    }
+
+    .home-glass .home-card-head {
+      gap: var(--home-head-gap);
+    }
+
+    .home-glass .home-logo-img {
+      width: var(--home-logo);
+      height: var(--home-logo);
+    }
+
+    .home-glass .home-social-row {
+      gap: var(--home-social-gap);
+    }
+
+    .home-glass .home-card-links {
+      gap: var(--home-link-gap);
+    }
+
+    /* `min-height` keeps the touch target honest while the vertical padding
+       collapses, so a shorter button never means a smaller tap area than the
+       number says. */
+    .home-glass .home-btn {
+      min-height: var(--home-link-h);
+      padding-block: 0.5rem;
+    }
+
+    .home-shell .home-cta-room {
+      height: var(--home-cta-room);
     }
   }
 

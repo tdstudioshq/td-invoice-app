@@ -159,17 +159,18 @@ function endTap(event: React.AnimationEvent<HTMLElement>) {
  * The bio buttons.
  *
  * Desktop keeps its exact box — `px-5 py-3.5 text-sm`, ~48px tall, lifting a
- * pixel on press. The `max-md:` half is the phone treatment: a 56px minimum
- * height with the label stepped up to 16px so the target clears 44px by a
- * comfortable margin rather than by a hair, and press feedback that scales
- * instead of nudging, since a 1px lift is invisible under a fingertip.
+ * pixel on press. The `max-md:` half is the phone treatment: the label steps up
+ * to 16px, and press feedback scales instead of nudging, since a 1px lift is
+ * invisible under a fingertip. `min-h-14` is the tall-phone height; on shorter
+ * screens `--home-link-h` in `globals.css` steps it down, never below 48px, so
+ * the target clears 44px at every tier.
  *
  * `relative isolate overflow-hidden` is shared but inert on desktop: it exists
  * so the light-sweep pseudo-element has a stacking context to sit behind the
  * label in, and a rounded box to clip against.
  */
 const glassButton =
-  "home-btn relative isolate inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-white/15 bg-black/35 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px max-md:min-h-14 max-md:py-4 max-md:text-base max-md:duration-200 max-md:ease-[cubic-bezier(0.34,1.56,0.64,1)] max-md:active:scale-[0.97] max-md:active:border-white/40";
+  "home-btn relative isolate inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-white/18 bg-black/34 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.24)] backdrop-blur-md transition-all hover:border-white/28 hover:bg-black/26 active:translate-y-px max-md:min-h-14 max-md:py-4 max-md:text-base max-md:duration-200 max-md:ease-[cubic-bezier(0.34,1.56,0.64,1)] max-md:active:scale-[0.97] max-md:active:border-white/40";
 
 /**
  * The round brand badges under the title. Sized to the 40px circle that
@@ -263,14 +264,14 @@ export function HomeCard({
             inner `.glass` element a width below `md`, which makes `w-full`
             resolvable and hands width control to the page padding, where the
             safe-area insets are already accounted for. */}
-        <div className="relative flex w-full flex-col gap-5 p-5 md:w-[min(21rem,calc(100vw-2rem))] md:gap-6 md:p-8">
+        <div className="home-card-inner relative flex w-full flex-col gap-5 p-5 md:w-[min(21rem,calc(100vw-2rem))] md:gap-6 md:p-8">
           {/* Reflection layer. Sits above the content on purpose — that is what
               a reflection does — which is why it peaks at 7.5% white: enough to
               read as a highlight travelling over the glass, far too little to
               move any contrast ratio in the card. */}
           <span ref={sheenRef} aria-hidden className="home-sheen md:hidden" />
 
-          <div className="flex flex-col items-center gap-2 text-center">
+          <div className="home-card-head flex flex-col items-center gap-2 text-center">
             {/* The artwork is already a circular badge with its own gold outer
                 ring, so no ring/inset highlight here — they'd trace a second
                 edge just outside the mark. */}
@@ -302,7 +303,7 @@ export function HomeCard({
                 <CardTitle className="home-enter-title text-3xl font-bold tracking-tight md:text-2xl">
                   TD STUDIOS
                 </CardTitle>
-                <div className="flex items-center justify-center gap-3 pt-1">
+                <div className="home-social-row flex items-center justify-center gap-3 pt-1">
                   {/* Instagram is the only one of the four react-social-icons
                       ships a brand mark for; the rest are hand-built badges. */}
                   <SocialIcon
@@ -372,7 +373,7 @@ export function HomeCard({
           </div>
 
           {isBio ? (
-            <div className="flex flex-col gap-3">
+            <div className="home-card-links flex flex-col gap-3">
               {BIO_LINKS.map(
                 ({ label, href, icon: LinkIcon, sameTab, sticky }, index) => (
                   <a
@@ -467,6 +468,25 @@ export function HomeCard({
            * A "both" fill keeps each element in its "before" state until its turn.
            * Nothing here gates interaction — opacity and transforms do not block
            * pointer events, so every link is tappable from the first frame.
+           */
+          /*
+           * Translate only — this animation MUST NOT touch opacity, filter,
+           * mask or clip-path.
+           *
+           * .home-enter-card is .home-glass, the element whose child
+           * .glass carries the card's backdrop-filter. Chromium promotes an
+           * element with a filling opacity animation into a Backdrop Root and
+           * never releases it, and a Backdrop Root is exactly "descendants
+           * cannot sample anything painted behind me" — so a from{opacity:0}
+           * here silently switches the card's frost off for the life of the
+           * page. It computes and reports fine in devtools; it just never
+           * composites. (Measured: the artwork behind the card had identical
+           * high-frequency energy with the blur on and off.)
+           *
+           * Nothing is lost by dropping the fade. Every visible element inside
+           * the card — logo, wordmark, badges, buttons — carries its own
+           * staggered fade below, so the only thing that stopped fading is the
+           * pane itself, which is 14% fill on phones.
            */
           .home-enter-card {
             animation: home-rise 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
@@ -581,9 +601,10 @@ export function HomeCard({
           from { opacity: 0; }
           to { opacity: 1; }
         }
+        /* Translate only, deliberately — see .home-enter-card above. */
         @keyframes home-rise {
-          from { opacity: 0; translate: 0 20px; }
-          to { opacity: 1; translate: 0 0; }
+          from { translate: 0 20px; }
+          to { translate: 0 0; }
         }
         @keyframes home-rise-sm {
           from { opacity: 0; translate: 0 12px; }
@@ -630,7 +651,13 @@ export function HomeCard({
          * reflection drift are torn down in JS rather than merely stilled.
          */
         @media (prefers-reduced-motion: reduce) {
-          .home-enter-card,
+          /* The card itself drops out of the sequence entirely rather than
+             joining the fade: home-fade animates opacity, which would put the
+             frost back in the Backdrop Root trap described above. Its contents
+             still fade, so the entrance still reads as one. */
+          .home-enter-card {
+            animation: none;
+          }
           .home-logo,
           .home-enter-title,
           .home-enter-icon,

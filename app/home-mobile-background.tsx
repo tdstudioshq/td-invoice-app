@@ -72,14 +72,29 @@ export function HomeMobileBackground() {
         strongest exactly where the card sits and weakest everywhere else,
         instead of dimming the whole page until the art stops being the art.
 
-        Base tint drops from 45% to 40% so more of the ticket survives at the
-        margins; the elliptical scrim then adds ~55% over the middle band where
-        the card lands, taking the composite behind the glass to ~73% black
-        while the edges stay near where they already were.
+        These numbers are half of a pair: the other half is the card's own fill
+        in `globals.css` (`.home-glass > .glass`, 14% on phones). They were
+        tuned together and only make sense together — the card went from a 76%
+        tint to 14% so the artwork reads through it, which only buys anything if
+        the scrim underneath comes down too. Move one and re-check the other.
+
+        Base tint 27%; the elliptical scrim adds ~22% over the middle band where
+        the card lands, so the composite behind the glass is ~43% black, ~51%
+        once the card's own 14% fill is on top — against ~93% before, so the
+        ticket now transmits roughly seven times the light it used to.
+
+        These numbers only work because the card's frost is real. It was not:
+        an opacity keyframe on .home-glass had been putting the element in a
+        Chromium Backdrop Root, which silently switched the blur off, and the
+        tint had been escalated to 76% to compensate for the missing frost.
+        With the blur actually compositing, softening is doing the work the
+        tint used to do, and the tint can come almost all the way off. If the
+        entrance animation ever regains an opacity keyframe this page will look
+        like it did before — see the comment on .home-enter-card.
       */}
-      <div className="absolute inset-0 bg-black/40" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_88%_52%_at_50%_47%,rgba(0,0,0,0.55),transparent_72%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_45%,rgba(0,0,0,0.7))]" />
+      <div className="absolute inset-0 bg-black/27" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_88%_52%_at_50%_47%,rgba(0,0,0,0.22),transparent_72%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_48%,rgba(0,0,0,0.64))]" />
     </div>
   );
 }

@@ -42,9 +42,12 @@ export default async function Home(props: PageProps<"/">) {
       {/* Landing room for the floating Mylar CTA, so the last bio button is
           still reachable at the bottom of the scroll. It doubles as the nudge
           that lifts the card off dead-centre on phones, which is where a
-          link-in-bio card wants to sit. Removed from the flow at `md`, leaving
-          the desktop composition byte-identical. */}
-      <div aria-hidden className="h-16 shrink-0 md:hidden" />
+          link-in-bio card wants to sit. `h-16` is the tall-phone value and the
+          fallback; `--home-cta-room` (declared on `.home-shell` alongside the
+          rest of the card's viewport-height scale) shrinks it on short screens,
+          where this strip is the cheapest space to give back. Removed from the
+          flow at `md`, leaving the desktop composition byte-identical. */}
+      <div aria-hidden className="home-cta-room h-16 shrink-0 md:hidden" />
     </main>
   );
 }
