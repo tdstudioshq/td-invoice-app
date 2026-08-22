@@ -15,10 +15,11 @@
 import type {
   MylarArtworkSideValue,
   MylarBagType,
+  MylarContactMethod,
   MylarInquiryStatus,
 } from "@/lib/types/database";
 
-export type { MylarBagType, MylarInquiryStatus };
+export type { MylarBagType, MylarContactMethod, MylarInquiryStatus };
 
 export interface MylarBagOption {
   id: MylarBagType;
@@ -167,6 +168,62 @@ export function artworkSideLabel(side: MylarArtworkSide): string {
 /** Hard ceiling on designs in one order; mirrors the DB check constraint. */
 export const MAX_DESIGNS_PER_ORDER = MAX_DESIGN_COUNT;
 
+// ---------------------------------------------------------------------------
+// Contact preference
+// ---------------------------------------------------------------------------
+
+/**
+ * How the customer wants to be reached first (migration 0025).
+ *
+ * INFORMATIONAL ONLY. Nothing in this app messages a customer — picking "Text"
+ * does not enrol them in anything, it tells a human which channel to open with.
+ * Text leads the list because the home card's primary contact CTA is "Text Me",
+ * so it is the channel this audience actually expects.
+ */
+export const CONTACT_METHODS = [
+  {
+    id: "text",
+    label: "Text",
+    detail: "We'll text the number you give us.",
+  },
+  {
+    id: "call",
+    label: "Call",
+    detail: "We'll give you a call.",
+  },
+  {
+    id: "email",
+    label: "Email",
+    detail: "We'll reply to your email address.",
+  },
+] as const satisfies readonly {
+  id: MylarContactMethod;
+  label: string;
+  detail: string;
+}[];
+
+/** The channels that need a phone number to be actionable. */
+export const PHONE_CONTACT_METHODS: readonly MylarContactMethod[] = [
+  "text",
+  "call",
+];
+
+export function requiresPhone(
+  method: MylarContactMethod | null | undefined,
+): boolean {
+  return method ? PHONE_CONTACT_METHODS.includes(method) : false;
+}
+
+const CONTACT_METHOD_BY_ID = new Map(CONTACT_METHODS.map((m) => [m.id, m]));
+
+/** "Text" — or "—" for an inquiry filed before the field existed. */
+export function contactMethodLabel(
+  method: MylarContactMethod | null | undefined,
+): string {
+  if (!method) return "—";
+  return CONTACT_METHOD_BY_ID.get(method)?.label ?? method;
+}
+
 /**
  * One design in the order: its own bag allocation and its own artwork.
  *
@@ -203,14 +260,53 @@ export function distributeQuantity(total: number, count: number): number[] {
   );
 }
 
-/** Sum of every design's allocation. */
-export function allocatedQuantity(
-  designs: readonly MylarDesignDraft[],
-): number {
-  return designs.reduce(
-    (sum, design) => sum + (Number.isFinite(design.quantity) ? design.quantity : 0),
-    0,
+/**
+ * Re-align allocations after the ORDER TOTAL changes on step 2.
+ *
+ * This exists because a design's allocation is derived from a total the
+ * customer can go back and edit at any time. Without it the split silently
+ * keeps referring to the old total, and for a SINGLE design that is a dead end
+ * rather than an inconvenience: the wizard hides the per-design quantity input
+ * when there is only one design (there is nothing to split), so a stale value
+ * leaves an unbalanced allocation with no control on screen able to correct it
+ * and Continue disabled.
+ *
+ * The rule, in two parts:
+ *
+ *  - ONE design always holds the whole order. There is no split to preserve and
+ *    no other value that could ever be valid, so it is re-synced unconditionally
+ *    — including over a hand-typed number, which can only be wrong.
+ *  - SEVERAL designs are only redistributed while the split is still the even
+ *    one this module generated (`customized === false`). Once the customer has
+ *    typed their own numbers, their split is left exactly as it is and the
+ *    allocation ledger asks them to rebalance. Silently overwriting a
+ *    deliberate 600/400 would be worse than showing them an error they can act
+ *    on — and unlike the single-design case, every input they need is visible.
+ *
+ * Returns the SAME array reference when nothing needs to change, so callers can
+ * use it in a state updater without forcing a re-render.
+ */
+export function realignDesigns(
+  designs: MylarDesignDraft[],
+  total: number,
+  customized: boolean,
+): MylarDesignDraft[] {
+  if (designs.length === 0) return designs;
+
+  if (designs.length === 1) {
+    const only = designs[0];
+    return only.quantity === total ? designs : [{ ...only, quantity: total }];
+  }
+
+  if (customized) return designs;
+
+  const shares = distributeQuantity(total, designs.length);
+  const unchanged = designs.every(
+    (design, index) => design.quantity === shares[index],
   );
+  return unchanged
+    ? designs
+    : designs.map((design, index) => ({ ...design, quantity: shares[index] }));
 }
 
 /**
@@ -255,9 +351,28 @@ export interface MylarPrintingDraft {
    * "4 designs" is not asked to press "Add another design" four times.
    */
   designs: MylarDesignDraft[];
+  /**
+   * True once the customer has TYPED a per-design quantity, which makes the
+   * split theirs rather than the even one this module generated. Only
+   * `realignDesigns` reads it, and only to decide whether a change to the order
+   * total may redistribute a multi-design split. Structural edits (add/remove a
+   * design) reflow quantities by themselves and do not set it — remove clears
+   * it, because it re-distributes evenly and the split is generated again.
+   */
+  designsCustomized: boolean;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  /** Trading name / company. Optional — plenty of leads are a person. */
+  brandName: string;
+  /**
+   * Preferred first contact channel. Undefined until answered: this is a
+   * required question, and defaulting it would record a preference the customer
+   * never expressed on the one field whose whole value is that they chose it.
+   */
+  contactMethod?: MylarContactMethod;
+  /** Requested completion date as `YYYY-MM-DD`, or "" when not given. */
+  neededBy: string;
   notes: string;
 }
 
@@ -265,9 +380,12 @@ export const EMPTY_DRAFT: MylarPrintingDraft = {
   quantity: MIN_QUANTITY,
   artworkComingLater: false,
   designs: [],
+  designsCustomized: false,
   customerName: "",
   customerEmail: "",
   customerPhone: "",
+  brandName: "",
+  neededBy: "",
   notes: "",
 };
 

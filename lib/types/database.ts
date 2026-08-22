@@ -45,6 +45,12 @@ export type MylarInquiryStatus =
 // enum type. `MylarArtworkSide` in lib/mylar-printing/types.ts re-exports this.
 export type MylarArtworkSideValue = "front" | "back";
 
+// Preferred first contact channel (migration 0025). Informational only —
+// nothing in this app messages a customer; this records which channel a human
+// should open with. Nullable on the row: inquiries filed before the field
+// existed genuinely stated nothing, and null says so.
+export type MylarContactMethod = "text" | "call" | "email";
+
 export type Json =
   | string
   | number
@@ -614,6 +620,12 @@ export interface Database {
           customer_name: string;
           customer_email: string;
           customer_phone: string | null;
+          // Lead detail fields (migration 0025). Nullable because inquiries
+          // filed before they existed stated nothing — null means "not stated",
+          // never a defaulted guess.
+          brand_name: string | null;
+          contact_method: MylarContactMethod | null;
+          needed_by: string | null;
           notes: string | null;
           status: MylarInquiryStatus;
           submitter_hash: string | null;
@@ -638,6 +650,9 @@ export interface Database {
           customer_name: string;
           customer_email: string;
           customer_phone?: string | null;
+          brand_name?: string | null;
+          contact_method?: MylarContactMethod | null;
+          needed_by?: string | null;
           notes?: string | null;
           status?: MylarInquiryStatus;
           submitter_hash?: string | null;

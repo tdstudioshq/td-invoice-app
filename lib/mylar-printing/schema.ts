@@ -20,6 +20,7 @@ import {
   MIN_QUANTITY,
   MYLAR_BAG_OPTIONS,
   type MylarBagType,
+  type MylarContactMethod,
 } from "@/lib/mylar-printing/types";
 
 // Typed as a non-empty tuple of MylarBagType (not string) so z.enum infers the
@@ -59,10 +60,87 @@ export const customerEmailSchema = z
   .max(254, "That email is too long.")
   .email("Enter a valid email address.");
 
+/**
+ * Digits-only sanity check, not a format. Real numbers arrive as "(929)
+ * 752-8373", "+1 929 752 8373", and "9297528373"; normalising to digits and
+ * bounding the count accepts all of them plus every international shape, while
+ * still rejecting "call me" and a half-typed number. NANP is 10, the E.164
+ * ceiling is 15.
+ */
+export function isLikelyPhone(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 export const customerPhoneSchema = z
   .string()
   .trim()
-  .max(40, "That phone number is too long.");
+  .max(40, "That phone number is too long.")
+  // Only checked once something has been typed — the field itself stays
+  // optional, and whether it is REQUIRED depends on the contact method (see
+  // contactPhoneError).
+  .refine(
+    (value) => value === "" || isLikelyPhone(value),
+    "Enter a valid phone number.",
+  );
+
+export const brandNameSchema = z
+  .string()
+  .trim()
+  .max(120, "That brand name is too long.");
+
+export const contactMethodSchema = z.enum(["text", "call", "email"], {
+  message: "Tell us how you'd like to be contacted.",
+});
+
+/**
+ * Requested completion date, as the `YYYY-MM-DD` an `<input type="date">`
+ * produces, or "" when not given.
+ *
+ * Format and a wide year range only. A past date is NOT rejected: the customer
+ * may be in a timezone where it is still yesterday, and no scheduling logic
+ * reads this column, so the worst case is a date the studio queries by hand.
+ * Blocking a whole lead over it would cost far more than it saves.
+ */
+export const neededBySchema = z
+  .string()
+  .trim()
+  .refine((value) => value === "" || /^\d{4}-\d{2}-\d{2}$/.test(value), {
+    message: "Enter a valid date.",
+  })
+  .refine(
+    (value) => {
+      if (value === "") return true;
+      const parsed = Date.parse(`${value}T12:00:00Z`);
+      if (Number.isNaN(parsed)) return false;
+      const year = Number(value.slice(0, 4));
+      return year >= 2020 && year <= 2100;
+    },
+    { message: "Enter a valid date." },
+  );
+
+/**
+ * The one cross-field rule on step 5: picking Text or Call is a promise the
+ * studio can only keep with a number to reach.
+ *
+ * Lives here rather than inside the submission schema's refine so the step can
+ * show the same sentence inline, next to the field that fixes it, instead of
+ * the customer discovering it at submit time.
+ */
+export function contactPhoneError(
+  method: MylarContactMethod | null | undefined,
+  phone: string,
+): string | null {
+  if (method !== "text" && method !== "call") return null;
+  const trimmed = phone.trim();
+  if (!trimmed) {
+    return method === "text"
+      ? "Add a phone number we can text."
+      : "Add a phone number we can call.";
+  }
+  if (!isLikelyPhone(trimmed)) return "Enter a valid phone number.";
+  return null;
+}
 
 export const notesSchema = z
   .string()
@@ -173,10 +251,22 @@ export const mylarInquirySubmissionSchema = z
     customerName: customerNameSchema,
     customerEmail: customerEmailSchema,
     customerPhone: customerPhoneSchema,
+    brandName: brandNameSchema,
+    contactMethod: contactMethodSchema,
+    neededBy: neededBySchema,
     notes: notesSchema,
     website: z.string().max(200),
     startedAt: z.number().int().nonnegative(),
   })
+  // Text and Call are only worth recording if there is a number behind them.
+  // Same sentence the step shows inline — one rule, one place.
+  .refine(
+    (value) => contactPhoneError(value.contactMethod, value.customerPhone) === null,
+    {
+      message: "Add a phone number so we can reach you that way.",
+      path: ["customerPhone"],
+    },
+  )
   // "Send artwork later" and actually attaching artwork are mutually
   // exclusive — otherwise the summary and the notification email disagree
   // about whether files are coming. Design ALLOCATIONS are unaffected: a

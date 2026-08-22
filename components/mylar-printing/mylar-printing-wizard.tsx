@@ -21,6 +21,7 @@ import {
 import {
   discardMylarArtworkAction,
   submitMylarInquiryAction,
+  type DiscardArtworkResult,
 } from "@/app/actions/mylar-printing";
 import {
   allocationError,
@@ -35,6 +36,7 @@ import {
   STEP_COUNT,
   WIZARD_STEPS,
   distributeQuantity,
+  realignDesigns,
   resizeDesigns,
   stepIndexOf,
   type MylarArtworkFile,
@@ -83,6 +85,9 @@ const STEP_FOR_FIELD: Record<string, WizardStepId> = {
   customerName: "details",
   customerEmail: "details",
   customerPhone: "details",
+  brandName: "details",
+  contactMethod: "details",
+  neededBy: "details",
   notes: "details",
 };
 
@@ -125,8 +130,26 @@ export function MylarPrintingWizard() {
         // server HTML from the first client render, so the restore is a
         // deliberate post-mount state update. It runs exactly once.
         if (parsed.draft && typeof parsed.draft === "object") {
+          const restored: MylarPrintingDraft = {
+            ...EMPTY_DRAFT,
+            ...parsed.draft,
+          };
+          // Self-heal on the way in. A draft written by an older build can hold
+          // an allocation that no longer matches its own total, and a returning
+          // customer should never land on an unbalanced step they did not
+          // create. Guarded, because a hand-edited store can hold anything.
+          const designs =
+            Array.isArray(restored.designs) &&
+            Number.isInteger(restored.quantity) &&
+            restored.quantity > 0
+              ? realignDesigns(
+                  restored.designs,
+                  restored.quantity,
+                  Boolean(restored.designsCustomized),
+                )
+              : restored.designs;
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setDraft({ ...EMPTY_DRAFT, ...parsed.draft });
+          setDraft({ ...restored, designs });
         }
         if (typeof parsed.inquiryId === "string") {
           setInquiryId(parsed.inquiryId);
@@ -215,7 +238,68 @@ export function MylarPrintingWizard() {
   }, []);
 
   /**
-   * Seed the design list when the artwork step opens.
+   * Release artwork the draft is about to stop referencing.
+   *
+   * The single place any discard happens outside the uploader card, so every
+   * path that drops a design frees its bytes the same way. Always called from
+   * an event handler or an effect — NEVER from inside a setDraft updater, which
+   * React may invoke more than once.
+   *
+   * It never blocks the customer: the files leave their request either way, and
+   * a failure only strands an object in a private bucket. But it does not
+   * pretend to have succeeded either — failures are logged and surfaced once
+   * per batch. Silently assuming success is exactly how the design-count path
+   * leaked in the first place.
+   */
+  const releasedPaths = useRef<Set<string>>(new Set());
+  const releaseArtwork = useCallback(
+    async (designs: MylarDesignDraft[], context: string) => {
+      if (!inquiryId || designs.length === 0) return;
+
+      const jobs: Promise<DiscardArtworkResult>[] = [];
+      for (const design of designs) {
+        for (const side of ARTWORK_SIDES) {
+          const file =
+            side === "front" ? design.frontArtwork : design.backArtwork;
+          // An object key is minted once and never reused, so a path already
+          // released can be skipped outright. This is what keeps a
+          // double-invoked effect (React StrictMode in development) from
+          // reporting a phantom failure on the second pass.
+          if (!file || releasedPaths.current.has(file.path)) continue;
+          releasedPaths.current.add(file.path);
+          jobs.push(
+            discardMylarArtworkAction({
+              inquiryId,
+              designId: design.id,
+              side,
+              path: file.path,
+            }),
+          );
+        }
+      }
+      if (jobs.length === 0) return;
+
+      const settled = await Promise.allSettled(jobs);
+      const failed = settled.filter(
+        (result) => result.status === "rejected" || !result.value.ok,
+      ).length;
+      if (failed === 0) return;
+
+      console.error(
+        `mylar artwork discard failed (${context}): ${failed} of ${jobs.length}`,
+      );
+      toast.warning(
+        failed === 1
+          ? "One file couldn't be cleared from storage. It won't be attached to your request."
+          : `${failed} files couldn't be cleared from storage. They won't be attached to your request.`,
+      );
+    },
+    [inquiryId],
+  );
+
+  /**
+   * Seed the design list when the artwork step opens, and reconcile it when the
+   * count changes.
    *
    * This is the whole "don't make them press Add four times" behaviour: the
    * count from step 3 and the total from step 2 become N cards with the total
@@ -224,12 +308,21 @@ export function MylarPrintingWizard() {
    * must never be undone by a re-seed, and neither must an uploaded file.
    * `resizeDesigns` preserves surviving entries by id, so artwork already
    * attached to Design 1 stays on Design 1 when Design 4 is added.
+   *
+   * Reducing the count is the other half, and the half that used to leak: the
+   * designs past the new count fall out of state still holding object keys that
+   * nothing will ever reference again. Their artwork is released here, before
+   * the state update that forgets it — the draft is the only thing that knows
+   * those keys, so once it drops them the bytes are unreachable.
    */
   useEffect(() => {
     if (!hydrated.current) return;
     if (WIZARD_STEPS[step].id !== "artwork") return;
     const wanted = draft.designCount ?? 1;
     if (draft.designs.length === wanted) return;
+
+    void releaseArtwork(draft.designs.slice(wanted), "design count reduced");
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft((current) => {
       if (current.designs.length === wanted) return current;
@@ -243,7 +336,7 @@ export function MylarPrintingWizard() {
         ),
       };
     });
-  }, [draft.designCount, draft.designs.length, makeDesignId, step]);
+  }, [draft.designCount, draft.designs, makeDesignId, releaseArtwork, step]);
 
   const handleArtworkChange = useCallback(
     (
@@ -273,10 +366,41 @@ export function MylarPrintingWizard() {
     [],
   );
 
+  /**
+   * Change the ORDER TOTAL — and keep the allocation honest with it.
+   *
+   * Step 2 is reachable at any time via Back or a summary Edit link, so the
+   * total can change long after the designs were seeded from it. Without this
+   * the split silently keeps referring to the old total; for a SINGLE design
+   * that is a dead end rather than an inconvenience, because the artwork step
+   * hides the per-design input when there is only one design, leaving an
+   * unbalanced allocation with nothing on screen able to fix it.
+   *
+   * `realignDesigns` holds the rule (one design always takes the whole order; a
+   * hand-typed multi-design split is never overwritten). Doing it here, in the
+   * handler, rather than in an effect keyed on quantity keeps it to a single
+   * synchronous state update with no intermediate render in an invalid state.
+   */
+  const handleQuantityChange = useCallback((quantity: number) => {
+    setDraft((current) => ({
+      ...current,
+      quantity,
+      designs: realignDesigns(
+        current.designs,
+        quantity,
+        current.designsCustomized,
+      ),
+    }));
+  }, []);
+
   const handleDesignQuantityChange = useCallback(
     (designId: string, quantity: number) => {
       setDraft((current) => ({
         ...current,
+        // The split is now theirs, not the even one we generated — so a later
+        // change to the order total must leave these numbers alone and ask them
+        // to rebalance instead of silently overwriting the figures they typed.
+        designsCustomized: true,
         designs: current.designs.map((design) =>
           design.id === designId ? { ...design, quantity } : design,
         ),
@@ -321,20 +445,8 @@ export function MylarPrintingWizard() {
   const handleRemoveDesign = useCallback(
     (designId: string) => {
       const removed = draft.designs.find((design) => design.id === designId);
-      if (removed && inquiryId) {
-        for (const side of ARTWORK_SIDES) {
-          const file =
-            side === "front" ? removed.frontArtwork : removed.backArtwork;
-          if (file) {
-            void discardMylarArtworkAction({
-              inquiryId,
-              designId,
-              side,
-              path: file.path,
-            });
-          }
-        }
-      }
+      if (removed) void releaseArtwork([removed], "design removed");
+
       setDraft((current) => {
         const kept = current.designs.filter((design) => design.id !== designId);
         if (kept.length === 0) return current;
@@ -345,10 +457,17 @@ export function MylarPrintingWizard() {
           ...design,
           quantity: shares[index],
         }));
-        return { ...current, designs, designCount: designs.length };
+        return {
+          ...current,
+          designs,
+          designCount: designs.length,
+          // The split is the evenly-generated one again, so a later change to
+          // the order total is free to redistribute it.
+          designsCustomized: false,
+        };
       });
     },
-    [draft.designs, inquiryId],
+    [draft.designs, releaseArtwork],
   );
 
   const handleComingLater = useCallback(
@@ -363,26 +482,8 @@ export function MylarPrintingWizard() {
       // bytes are released here too rather than left in the bucket
       // unreferenced. The design ALLOCATIONS are untouched — deferring artwork
       // does not mean forgetting how the order splits.
-      //
-      // The discards run here, NOT inside the setDraft updater: React may
-      // invoke an updater more than once, and a side effect in there would fire
-      // as many times.
-      if (inquiryId) {
-        for (const design of draft.designs) {
-          for (const side of ARTWORK_SIDES) {
-            const file =
-              side === "front" ? design.frontArtwork : design.backArtwork;
-            if (file) {
-              void discardMylarArtworkAction({
-                inquiryId,
-                designId: design.id,
-                side,
-                path: file.path,
-              });
-            }
-          }
-        }
-      }
+      void releaseArtwork(draft.designs, "artwork deferred");
+
       setDraft((current) => ({
         ...current,
         artworkComingLater: true,
@@ -392,31 +493,35 @@ export function MylarPrintingWizard() {
         })),
       }));
     },
-    [draft.designs, inquiryId, patch],
+    [draft.designs, patch, releaseArtwork],
   );
 
   // --- Gate for Continue. Step 5 has no gate: its button submits and surfaces
   // every outstanding error at once, which beats a button that is disabled for
   // reasons the customer can't see.
-  const canContinue = (() => {
+  //
+  // A REASON, not a boolean. A disabled button with no explanation is a dead
+  // end — the customer cannot tell whether they missed something or the page is
+  // broken — so the gate returns the sentence that gets rendered under it.
+  const continueBlockedReason: string | null = (() => {
     switch (WIZARD_STEPS[step].id) {
       case "bag-type":
-        return Boolean(draft.bagType);
+        return draft.bagType ? null : "Choose a bag type to continue.";
       case "quantity":
-        return firstError(quantitySchema, draft.quantity) === null;
+        return firstError(quantitySchema, draft.quantity);
       case "designs":
-        return (
-          draft.designCount !== undefined &&
-          firstError(designCountSchema, draft.designCount) === null
-        );
+        return draft.designCount === undefined
+          ? "Tell us how many designs you're printing."
+          : firstError(designCountSchema, draft.designCount);
       case "artwork":
         // The allocation must balance before the customer can move on. Artwork
         // itself is never gated — it is optional by design.
-        return allocationError(draft.designs, draft.quantity) === null;
+        return allocationError(draft.designs, draft.quantity);
       default:
-        return true;
+        return null;
     }
   })();
+  const canContinue = continueBlockedReason === null;
 
   async function handleSubmit() {
     if (submitting) return;
@@ -466,6 +571,9 @@ export function MylarPrintingWizard() {
       customerName: draft.customerName,
       customerEmail: draft.customerEmail,
       customerPhone: draft.customerPhone,
+      brandName: draft.brandName,
+      contactMethod: draft.contactMethod,
+      neededBy: draft.neededBy,
       notes: draft.notes,
       website: honeypot,
       startedAt: mountedAt.current ?? Date.now(),
@@ -550,7 +658,7 @@ export function MylarPrintingWizard() {
             {WIZARD_STEPS[step].id === "quantity" ? (
               <QuantityStep
                 value={draft.quantity}
-                onChange={(quantity) => patch({ quantity })}
+                onChange={handleQuantityChange}
               />
             ) : null}
 
@@ -582,6 +690,9 @@ export function MylarPrintingWizard() {
                   name={draft.customerName}
                   email={draft.customerEmail}
                   phone={draft.customerPhone}
+                  brandName={draft.brandName}
+                  contactMethod={draft.contactMethod}
+                  neededBy={draft.neededBy}
                   notes={draft.notes}
                   honeypot={honeypot}
                   showAllErrors={showAllErrors}
@@ -614,14 +725,26 @@ export function MylarPrintingWizard() {
             </p>
           </>
         ) : (
-          <Button
-            type="button"
-            onClick={() => goTo(step + 1)}
-            disabled={!canContinue}
-            className={primaryButtonClass}
-          >
-            Continue
-          </Button>
+          <>
+            <Button
+              type="button"
+              onClick={() => goTo(step + 1)}
+              disabled={!canContinue}
+              className={primaryButtonClass}
+            >
+              Continue
+            </Button>
+            {/* Why the button above is dead. `aria-live` so a screen reader
+                hears the reason change without having to hunt for it. */}
+            {continueBlockedReason ? (
+              <p
+                aria-live="polite"
+                className="text-muted-foreground text-center text-xs leading-relaxed"
+              >
+                {continueBlockedReason}
+              </p>
+            ) : null}
+          </>
         )}
       </div>
     </div>

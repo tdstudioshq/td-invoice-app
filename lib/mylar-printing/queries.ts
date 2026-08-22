@@ -26,7 +26,27 @@ import type {
 
 const LIST_LIMIT = 200;
 
-export async function getMylarInquiries(): Promise<MylarPrintingInquiry[]> {
+/**
+ * A list row, carrying the count the list should actually display.
+ *
+ * `design_count` on the inquiry is what the customer TYPED on step 3;
+ * `designCount` here is how many designs the order really has, which is the
+ * figure that matches the artwork underneath it. They agree on everything filed
+ * since 0024 (the submission schema refuses a mismatch) and can differ on older
+ * rows, whose artwork the backfill collapsed into a single design.
+ */
+export type MylarInquiryListItem = MylarPrintingInquiry & {
+  /** The figure to display: real designs when there are any, else the stated one. */
+  designCount: number;
+  /**
+   * The customer's own figure, set ONLY when it disagrees with `designCount`.
+   * Null the rest of the time, so the UI can annotate the exception without
+   * having to compare the two itself.
+   */
+  statedDesignCount: number | null;
+};
+
+export async function getMylarInquiries(): Promise<MylarInquiryListItem[]> {
   if (!isSupabaseAdminConfigured()) return [];
   try {
     const supabase = createAdminClient();
@@ -39,7 +59,38 @@ export async function getMylarInquiries(): Promise<MylarPrintingInquiry[]> {
       console.error("getMylarInquiries", error.message);
       return [];
     }
-    return data ?? [];
+    const inquiries = data ?? [];
+    if (inquiries.length === 0) return [];
+
+    // One extra query rather than N: PostgREST cannot group, so the design rows
+    // for this page of inquiries are counted in memory. At LIST_LIMIT=200
+    // inquiries of a handful of designs each this is a few hundred narrow rows.
+    // A failure degrades to the stored figure rather than emptying the list.
+    const byInquiry = new Map<string, number>();
+    const { data: designRows, error: designError } = await supabase
+      .from("mylar_designs")
+      .select("id, inquiry_id")
+      .in(
+        "inquiry_id",
+        inquiries.map((inquiry) => inquiry.id),
+      );
+    if (designError) {
+      console.error("getMylarInquiries designs", designError.message);
+    }
+    for (const row of designRows ?? []) {
+      byInquiry.set(row.inquiry_id, (byInquiry.get(row.inquiry_id) ?? 0) + 1);
+    }
+
+    return inquiries.map((inquiry) => {
+      const actual = byInquiry.get(inquiry.id) ?? 0;
+      const designCount = actual > 0 ? actual : inquiry.design_count;
+      return {
+        ...inquiry,
+        designCount,
+        statedDesignCount:
+          designCount === inquiry.design_count ? null : inquiry.design_count,
+      };
+    });
   } catch (error) {
     console.error("getMylarInquiries", error);
     return [];

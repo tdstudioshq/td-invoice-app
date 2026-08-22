@@ -5,6 +5,7 @@ import { PencilSimpleIcon } from "@phosphor-icons/react";
 import { formatArtworkBytes } from "@/lib/mylar-printing/artwork";
 import {
   bagTypeLabel,
+  contactMethodLabel,
   type MylarArtworkFile,
   type MylarPrintingDraft,
   type WizardStepId,
@@ -52,6 +53,29 @@ export function InquirySummary({
       step: "designs",
     },
   ];
+
+  // Lead fields, only when answered — an empty "Brand: —" row is noise on a
+  // recap whose job is letting the customer check what they are about to send.
+  if (draft.brandName.trim()) {
+    rows.push({
+      label: "Brand",
+      value: draft.brandName.trim(),
+      step: "details",
+      truncate: true,
+    });
+  }
+
+  if (draft.contactMethod) {
+    rows.push({
+      label: "Contact By",
+      value: contactMethodLabel(draft.contactMethod),
+      step: "details",
+    });
+  }
+
+  if (draft.neededBy) {
+    rows.push({ label: "Needed By", value: draft.neededBy, step: "details" });
+  }
 
   if (draft.notes.trim()) {
     rows.push({

@@ -131,6 +131,11 @@ export function mylarInquiryEmail(params: {
   customerName: string;
   customerEmail: string;
   customerPhone: string | null;
+  brandName: string | null;
+  /** Already labelled ("Text" / "Call" / "Email"), or "—" if not stated. */
+  contactMethod: string;
+  /** `YYYY-MM-DD`, or null when no deadline was given. */
+  neededBy: string | null;
   artworkSummary: string;
   notes: string | null;
   adminUrl: string;
@@ -143,6 +148,9 @@ export function mylarInquiryEmail(params: {
     customerName,
     customerEmail,
     customerPhone,
+    brandName,
+    contactMethod,
+    neededBy,
     artworkSummary,
     notes,
     adminUrl,
@@ -150,15 +158,21 @@ export function mylarInquiryEmail(params: {
 
   const subject = `New Mylar Printing Request — ${referenceNumber}`;
 
+  // Ordered for a human deciding how to make first contact: what the job is,
+  // then who to reach and how. "Contact via" sits directly under the phone and
+  // email it refers to.
   const rows: [string, string][] = [
     ["Reference", referenceNumber],
     ["Bag type", bagType],
     ["Quantity", `${quantity.toLocaleString()} pieces`],
     ["Designs", `${designCount} ${designCount === 1 ? "design" : "designs"}`],
+    ["Needed by", neededBy || "No deadline given"],
     ["Artwork", artworkSummary],
     ["Name", customerName],
+    ["Brand", brandName || "—"],
     ["Email", customerEmail],
     ["Phone", customerPhone || "—"],
+    ["Contact via", contactMethod],
   ];
 
   const rowsHtml = rows

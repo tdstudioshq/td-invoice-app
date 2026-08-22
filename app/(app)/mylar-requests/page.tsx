@@ -79,7 +79,12 @@ export default async function MylarRequestsPage() {
                   <div>
                     <dt className="text-muted-foreground text-xs">Designs</dt>
                     <dd className="mt-0.5 tabular-nums">
-                      {inquiry.design_count}
+                      {inquiry.designCount}
+                      {inquiry.statedDesignCount !== null ? (
+                        <span className="text-muted-foreground ml-1.5 text-xs">
+                          (stated {inquiry.statedDesignCount})
+                        </span>
+                      ) : null}
                     </dd>
                   </div>
                   <div className="border-glass-border col-span-2 border-t pt-3">
@@ -131,7 +136,15 @@ export default async function MylarRequestsPage() {
                       {inquiry.quantity.toLocaleString()}
                     </TableCell>
                     <TableCell className="px-4 py-3.5 text-right tabular-nums">
-                      {inquiry.design_count}
+                      {inquiry.designCount}
+                      {inquiry.statedDesignCount !== null ? (
+                        <span
+                          className="text-muted-foreground ml-1.5 text-xs"
+                          title={`Customer stated ${inquiry.statedDesignCount}`}
+                        >
+                          ({inquiry.statedDesignCount})
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell className="px-4 py-3.5">
                       <MylarStatusBadge status={inquiry.status} />

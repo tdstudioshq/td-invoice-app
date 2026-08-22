@@ -86,9 +86,14 @@ export function ArtworkStep({
         so the customer can see what is left to assign while they are typing
         into the fields that change it.
 
-        Hidden entirely for a single design: there is nothing to allocate, the
-        one card already holds the whole order, and showing "1,000 / 1,000" to
-        somebody who never asked for a split is noise.
+        The three figures are hidden for a single design: there is nothing to
+        allocate, the one card already holds the whole order, and showing
+        "1,000 / 1,000" to somebody who never asked for a split is noise.
+
+        An allocation PROBLEM is never hidden, though — see the fail-safe below.
+        A single design that has somehow fallen out of step with the order total
+        blocks Continue, and hiding the reason (as this did) left the customer
+        staring at a dead button with no explanation and no visible control.
       */}
       {!single ? (
         <div
@@ -127,6 +132,30 @@ export function ArtworkStep({
             )}
           </p>
         </div>
+      ) : problem ? (
+        /*
+          Fail-safe for the single-design case. `realignDesigns` in the wizard
+          keeps one design pinned to the order total, so reaching this should be
+          impossible — which is exactly why it is here. If the invariant ever
+          breaks again the customer gets the reason and, via `showQuantity`
+          below, a field to correct it, instead of a silently disabled button.
+        */
+        <div
+          className="rounded-2xl border border-amber-300/30 bg-black/35 p-4 sm:p-5"
+          aria-live="polite"
+        >
+          <p
+            className="text-sm text-amber-300"
+            role={showAllErrors ? "alert" : undefined}
+          >
+            {problem}
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+            Your order is {orderQuantity.toLocaleString()}{" "}
+            {orderQuantity === 1 ? "bag" : "bags"}. Set the quantity below to
+            match it, or go back and change your order quantity.
+          </p>
+        </div>
       ) : null}
 
       <div className="flex flex-col gap-5">
@@ -137,7 +166,10 @@ export function ArtworkStep({
             designNumber={index + 1}
             inquiryId={inquiryId}
             comingLater={comingLater}
-            showQuantity={!single}
+            // Normally hidden for a single design — it can only ever hold the
+            // whole order. Revealed the moment that stops being true, so the
+            // allocation is always correctable from the step that reports it.
+            showQuantity={!single || !balanced}
             canRemove={designs.length > 1}
             onQuantityChange={onQuantityChange}
             onRemove={() => onRemoveDesign(design.id)}

@@ -28,7 +28,9 @@ import {
 import {
   ARTWORK_SIDES,
   bagTypeLabel,
+  contactMethodLabel,
   type MylarBagType,
+  type MylarContactMethod,
 } from "@/lib/mylar-printing/types";
 import { getAdminEmails } from "@/lib/auth";
 import {
@@ -387,6 +389,12 @@ export async function submitMylarInquiryAction(
     customer_name: submission.customerName,
     customer_email: submission.customerEmail,
     customer_phone: submission.customerPhone || null,
+    // Lead detail fields (migration 0025). Empty strings become null so "not
+    // given" reads the same as it does on the inquiries filed before these
+    // questions existed — the admin view renders both as "—".
+    brand_name: submission.brandName || null,
+    contact_method: submission.contactMethod,
+    needed_by: submission.neededBy || null,
     notes: submission.notes || null,
     submitter_hash: hash,
   } as const;
@@ -524,6 +532,9 @@ async function notifyStudio(
     customerName: string;
     customerEmail: string;
     customerPhone: string;
+    brandName: string;
+    contactMethod: MylarContactMethod;
+    neededBy: string;
     notes: string;
     inquiryId: string;
   },
@@ -567,6 +578,11 @@ async function notifyStudio(
     customerName: submission.customerName,
     customerEmail: submission.customerEmail,
     customerPhone: submission.customerPhone || null,
+    brandName: submission.brandName || null,
+    // The label, not the raw value: this email is read by a person deciding how
+    // to open the conversation.
+    contactMethod: contactMethodLabel(submission.contactMethod),
+    neededBy: submission.neededBy || null,
     artworkSummary,
     notes: submission.notes || null,
     adminUrl: `${getSiteUrl()}/mylar-requests/${submission.inquiryId}`,
@@ -599,20 +615,34 @@ async function notifyStudio(
  *     (`isOwnArtworkPath`), which is an unguessable uuid; and
  *   - an inquiry row with that id must not exist yet, so artwork attached to an
  *     already-submitted request can never be deleted this way.
- * Best effort by design — a failure is logged, not surfaced. The customer has
- * already moved on, and a stray object is harmless.
+ * NEVER BLOCKS THE CUSTOMER. The file is already gone from their draft either
+ * way; a failure here only means an object lingers in a private bucket, which
+ * is the studio's problem and not theirs. So the result is reported rather than
+ * thrown — the caller logs it and, at most, mentions it once. What it must not
+ * do is what it used to do: return void and let the caller assume success.
+ *
+ * `reason` is for our logs, not for the caller to render.
  */
+export type DiscardArtworkResult = {
+  ok: boolean;
+  reason?: "not-configured" | "rejected" | "already-submitted" | "storage";
+};
+
 export async function discardMylarArtworkAction(input: {
   inquiryId: string;
   designId?: string;
   side: "front" | "back";
   path: string;
-}): Promise<void> {
-  if (!isSupabaseAdminConfigured()) return;
+}): Promise<DiscardArtworkResult> {
+  if (!isSupabaseAdminConfigured()) {
+    return { ok: false, reason: "not-configured" };
+  }
 
   const { inquiryId, designId, side, path } = input;
-  if (side !== "front" && side !== "back") return;
-  if (!isOwnArtworkPath(path, inquiryId, side, designId)) return;
+  if (side !== "front" && side !== "back") return { ok: false, reason: "rejected" };
+  if (!isOwnArtworkPath(path, inquiryId, side, designId)) {
+    return { ok: false, reason: "rejected" };
+  }
 
   try {
     const supabase = createAdminClient();
@@ -621,10 +651,18 @@ export async function discardMylarArtworkAction(input: {
       .select("id")
       .eq("id", inquiryId)
       .maybeSingle();
-    if (submitted) return;
+    // Artwork on an inquiry that already landed is the studio's copy now.
+    // Refusing is the correct outcome, so this is not a failure to report.
+    if (submitted) return { ok: true, reason: "already-submitted" };
 
-    await supabase.storage.from(BUCKET).remove([path]);
+    const { error } = await supabase.storage.from(BUCKET).remove([path]);
+    if (error) {
+      console.error("discardMylarArtworkAction storage", path, error.message);
+      return { ok: false, reason: "storage" };
+    }
+    return { ok: true };
   } catch (err) {
     console.error("discardMylarArtworkAction", err);
+    return { ok: false, reason: "storage" };
   }
 }
