@@ -234,7 +234,7 @@ export function DesignsGallery({
               key={design.id}
               design={design}
               src={urlCache[design.path]?.url}
-              eager={index < 10}
+              eager={index < 5}
               onOpen={() => setLightboxIndex(index)}
             />
           ))}
@@ -309,6 +309,7 @@ function DesignCard({
             src={src}
             alt={design.title}
             fill
+            unoptimized
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
             loading={eager ? "eager" : "lazy"}
             fetchPriority={eager ? "high" : "auto"}
@@ -463,6 +464,7 @@ function DesignLightbox({
               alt={current.title}
               width={1440}
               height={1800}
+              unoptimized
               sizes="(max-width: 640px) 92vw, 86vw"
               draggable={false}
               className="h-auto max-h-[84vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl select-none"
