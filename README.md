@@ -64,10 +64,15 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
   takes artwork uploads into private Storage, and notifies the studio. Worked
   from the admin app at `/mylar-requests`.
 - **Galleries** — a portfolio and several brand galleries, each backed by its
-  own public Storage bucket, so uploads appear with no redeploy. Some are behind
-  a shared 4-digit keypad code.
-- **Request forms** — a custom-design request form and an earlier mylar bag
-  order form, both posting to Formspree with uploads into private Storage.
+  own Storage bucket, so uploads appear with no redeploy. Most are public
+  buckets; some sit behind a shared 4-digit keypad code, and the premade-designs
+  gallery is a **private** bucket served through short-lived signed URLs only
+  after that gate passes.
+- **Custom design requests** — a public request form that stores the request,
+  takes reference uploads into private Storage, and notifies the studio. Worked
+  from the admin app at `/design-requests`.
+- **Legacy request forms** — an earlier mylar bag order form and the ordering
+  page still post to Formspree, with uploads into private Storage.
 - **Public QR generator** — the same generator as the admin one, without saving.
 
 ### Platform
@@ -96,6 +101,8 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/qr/history`                | Every code generated (admin + public)            |
 | `/mylar-requests`            | Custom Mylar Printing inquiries                  |
 | `/mylar-requests/[id]`       | One inquiry: details, artwork, status            |
+| `/design-requests`           | Custom design requests                           |
+| `/design-requests/[id]`      | One request: details, reference files, status    |
 | `/client-portals`            | Manage client portal logins & files              |
 | `/client-portals/[clientId]` | One client's portal access, projects, and files  |
 | `/settings`                  | Company settings                                 |
@@ -127,14 +134,14 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/q/<slug>`                     | Dynamic QR redirect + scan logging              |
 | `/mylar-printing`               | Custom Mylar Printing quote wizard              |
 | `/mylar-bag-printing`           | Earlier mylar bag order form (Formspree)        |
-| `/custom-design-request`        | Custom design request form (Formspree)          |
+| `/custom-design-request`        | Custom design request form (stored)             |
 | `/tools/cutline-generator`      | Cutline Generator                               |
 | `/tools/mockup-generator`       | Mylar Bag Mockup Generator (single bag)         |
 | `/tools/8pc-mockup-generator`   | 8-Piece Mockup Generator (sheet)                |
 | `/tools/bag-mockup-grid`        | Bag Mockup Grid (lineup)                        |
 | `/qr-generator`                 | Public QR generator (no saving)                 |
 | `/portfolio`                    | Portfolio gallery                               |
-| `/premadedesigns`               | Premade designs gallery                         |
+| `/premadedesigns`               | Premade designs gallery (keypad-gated)          |
 | `/gso`                          | GSO gallery                                     |
 | `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
 | `/how-to-order`                 | Ordering instructions                           |
@@ -153,6 +160,7 @@ enforcement is Postgres RLS plus `requireUser()` / `requireAdmin()` /
 | `/api/invoices/[id]/pdf`          | Invoice PDF download                           |
 | `/api/files/[fileId]`             | Portal file download / inline preview          |
 | `/api/mylar-artwork/[inquiryId]`  | Signed artwork link (admin only)               |
+| `/api/design-request-assets/[requestId]` | Signed reference link (admin only)      |
 | `/api/cutline/generate`           | Cutline PDF — public, in-memory, no storage    |
 | `/api/mockup-sheet/generate`      | 8-piece sheet export — public, in-memory       |
 | `/api/bag-mockup-grid/generate`   | Bag grid export — public, in-memory            |
@@ -188,7 +196,11 @@ npm install
 
 ### 3. Apply the database migrations
 
-Run every file in `supabase/migrations/` **in order** (`0001` … `0023`). Either:
+Run every file in `supabase/migrations/` **in order**. The folder holds two
+naming schemes that sort correctly together: the original hand-numbered series
+(`0001` … `0025`) followed by Supabase CLI timestamps (`20260822182058_…`).
+New migrations should use the CLI's timestamps (`supabase migration new`).
+Either:
 
 - **Supabase SQL Editor**: paste each file's contents and run it, **or**
 - **Supabase CLI**:
@@ -202,9 +214,13 @@ Several migrations create a feature that a later migration drops again (the
 Instagram Leads CRM, the Social Hub, and Bio Pages were all removed). Both halves
 are kept so a from-scratch rebuild stays correct — apply them all in sequence.
 
-The migrations also create the Storage buckets the app needs: private
-`client-files` (25 MB/file), `design-requests`, and `mylar-artwork` (50 MB/file).
-The public gallery buckets are created by hand in the Supabase dashboard.
+The migrations also create most of the Storage buckets the app needs, all
+private: `client-files` (25 MB/file), `design-requests`, and `mylar-artwork`
+(50 MB/file). The gallery buckets are **not** created by any migration and must
+be added by hand in the Supabase dashboard: the public ones (`custom-work`,
+`GSO`, `TASTE BUDZ`, `MAFIA terpz`) and the **private `premade-designs`** bucket
+that `/premadedesigns` reads through its manifest RPC. A gallery whose
+bucket is missing renders its empty state rather than erroring.
 
 ### 4. Run the dev server
 
@@ -237,6 +253,7 @@ app/
     invoices/         KPIs, list, new, [id]
     qr/               Saved codes, [id] detail + analytics, history
     mylar-requests/   Custom Mylar Printing inquiries, [id]
+    design-requests/  Custom design requests, [id]
     client-portals/   Manage portal logins, projects & files
     settings/         Company settings
   (portal)/           Client-portal shell (force-dynamic)
@@ -247,9 +264,11 @@ app/
   tools/              Public print tools (cutline + three mockup tools)
   actions/            Server Actions: clients, invoices, settings, tasks, qr,
                       profile, auth, portal, portal-client, projects, uploads,
-                      favorites, design-requests, mylar-printing, mylar-requests
+                      favorites, design-requests, custom-design-requests,
+                      mylar-printing, mylar-requests
   api/                Route handlers: invoice PDF, file downloads, clients,
-                      health, mylar artwork, cutline + mockup generation
+                      health, mylar artwork, design-request assets,
+                      cutline + mockup generation
   q/[slug]/           Public dynamic-QR redirect
   auth/callback/      Google OAuth PKCE callback
   login/              Sign-in panel + forgot-password form
@@ -286,13 +305,16 @@ lib/
   mockup-generator/   8-piece sheet geometry, compositing, limits
   bag-mockup-grid/    Grid compositing, limits
   mylar-printing/     Quote wizard types, artwork rules, queries, abuse limits
+  design-requests/    Custom design request schema, types, admin queries
+  premade-designs.ts  Private gallery manifest + signed-URL helpers
+  uploads.ts          Shared upload allowlist (extensions, size caps)
   pdf/                Invoice PDF data mapping + renderer (pdf-lib)
   email/              Resend client + HTML templates
   format.ts           Currency / date / percent formatting
 proxy.ts              Session refresh + auth redirects (Next.js 16 middleware)
 scripts/              One-off provisioning scripts
 supabase/
-  migrations/         SQL schema (0001-0023, applied in order)
+  migrations/         SQL schema (0001-0025 + timestamped, applied in order)
 mobile/               Separate Expo workspace (see mobile/README.md)
 ```
 
@@ -311,9 +333,17 @@ mobile/               Separate Expo workspace (see mobile/README.md)
   client_file_favorites / file_activity** — the client portal.
 - **qr_codes / qr_scans / qr_generations** — saved dynamic codes, append-only
   scan analytics, and generation history.
-- **mylar_printing_inquiries** — Custom Mylar Printing quote requests. The one
-  table with no `owner_id`: inquiries come from anonymous visitors, so RLS is on
-  with no policies and it is reachable only through the service-role client.
+- **mylar_printing_inquiries / mylar_designs / mylar_artwork_files** — Custom
+  Mylar Printing quote requests. An order is a *set* of designs, each owning its
+  slice of the total quantity and its own uploaded artwork.
+- **custom_design_requests / custom_design_request_files** — public custom-design
+  requests and their reference uploads.
+
+The five tables above are **the only ones with no `owner_id`**: they are filed by
+anonymous visitors, so instead of owner-scoped RLS they have RLS on with **no
+policies at all**, and are reachable only through the service-role client — a
+validated Server Action in, a `requireAdmin()`-guarded page out. The
+custom-design tables additionally `revoke all` from `anon` and `authenticated`.
 
 Totals are computed in two places that always agree: live in the browser while
 editing (`lib/invoice.ts`) and authoritatively in Postgres via triggers on save
@@ -330,11 +360,21 @@ total           = subtotal − discount_amount + tax_amount
 
 ## Security
 
-The app uses **Supabase Auth** (email/password and Google OAuth). Every table
-has an `owner_id` and **Row Level Security scoped to `auth.uid()`** (migration
-`0002`), so the public anon key cannot read or write data and users only ever see
-their own records. Server Actions and the PDF route run through the cookie-scoped
-client — no service-role/RLS bypass.
+The app uses **Supabase Auth** (email/password and Google OAuth). Every
+owner-scoped table has an `owner_id` and **Row Level Security scoped to
+`auth.uid()`** (migration `0002`), so the public anon key cannot read or write
+data and users only ever see their own records. Owner-scoped Server Actions and
+the invoice PDF route run through the cookie-scoped client — no RLS bypass.
+
+The exception is the five **anonymous-intake** tables (see Data model). A
+visitor filing a quote or design request has no account, so there is no
+`owner_id` to scope to; those tables run RLS on with **no policies at all** and
+are reachable only through the server-only service-role client — a validated
+Server Action writing in, a `requireAdmin()`-guarded page or route reading out.
+The service role is also used for the gallery bucket listings, the
+`/premadedesigns` manifest, `/qr/history`, and creating portal logins. It is
+**never** imported into a Client Component and its results are never returned
+unfiltered.
 
 `proxy.ts` refreshes the session and redirects, but it is an optimistic gate
 only. Real enforcement is RLS plus the `require*()` helpers in `lib/auth.ts`,
@@ -421,7 +461,7 @@ invoices, without touching the admin app.
 
 ## Email (Resend)
 
-Transactional email is sent via [Resend](https://resend.com) for three flows:
+Transactional email is sent via [Resend](https://resend.com) for four flows:
 
 - **Email an invoice** — the "Email to client" button sends the client the PDF
   and marks a `draft` invoice as `sent` (`sendInvoiceAction`).
@@ -429,6 +469,8 @@ Transactional email is sent via [Resend](https://resend.com) for three flows:
   (`createPortalUserAction`).
 - **Mylar printing inquiries** — a new quote request notifies the `ADMIN_EMAILS`
   addresses.
+- **Custom design requests** — a new request notifies the same addresses, with
+  30-day signed links to any reference files.
 
 Setup:
 
@@ -445,8 +487,8 @@ Setup:
 
 **Graceful degradation:** with these unset the app still builds and runs — the
 invoice-email button reports email isn't configured, portal invites fall back to
-a one-time temp password, and mylar inquiries are still stored (just not
-emailed). Both env vars are **server-only** (never `NEXT_PUBLIC_`).
+a one-time temp password, and mylar inquiries and design requests are still
+stored (just not emailed). Both env vars are **server-only** (never `NEXT_PUBLIC_`).
 
 ## Install as an app (PWA)
 
@@ -465,10 +507,12 @@ Supabase project with the anon key and existing RLS only. See
 
 ### Deployment checklist
 
-1. **Database** — apply migrations to your Supabase project **in order**
-   (`0001` … `0023`) via the SQL Editor, or `supabase db push` if linked. Verify
-   `owner_id` exists on all tables, policies are owner-scoped, and the private
-   `client-files`, `design-requests`, and `mylar-artwork` buckets were created.
+1. **Database** — apply migrations to your Supabase project **in order** via the
+   SQL Editor, or `supabase db push` if linked. Verify the private
+   `client-files`, `design-requests`, and `mylar-artwork` buckets were created,
+   and create the gallery buckets by hand (see Getting started). `owner_id` +
+   owner-scoped policies apply to every table except the five anonymous-intake
+   tables, which have RLS on with no policies (see Data model).
 2. **Create an admin user** — Supabase dashboard → Authentication → Users → Add
    user (check *Auto Confirm*), then add that email to `ADMIN_EMAILS`. Customers
    can self-serve at `/sign-up`; admins cannot.
@@ -489,6 +533,7 @@ Supabase project with the anon key and existing RLS only. See
    | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | optional | email; degrades gracefully |
    | `NEXT_PUBLIC_SITE_URL` | optional | custom domain; otherwise `VERCEL_URL` is used |
    | `QR_SCAN_SALT` | optional | salts hashed IPs; a default is used when unset |
+   | `PREMADE_GALLERY_COOKIE_SECRET` | optional | signs the `/premadedesigns` keypad cookie; falls back to `SUPABASE_SECRET_KEY` |
 
 5. **Build settings** — defaults work: build `next build`, output auto-detected,
    Node.js 20+. No `vercel.json` needed.
