@@ -37,11 +37,31 @@ import { cn } from "@/lib/utils";
  */
 const BIO_LINKS: {
   label: string;
+  /** Second line, top prize only — the plain-language version of the label. */
+  sub?: string;
   href: string;
   icon: Icon;
   sameTab?: boolean;
   sticky?: boolean;
+  /**
+   * `prize` is the one full-width gold row; `tile` links pair off into the
+   * two-column grid beneath it, in the order listed. Exactly one `prize` is
+   * expected — a second would spend the accent twice and flatten the
+   * hierarchy the ticket exists to create.
+   */
+  tier: "prize" | "tile";
 }[] = [
+  {
+    // The label is the action, not the product name: a visitor who has just
+    // landed needs the verb. The product name moves to `sub`.
+    label: "Start Your Order",
+    sub: "Custom mylar printing",
+    href: "/mylar-printing",
+    icon: PackageIcon,
+    sameTab: true,
+    sticky: true,
+    tier: "prize",
+  },
   {
     // E.164 number so both iOS and Android open their messaging app with the
     // recipient prefilled. No `?body=` — the two platforms disagree on the
@@ -50,13 +70,14 @@ const BIO_LINKS: {
     href: "sms:+19297528373",
     icon: ChatCircleTextIcon,
     sameTab: true,
+    tier: "tile",
   },
   {
-    label: "Custom Mylar Printing",
-    href: "/mylar-printing",
-    icon: PackageIcon,
+    label: "Custom Design",
+    href: "/custom-design-request",
+    icon: PaintBrushIcon,
     sameTab: true,
-    sticky: true,
+    tier: "tile",
   },
   {
     // Points at the Instagram grid rather than the in-app /premadedesigns
@@ -65,20 +86,19 @@ const BIO_LINKS: {
     label: "Premade Designs",
     href: "https://instagram.com/tdstudiosco",
     icon: ImagesIcon,
-  },
-  {
-    label: "Request Custom Design",
-    href: "/custom-design-request",
-    icon: PaintBrushIcon,
-    sameTab: true,
+    tier: "tile",
   },
   {
     label: "Portfolio",
     href: "/portfolio",
     icon: SquaresFourIcon,
     sameTab: true,
+    tier: "tile",
   },
 ];
+
+const PRIZE_LINK = BIO_LINKS.find((link) => link.tier === "prize");
+const TILE_LINKS = BIO_LINKS.filter((link) => link.tier === "tile");
 
 const STICKY_LINK = BIO_LINKS.find((link) => link.sticky);
 
@@ -156,21 +176,28 @@ function endTap(event: React.AnimationEvent<HTMLElement>) {
 }
 
 /*
- * The bio buttons.
- *
- * Desktop keeps its exact box — `px-5 py-3.5 text-sm`, ~48px tall, lifting a
- * pixel on press. The `max-md:` half is the phone treatment: the label steps up
- * to 16px, and press feedback scales instead of nudging, since a 1px lift is
- * invisible under a fingertip. `min-h-14` is the tall-phone height; on shorter
- * screens `--home-link-h` in `globals.css` steps it down, never below 48px, so
- * the target clears 44px at every tier.
+ * The bio buttons, in two tiers.
  *
  * `relative isolate overflow-hidden` is shared but inert on desktop: it exists
  * so the light-sweep pseudo-element has a stacking context to sit behind the
- * label in, and a rounded box to clip against.
+ * label in, and a rounded box to clip against. Press feedback scales rather
+ * than nudging below `md`, since a 1px lift is invisible under a fingertip.
+ *
+ * Heights are deliberately only set from `md` up. On phones `--home-link-h` in
+ * `globals.css` supplies the floor (never below 48px, so every target clears
+ * 44px) and the flex rules there hand out the leftover card height — a fixed
+ * height here would fight both.
  */
-const glassButton =
-  "home-btn relative isolate inline-flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-white/18 bg-black/34 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.24)] backdrop-blur-md transition-all hover:border-white/28 hover:bg-black/26 active:translate-y-px max-md:min-h-14 max-md:py-4 max-md:text-base max-md:duration-200 max-md:ease-[cubic-bezier(0.34,1.56,0.64,1)] max-md:active:scale-[0.97] max-md:active:border-white/40";
+const buttonBase =
+  "home-btn relative isolate inline-flex w-full overflow-hidden rounded-2xl transition-all active:translate-y-px max-md:duration-200 max-md:ease-[cubic-bezier(0.34,1.56,0.64,1)] max-md:active:scale-[0.97]";
+
+/** The top prize: the only gold surface on the page. */
+const prizeButton =
+  "tk-prize-btn flex-col items-center justify-center gap-0.5 px-5 py-4 text-center md:min-h-[4.5rem]";
+
+/** Secondary prizes. Quiet glass so the gold keeps its job. */
+const tileButton =
+  "tk-tile flex-col items-center justify-center gap-2 px-3 py-4 text-center text-white backdrop-blur-md md:min-h-[5.25rem] max-md:active:border-white/40";
 
 /**
  * The round brand badges under the title. Sized to the 40px circle that
@@ -183,6 +210,83 @@ const glassButton =
  */
 const socialBadge =
   "home-pop relative inline-flex size-10 items-center justify-center rounded-full transition-transform hover:scale-110 active:translate-y-px";
+
+/**
+ * The payment + contact marks. They live in the ticket's footer rather than
+ * under the wordmark: a ticket carries its small print at the bottom, and the
+ * actions earn the space directly under the tear line.
+ */
+function SocialRow() {
+  // Clipboard writes reject on insecure origins and when the browser withholds
+  // permission — surface the handle in the toast so it stays usable either way.
+  const copyChimeSign = async () => {
+    try {
+      await navigator.clipboard.writeText(CHIME_SIGN);
+      toast.success(`Chime handle ${CHIME_SIGN} copied`);
+    } catch {
+      toast.error(`Couldn't copy — my Chime is ${CHIME_SIGN}`);
+    }
+  };
+
+  return (
+            <div className="home-social-row flex items-center justify-center gap-3">
+              {/* Instagram is the only one of the four react-social-icons
+                  ships a brand mark for; the rest are hand-built badges. */}
+              <SocialIcon
+                url="https://instagram.com/tdstudiosco"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="home-pop home-enter-icon relative rounded-full transition-transform hover:scale-110 active:translate-y-px"
+                style={{ height: 40, width: 40 }}
+                onPointerDown={beginTap}
+                onAnimationEnd={endTap}
+              />
+              <a
+                href="https://cash.app/$tdiorio23"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Cash App $tdiorio23"
+                className={cn(
+                  socialBadge,
+                  "home-enter-icon bg-[#00D632] text-white",
+                )}
+                onPointerDown={beginTap}
+                onAnimationEnd={endTap}
+              >
+                <CurrencyDollarIcon weight="bold" className="size-5" />
+              </a>
+              {/* Same sms: handoff as the Text Me button, and same reason for
+                  no target="_blank" — the OS takes the navigation and would
+                  leave an empty tab behind. */}
+              <a
+                href="sms:+19297528373"
+                aria-label="Text me"
+                className={cn(
+                  socialBadge,
+                  "home-enter-icon bg-white text-black",
+                )}
+                onPointerDown={beginTap}
+                onAnimationEnd={endTap}
+              >
+                <AppleLogoIcon weight="fill" className="size-5" />
+              </a>
+              <button
+                type="button"
+                onClick={copyChimeSign}
+                aria-label={`Copy my Chime handle ${CHIME_SIGN}`}
+                className={cn(
+                  socialBadge,
+                  "home-enter-icon bg-[#1EC677] text-white",
+                )}
+                onPointerDown={beginTap}
+                onAnimationEnd={endTap}
+              >
+                <ChimeMarkIcon className="size-5" />
+              </button>
+            </div>
+  );
+}
 
 type Mode = "bio" | "signin" | "forgot";
 
@@ -237,17 +341,6 @@ export function HomeCard({
     observer.observe(anchor);
     return () => observer.disconnect();
   }, [isBio]);
-
-  // Clipboard writes reject on insecure origins and when the browser withholds
-  // permission — surface the handle in the toast so it stays usable either way.
-  const copyChimeSign = async () => {
-    try {
-      await navigator.clipboard.writeText(CHIME_SIGN);
-      toast.success(`Chime handle ${CHIME_SIGN} copied`);
-    } catch {
-      toast.error(`Couldn't copy — my Chime is ${CHIME_SIGN}`);
-    }
-  };
 
   return (
     <>
@@ -308,65 +401,19 @@ export function HomeCard({
             </div>
             {isBio ? (
               <>
-                <CardTitle className="home-enter-title text-3xl font-bold tracking-tight md:text-2xl">
+                <CardTitle className="home-enter-title tk-wordmark font-bold">
                   TD STUDIOS
                 </CardTitle>
-                <div className="home-social-row flex items-center justify-center gap-3 pt-1">
-                  {/* Instagram is the only one of the four react-social-icons
-                      ships a brand mark for; the rest are hand-built badges. */}
-                  <SocialIcon
-                    url="https://instagram.com/tdstudiosco"
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Instagram"
-                    className="home-pop home-enter-icon relative rounded-full transition-transform hover:scale-110 active:translate-y-px"
-                    style={{ height: 40, width: 40 }}
-                    onPointerDown={beginTap}
-                    onAnimationEnd={endTap}
-                  />
-                  <a
-                    href="https://cash.app/$tdiorio23"
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label="Cash App $tdiorio23"
-                    className={cn(
-                      socialBadge,
-                      "home-enter-icon bg-[#00D632] text-white",
-                    )}
-                    onPointerDown={beginTap}
-                    onAnimationEnd={endTap}
-                  >
-                    <CurrencyDollarIcon weight="bold" className="size-5" />
-                  </a>
-                  {/* Same sms: handoff as the Text Me button, and same reason for
-                      no target="_blank" — the OS takes the navigation and would
-                      leave an empty tab behind. */}
-                  <a
-                    href="sms:+19297528373"
-                    aria-label="Text me"
-                    className={cn(
-                      socialBadge,
-                      "home-enter-icon bg-white text-black",
-                    )}
-                    onPointerDown={beginTap}
-                    onAnimationEnd={endTap}
-                  >
-                    <AppleLogoIcon weight="fill" className="size-5" />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={copyChimeSign}
-                    aria-label={`Copy my Chime handle ${CHIME_SIGN}`}
-                    className={cn(
-                      socialBadge,
-                      "home-enter-icon bg-[#1EC677] text-white",
-                    )}
-                    onPointerDown={beginTap}
-                    onAnimationEnd={endTap}
-                  >
-                    <ChimeMarkIcon className="size-5" />
-                  </button>
-                </div>
+                {/* Gold hairline + service line: the card never said what the
+                    business actually does, which is the first thing a visitor
+                    arriving from an Instagram bio needs to know. */}
+                <div
+                  aria-hidden
+                  className="home-enter-title tk-rule-gold mt-1 w-16"
+                />
+                <p className="home-enter-title tk-eyebrow pt-1">
+                  FULL SERVICE DESIGN &amp; PACKAGING AGENCY
+                </p>
               </>
             ) : (
               <>
@@ -382,23 +429,69 @@ export function HomeCard({
 
           {isBio ? (
             <div className="home-card-links flex flex-col gap-3">
-              {BIO_LINKS.map(
-                ({ label, href, icon: LinkIcon, sameTab, sticky }, index) => (
-                  <a
-                    key={label}
-                    ref={sticky ? stickyAnchorRef : undefined}
-                    href={href}
-                    {...(sameTab ? {} : { target: "_blank", rel: "noreferrer" })}
-                    className={cn(glassButton, "home-enter-btn")}
-                    style={{ "--home-stagger": index } as React.CSSProperties}
-                    onPointerDown={beginSweep}
-                    onAnimationEnd={endSweep}
-                  >
-                    <LinkIcon weight="bold" className="size-4 max-md:size-5" />
-                    {label}
-                  </a>
-                ),
-              )}
+              {/* The tear line. Everything above it is who this is; everything
+                  below it is what you can do. */}
+              <div aria-hidden className="tk-perforation mx-1 mb-1" />
+
+              {PRIZE_LINK ? (
+                <a
+                  ref={PRIZE_LINK.sticky ? stickyAnchorRef : undefined}
+                  href={PRIZE_LINK.href}
+                  {...(PRIZE_LINK.sameTab
+                    ? {}
+                    : { target: "_blank", rel: "noreferrer" })}
+                  className={cn(buttonBase, prizeButton, "home-enter-btn")}
+                  style={{ "--home-stagger": 0 } as React.CSSProperties}
+                  onPointerDown={beginSweep}
+                  onAnimationEnd={endSweep}
+                >
+                  <span className="tk-prize inline-flex items-center gap-2">
+                    <PRIZE_LINK.icon
+                      weight="fill"
+                      className="size-6 shrink-0 opacity-80"
+                    />
+                    {PRIZE_LINK.label}
+                  </span>
+                  {PRIZE_LINK.sub ? (
+                    <span className="tk-micro !text-black/70 !drop-shadow-none ![text-shadow:none]">
+                      {PRIZE_LINK.sub}
+                    </span>
+                  ) : null}
+                </a>
+              ) : null}
+
+              <div className="tk-tile-grid grid grid-cols-2 gap-3">
+                {TILE_LINKS.map(
+                  ({ label, href, icon: LinkIcon, sameTab }, index) => (
+                    <a
+                      key={label}
+                      href={href}
+                      {...(sameTab
+                        ? {}
+                        : { target: "_blank", rel: "noreferrer" })}
+                      className={cn(buttonBase, tileButton, "home-enter-btn")}
+                      // +1 so the prize keeps the first beat of the stagger.
+                      style={
+                        { "--home-stagger": index + 1 } as React.CSSProperties
+                      }
+                      onPointerDown={beginSweep}
+                      onAnimationEnd={endSweep}
+                    >
+                      <LinkIcon
+                        weight="bold"
+                        className="size-5 shrink-0 opacity-70"
+                      />
+                      <span className="tk-tile-label">{label}</span>
+                    </a>
+                  ),
+                )}
+              </div>
+
+              {/* Ticket footer: marks, then the small print. */}
+              <div className="tk-footer mt-1 flex flex-col items-center gap-2.5">
+                <SocialRow />
+                <p className="tk-micro">@TDSTUDIOSCO &middot; NEW YORK</p>
+              </div>
             </div>
           ) : (
             <div className="home-card-form flex flex-col gap-4">
