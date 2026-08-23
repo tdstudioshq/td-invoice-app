@@ -12,8 +12,13 @@ import type {
   SignedPremadeDesignUrls,
 } from "@/lib/premade-designs-types";
 
-export { PREMADE_DESIGNS_PAGE_SIZE } from "@/lib/premade-designs-types";
+export {
+  buildPremadeCollections,
+  PREMADE_COLLECTIONS_PAGE_SIZE,
+  PREMADE_DESIGNS_PAGE_SIZE,
+} from "@/lib/premade-designs-types";
 export type {
+  PremadeCollection,
   PremadeDesign,
   SignedPremadeDesignUrls,
 } from "@/lib/premade-designs-types";

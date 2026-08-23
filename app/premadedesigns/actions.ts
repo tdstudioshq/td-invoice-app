@@ -4,10 +4,20 @@ import { z } from "zod";
 
 import { hasPremadeDesignsAccess } from "@/app/premadedesigns/access";
 import {
+  PREMADE_COLLECTIONS_PAGE_SIZE,
   PREMADE_DESIGNS_PAGE_SIZE,
   signPremadeDesignUrls,
   type SignedPremadeDesignUrls,
 } from "@/lib/premade-designs";
+
+/**
+ * One request never covers more than a single view: a page of designs, or a
+ * page of collection covers. Whichever view is larger sets the ceiling.
+ */
+const MAX_PATHS_PER_REQUEST = Math.max(
+  PREMADE_DESIGNS_PAGE_SIZE,
+  PREMADE_COLLECTIONS_PAGE_SIZE,
+);
 
 export type PremadeDesignUrlsState = SignedPremadeDesignUrls & {
   error?: string;
@@ -29,7 +39,7 @@ const pathsSchema = z
       ),
   )
   .min(1)
-  .max(PREMADE_DESIGNS_PAGE_SIZE);
+  .max(MAX_PATHS_PER_REQUEST);
 
 export async function getPremadeDesignUrlsAction(
   paths: string[],

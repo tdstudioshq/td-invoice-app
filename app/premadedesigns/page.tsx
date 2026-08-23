@@ -15,7 +15,9 @@ import {
 import { DesignsGallery } from "@/app/premadedesigns/gallery";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import {
+  buildPremadeCollections,
   getPremadeDesigns,
+  PREMADE_COLLECTIONS_PAGE_SIZE,
   PREMADE_DESIGNS_PAGE_SIZE,
   signPremadeDesignUrls,
 } from "@/lib/premade-designs";
@@ -79,9 +81,21 @@ export default async function PremadeDesignsPage() {
   }
 
   const designs = await getPremadeDesigns();
-  const initialSigned = await signPremadeDesignUrls(
-    designs.slice(0, PREMADE_DESIGNS_PAGE_SIZE).map((design) => design.path),
-  ).catch(() => ({ urls: {}, expiresAt: 0 }));
+  const collections = buildPremadeCollections(designs);
+
+  // Sign only what the first screen shows. With more than one collection that
+  // is the index's cover images; with a single collection the gallery opens
+  // straight into its designs, so sign those instead.
+  const initialPaths =
+    collections.length > 1
+      ? collections
+          .slice(0, PREMADE_COLLECTIONS_PAGE_SIZE)
+          .map((collection) => collection.cover.path)
+      : designs.slice(0, PREMADE_DESIGNS_PAGE_SIZE).map((design) => design.path);
+  const initialSigned = await signPremadeDesignUrls(initialPaths).catch(() => ({
+    urls: {},
+    expiresAt: 0,
+  }));
 
   return (
     <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
@@ -100,7 +114,10 @@ export default async function PremadeDesignsPage() {
             ADD YOUR LOGO &amp; QR CODE &amp; RECEIVE YOUR FILE VIA GOOGLE DRIVE
           </p>
           <p className="text-xs text-white/60">
-            {designs.length.toLocaleString()} designs in the private collection
+            {designs.length.toLocaleString()} designs
+            {collections.length > 1
+              ? ` across ${collections.length.toLocaleString()} collections`
+              : " in the private collection"}
           </p>
         </header>
 
