@@ -212,9 +212,9 @@ const socialBadge =
   "home-pop relative inline-flex size-10 items-center justify-center rounded-full transition-transform hover:scale-110 active:translate-y-px";
 
 /**
- * The payment + contact marks. They live in the ticket's footer rather than
- * under the wordmark: a ticket carries its small print at the bottom, and the
- * actions earn the space directly under the tear line.
+ * The payment + contact marks. They sit in the stub, under the positioning
+ * line: a full-height card leaves the most slack there, and filling it with
+ * the marks keeps the play area below the tear line tight.
  */
 function SocialRow() {
   // Clipboard writes reject on insecure origins and when the browser withholds
@@ -414,6 +414,9 @@ export function HomeCard({
                 <p className="home-enter-title tk-eyebrow pt-1">
                   FULL SERVICE DESIGN &amp; PACKAGING AGENCY
                 </p>
+                <div className="pt-3">
+                  <SocialRow />
+                </div>
               </>
             ) : (
               <>
@@ -487,9 +490,10 @@ export function HomeCard({
                 )}
               </div>
 
-              {/* Ticket footer: marks, then the small print. */}
-              <div className="tk-footer mt-1 flex flex-col items-center gap-2.5">
-                <SocialRow />
+              {/* Ticket footer: the small print. The marks moved up into the
+                  stub, where they fill the space the tall card leaves under
+                  the positioning line. */}
+              <div className="tk-footer mt-1 flex flex-col items-center">
                 <p className="tk-micro">@TDSTUDIOSCO &middot; NEW YORK</p>
               </div>
             </div>
