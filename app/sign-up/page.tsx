@@ -8,11 +8,13 @@ import { SignUpForm } from "@/app/sign-up/sign-up-form";
 export const metadata = {
   title: "Create account",
   description:
-    "Create a TD Studios customer account to manage your profile and track your design requests.",
+    "Create a TD Studios account to request access to your own client portal.",
 };
 
-// Public, no-auth customer self-signup. Creates a Supabase Auth user with the
-// customer role only — admins are a separate server-side allowlist.
+// Public, no-auth customer self-signup: the front door to a client portal.
+// Creates a Supabase Auth user with NO role — admins are a separate server-side
+// allowlist, and portal access is a client_users row an admin creates on
+// approval. Until then the account can only reach /account/pending.
 export default function SignUpPage() {
   return (
     <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
@@ -24,8 +26,8 @@ export default function SignUpPage() {
             Create your account
           </h1>
           <p className="text-muted-foreground max-w-sm text-sm">
-            Set up a free TD Studios account to manage your profile and track
-            your custom design requests.
+            Create your account and we&apos;ll approve your client portal, where
+            you&apos;ll find your files, projects and invoices.
           </p>
         </header>
 

@@ -2,14 +2,19 @@ import { AlertTriangle, CalendarClock, ListTodo, Loader } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
+import { PendingPortalAccess } from "@/components/dashboard/pending-portal-access";
 import { TaskManager } from "@/components/dashboard/task-manager";
-import { getClients, getTasks } from "@/lib/data";
+import { getClients, getPendingPortalSignups, getTasks } from "@/lib/data";
 import { isDueToday, isOverdue, todayISODate } from "@/lib/tasks";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const [tasks, clients] = await Promise.all([getTasks(), getClients()]);
+  const [tasks, clients, pendingSignups] = await Promise.all([
+    getTasks(),
+    getClients(),
+    getPendingPortalSignups(),
+  ]);
   const today = todayISODate();
 
   const open = tasks.filter((t) => t.status !== "done");
@@ -49,6 +54,10 @@ export default async function DashboardPage() {
           accent={overdue.length > 0 ? "warning" : "default"}
         />
       </div>
+
+      {/* Sits above the task list: an unapproved customer is blocked on you,
+          and the section removes itself entirely when nothing is waiting. */}
+      <PendingPortalAccess signups={pendingSignups} />
 
       <TaskManager
         tasks={tasks}

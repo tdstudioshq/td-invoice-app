@@ -16,8 +16,8 @@ const fieldClass =
 export function SignUpForm() {
   const [state, formAction] = useActionState(signUpAction, initialActionState);
 
-  // Email-confirmation pending: signUpAction redirects to /onboarding when a
-  // session is issued immediately, so a `success` state means "confirm first".
+  // Email-confirmation pending: signUpAction redirects to /account/pending when
+  // a session is issued immediately, so a `success` state means "confirm first".
   if (state.success) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
@@ -25,8 +25,8 @@ export function SignUpForm() {
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-white">Check your email</h2>
           <p className="text-muted-foreground text-sm">
-            We sent you a confirmation link. Click it to activate your account,
-            then you&apos;ll be taken to set up your profile.
+            We sent you a confirmation link. Click it to activate your account —
+            then your portal just needs approval from us.
           </p>
         </div>
         <Link
@@ -49,6 +49,48 @@ export function SignUpForm() {
           {state.error}
         </p>
       ) : null}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="full_name" className="text-white">
+          Your name
+        </Label>
+        <Input
+          id="full_name"
+          name="full_name"
+          type="text"
+          autoComplete="name"
+          required
+          placeholder="Your full name"
+          aria-invalid={Boolean(state.fieldErrors?.full_name)}
+          className={fieldClass}
+        />
+        {state.fieldErrors?.full_name ? (
+          <p className="text-destructive text-xs">
+            {state.fieldErrors.full_name}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="business_name" className="text-white">
+          Business name
+        </Label>
+        <Input
+          id="business_name"
+          name="business_name"
+          type="text"
+          autoComplete="organization"
+          required
+          placeholder="Your business or brand"
+          aria-invalid={Boolean(state.fieldErrors?.business_name)}
+          className={fieldClass}
+        />
+        {state.fieldErrors?.business_name ? (
+          <p className="text-destructive text-xs">
+            {state.fieldErrors.business_name}
+          </p>
+        ) : null}
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="email" className="text-white">

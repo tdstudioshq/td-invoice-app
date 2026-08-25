@@ -389,7 +389,7 @@ There are three roles:
 - **Client portal user** — a user with an active (`revoked_at is null`)
   `client_users` row mapping them to exactly one client. Confined to `/portal/*`.
 - **Customer** — any other authenticated user (self-signup). Lives in
-  `/onboarding` until their profile is complete, then `/account`.
+  `/onboarding` until their profile is complete, then `/account/pending`.
 
 Admin status lives **only** in env config, never in a user-writable row, so a
 customer can never promote themselves — the `profiles` table deliberately has no

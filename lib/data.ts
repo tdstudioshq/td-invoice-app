@@ -3,7 +3,9 @@ import {
   createAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/admin";
+import { getAdminEmails, requireAdmin } from "@/lib/auth";
 import { effectiveStatus } from "@/lib/invoice";
+import { normalizeEmail } from "@/lib/portal";
 import {
   categorizeImage,
   isImageFile,
@@ -628,4 +630,102 @@ async function listPublicBucketImages(
   }
 
   return images;
+}
+
+// ---------------------------------------------------------------------------
+// Pending portal access (customer self-signups awaiting admin approval)
+// ---------------------------------------------------------------------------
+
+export interface PendingPortalSignup {
+  userId: string;
+  fullName: string | null;
+  email: string | null;
+  businessName: string | null;
+  signedUpAt: string;
+  /**
+   * An existing `clients` row whose email matches this signup, if exactly one
+   * does. Shown so the admin knows approval will REUSE their history rather
+   * than create a second client. `null` covers both "no match" and "more than
+   * one match" — the ambiguous case is resolved (and refused) at approval time,
+   * where it can be reported properly.
+   */
+  matchedClient: { id: string; company_name: string } | null;
+}
+
+/**
+ * Customers who have finished signing up but have no portal yet.
+ *
+ * Reads `profiles` through the SERVICE-ROLE client because profile RLS is
+ * owner-only — an admin has no policy that would let the cookie-scoped client
+ * see anyone else's row (see 0009_profiles.sql). `requireAdmin()` is re-asserted
+ * here rather than trusted from the caller, per the service-role rule in
+ * CLAUDE.md, and only the four display fields below are ever returned.
+ *
+ * "Pending" is derived, not stored: a completed profile with no `client_users`
+ * row. Approval creates that row, which removes them from this list — so there
+ * is no status column to keep in sync and no second source of truth.
+ */
+export async function getPendingPortalSignups(): Promise<PendingPortalSignup[]> {
+  if (!isSupabaseConfigured() || !isSupabaseAdminConfigured()) return [];
+  const admin = await requireAdmin();
+  if (!admin) return [];
+
+  const service = createAdminClient();
+  const [{ data: profiles, error }, { data: mapped }] = await Promise.all([
+    service
+      .from("profiles")
+      .select("id, full_name, email, business_name, created_at, onboarded_at")
+      .not("onboarded_at", "is", null)
+      .order("created_at", { ascending: false }),
+    // Every mapping, revoked included: a revoked user is not "pending", they
+    // are a decision already made. Re-granting access is a deliberate act on
+    // the client's portal page, not a fresh approval.
+    service.from("client_users").select("user_id"),
+  ]);
+
+  if (error) {
+    console.error("getPendingPortalSignups", error.message);
+    return [];
+  }
+
+  const hasPortal = new Set((mapped ?? []).map((row) => row.user_id));
+  const adminEmails = new Set(getAdminEmails().map((e) => e.toLowerCase()));
+  const pending = (profiles ?? []).filter(
+    (p) =>
+      !hasPortal.has(p.id) && !adminEmails.has((p.email ?? "").toLowerCase()),
+  );
+  if (pending.length === 0) return [];
+
+  // Look up possible existing clients in one query, scoped by RLS to the
+  // admin's own clients (the same rows approval is allowed to link to).
+  const emails = pending
+    .map((p) => normalizeEmail(p.email))
+    .filter((e): e is string => Boolean(e));
+  const supabase = await createClient();
+  const { data: clients } = emails.length
+    ? await supabase.from("clients").select("id, company_name, email")
+    : { data: [] };
+
+  const byEmail = new Map<string, { id: string; company_name: string }[]>();
+  for (const client of clients ?? []) {
+    const key = normalizeEmail(client.email);
+    if (!key) continue;
+    const list = byEmail.get(key) ?? [];
+    list.push({ id: client.id, company_name: client.company_name });
+    byEmail.set(key, list);
+  }
+
+  return pending.map((p) => {
+    const key = normalizeEmail(p.email);
+    const matches = key ? (byEmail.get(key) ?? []) : [];
+    return {
+      userId: p.id,
+      fullName: p.full_name,
+      email: p.email,
+      businessName: p.business_name,
+      signedUpAt: p.created_at,
+      // Exactly one match is a safe reuse; zero or many is not a suggestion.
+      matchedClient: matches.length === 1 ? matches[0] : null,
+    };
+  });
 }

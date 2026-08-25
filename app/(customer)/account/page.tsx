@@ -1,88 +1,11 @@
-import { HomeLogoLink } from "@/components/layout/home-logo";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  ImagesIcon,
-  PaintBrushIcon,
-  QrCodeIcon,
-  SignOutIcon,
-} from "@phosphor-icons/react/dist/ssr";
 
-import { AccountProfileForm } from "@/app/(customer)/account/account-profile-form";
-import { signOutAction } from "@/app/actions/auth";
-import { requireCustomer } from "@/lib/auth";
-
-export const metadata = { title: "Your account" };
-
-const linkClass =
-  "inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-black/35 px-4 py-3 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25";
-
-export default async function AccountPage() {
-  const ctx = await requireCustomer();
-  if (!ctx) {
-    return (
-      <p className="text-muted-foreground text-center text-sm">
-        Accounts are unavailable until Supabase is configured.
-      </p>
-    );
-  }
-  // A customer who hasn't finished onboarding has no profile to show yet.
-  if (!ctx.profile?.onboardedAt) redirect("/onboarding");
-
-  const { profile } = ctx;
-
-  return (
-    <>
-      <header className="text-on-photo flex flex-col items-center gap-3 text-center">
-        <HomeLogoLink />
-        <h1 className="text-2xl font-bold tracking-tight text-white">
-          {profile.fullName ? `Welcome, ${profile.fullName}` : "Your account"}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Manage your TD Studios profile and start a new project.
-        </p>
-      </header>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-white">Quick actions</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link href="/custom-design-request" className={linkClass}>
-            <PaintBrushIcon weight="bold" className="size-4" />
-            Request a design
-          </Link>
-          <Link href="/premadedesigns" className={linkClass}>
-            <ImagesIcon weight="bold" className="size-4" />
-            Premade designs
-          </Link>
-          <Link href="/qr-generator" className={linkClass}>
-            <QrCodeIcon weight="bold" className="size-4" />
-            QR generator
-          </Link>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-white">Your profile</h2>
-        <AccountProfileForm
-          profile={{
-            fullName: profile.fullName,
-            email: profile.email,
-            phone: profile.phone,
-            instagram: profile.instagram,
-            businessName: profile.businessName,
-          }}
-        />
-      </section>
-
-      <form action={signOutAction} className="flex justify-center">
-        <button
-          type="submit"
-          className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <SignOutIcon weight="bold" className="size-3.5" />
-          Sign out
-        </button>
-      </form>
-    </>
-  );
+// /account used to be the customer's home: a profile form plus shortcut links.
+// A signed-up customer is now a portal APPLICANT with exactly one state to be
+// in, so this route only forwards to it. Approved customers never reach here at
+// all — `requireCustomer()` in the group layout sends portal users to /portal
+// before this runs. Kept as a redirect rather than deleted so older links,
+// bookmarks and emailed paths don't 404.
+export default function AccountPage() {
+  redirect("/account/pending");
 }

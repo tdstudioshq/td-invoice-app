@@ -4,26 +4,41 @@ import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/app/(customer)/onboarding/onboarding-form";
 import { requireCustomer } from "@/lib/auth";
 
-export const metadata = { title: "Set up your profile" };
+export const metadata = { title: "Finish your account" };
 
+// Reached only when signup could not write the profile itself — i.e. Supabase
+// email confirmation is ON, so no session existed at signup time. The two
+// fields were already typed on /sign-up and ride back in user metadata, so this
+// is a confirm-and-continue step, not a separate onboarding flow.
 export default async function OnboardingPage() {
   const ctx = await requireCustomer();
-  // Already onboarded customers belong on their account page.
-  if (ctx?.profile?.onboardedAt) redirect("/account");
+  // A finished profile means there is nothing to do here — the only thing left
+  // is approval.
+  if (ctx?.profile?.onboardedAt) redirect("/account/pending");
+
+  const meta = (ctx?.user.user_metadata ?? {}) as Record<string, unknown>;
+  const metaString = (key: string) =>
+    typeof meta[key] === "string" ? (meta[key] as string) : undefined;
 
   return (
     <>
       <header className="text-on-photo flex flex-col items-center gap-3 text-center">
         <HomeLogoLink />
         <h1 className="text-2xl font-bold tracking-tight text-white">
-          Set up your profile
+          Finish your account
         </h1>
         <p className="text-muted-foreground max-w-md text-sm">
-          A few quick details so we can personalize your TD Studios experience.
+          Confirm these details and your portal request goes straight to us.
         </p>
       </header>
 
-      <OnboardingForm email={ctx?.user.email ?? null} />
+      <OnboardingForm
+        email={ctx?.user.email ?? null}
+        defaultFullName={metaString("full_name") ?? ctx?.profile?.fullName ?? undefined}
+        defaultBusinessName={
+          metaString("business_name") ?? ctx?.profile?.businessName ?? undefined
+        }
+      />
     </>
   );
 }

@@ -137,7 +137,13 @@ export async function getCustomerProfile(
 /**
  * The correct landing path for a signed-in user, by role:
  *   admin → `adminTarget` (default `/dashboard`), portal → `/portal`,
- *   customer → `/onboarding` until onboarded, then `/account`.
+ *   customer → `/onboarding` until their profile is complete, then
+ *   `/account/pending` while they wait for an admin to approve portal access.
+ *
+ * A customer is a portal APPLICANT: the only thing standing between
+ * `/account/pending` and `/portal` is the `client_users` row an admin creates
+ * by approving them, which `getPortalContext()` above picks up on the very next
+ * request. There is no third state and no post-approval setup step.
  */
 export async function roleHome(
   user: User,
@@ -146,7 +152,7 @@ export async function roleHome(
   if (isAdminEmail(user.email)) return adminTarget;
   if (await getPortalContext()) return "/portal";
   const profile = await getCustomerProfile(user.id);
-  return profile?.onboardedAt ? "/account" : "/onboarding";
+  return profile?.onboardedAt ? "/account/pending" : "/onboarding";
 }
 
 /**
@@ -183,16 +189,19 @@ export async function requireCustomer(): Promise<CustomerContext | null> {
 }
 
 /**
- * Require a CLIENT-PORTAL user. Admins are redirected to the dashboard;
- * unauthenticated users to login. Returns the portal context (client id +
- * upload permission) so callers can scope their queries.
+ * Require a CLIENT-PORTAL user. Anyone else is sent to their OWN home via
+ * `roleHome()` — admins to the dashboard, and a customer still awaiting
+ * approval to `/account/pending` (previously everyone was bounced to
+ * `/dashboard`, which then bounced non-admins again). Unauthenticated users go
+ * to login. Returns the portal context (client id + upload permission) so
+ * callers can scope their queries.
  */
 export async function requirePortalUser(): Promise<PortalContext | null> {
   if (!isSupabaseConfigured()) return null;
   const user = await getUser();
   if (!user) redirect("/login");
   const portal = await getPortalContext();
-  if (!portal) redirect("/dashboard");
+  if (!portal) redirect(await roleHome(user));
   return portal;
 }
 

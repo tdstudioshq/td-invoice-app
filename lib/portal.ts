@@ -82,3 +82,17 @@ export function previewKind(
   if (mime.startsWith("image/") && mime !== "image/svg+xml") return "image";
   return null;
 }
+
+/**
+ * The canonical form of an email for MATCHING — trimmed and lowercased.
+ *
+ * Used to line a self-signup up with an existing `clients` row at approval
+ * time, and to fill `client_users.email`. Deliberately conservative: it does
+ * not strip dots or `+tags`, because two addresses that differ that way can be
+ * two different people, and quietly merging them would hand one customer
+ * another's files. Returns `null` for anything empty.
+ */
+export function normalizeEmail(email: string | null | undefined): string | null {
+  const trimmed = (email ?? "").trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
