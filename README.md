@@ -528,26 +528,34 @@ No new route folder — `app/(partner)/partner/[slug]` serves every company.
 
 ### Giving a sales rep access
 
-There is no self-signup. Create the auth user, then map them to the company:
+There is no signup and no password to hand out — the portal opens with a
+**4-digit keypad code**. For Zaza that code is **`0420`**, and it is all a rep
+needs.
 
-1. Supabase dashboard → **Authentication → Users → Add user**, check
-   *Auto Confirm*, and set a password to hand over.
-2. SQL Editor:
+The code is not a replacement for authentication, it unlocks it: entering it
+signs the browser in as that company's shared portal account, so every RLS and
+storage policy below still applies exactly as it would to a per-user login.
+Two server-only env vars hold that account:
 
-   ```sql
-   insert into public.partner_users (user_id, company_id, display_name)
-   select u.id, c.id, 'Rep name'
-     from auth.users u, public.partner_companies c
-    where u.email = 'rep@printcompany.com'
-      and c.slug = 'zaza';
-   ```
+| Variable | Notes |
+| --- | --- |
+| `ZAZA_PORTAL_EMAIL` | the shared Supabase account for the Zaza portal |
+| `ZAZA_PORTAL_PASSWORD` | its password — never sent to the browser |
 
-3. They sign in at `zazaorders.tdstudiosny.com/login`.
+Missing either one fails closed with "This portal isn't set up yet."
 
-Revoke with `update public.partner_users set active = false where user_id = …`;
-pause a whole company with `partner_companies.active = false`. Both take effect
-on the rep's next request, because `partner_company_id()` — the function every
-policy is built on — checks both flags.
+Codes live in `app/(partner)/partner/[slug]/access.ts` alongside the other
+keypad gates in this repo. Wrong codes are throttled to 8 attempts per IP per
+10 minutes, so a 4-digit code is not brute-forceable.
+
+**The trade-off, stated plainly:** one shared identity per company. Anyone with
+the link and the code is "Zaza", so jobs are attributed to the company rather
+than to a person. Moving to per-rep logins later is just `partner_users` rows
+plus swapping the login page back to a password form — the data model already
+supports it.
+
+To rotate the code, edit `PORTAL_ACCESS` in `access.ts`. To rotate the account,
+change its password in Supabase and update the env var.
 
 ### Security model
 

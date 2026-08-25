@@ -1,53 +1,52 @@
 import { notFound } from "next/navigation";
 
-import { PartnerLoginForm } from "@/components/partner-jobs/partner-login-form";
-import {
-  getPartnerCompanyBySlug,
-  partnerBasePath,
-} from "@/lib/partner-jobs/context";
+import { enterPartnerCodeAction, portalUsesKeypad } from "@/app/(partner)/partner/[slug]/access";
+import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
+import { getPartnerCompanyBySlug } from "@/lib/partner-jobs/context";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Enter" };
 
 /**
- * The portal's own sign-in. Separate from the public /login card on purpose:
- * this door is addressed by the partner's hostname, shows their name, and offers
- * no self-signup or Google path — a partner account is provisioned by TD
- * Studios, never claimed.
+ * The portal's front door: a 4-digit keypad, not a password form.
  *
- * The proxy sends a signed-in rep straight to /jobs, so this page only ever
- * renders for a visitor without a session.
+ * The code unlocks a real Supabase session for the company's shared portal
+ * account (see access.ts), so everything past this screen is authenticated the
+ * same way it always was — this only changes what the rep has to remember.
+ *
+ * The keypad component is the one built for the gated galleries; the server
+ * action is bound to this company's slug so one portal's code can never open
+ * another's. The proxy sends an already-signed-in rep straight to /jobs, so
+ * this page only renders for someone without a session.
  */
 export default async function PartnerLoginPage({
   params,
-  searchParams,
 }: PageProps<"/partner/[slug]/login">) {
   const { slug } = await params;
   const company = await getPartnerCompanyBySlug(slug);
-  if (!company) notFound();
-
-  const sp = await searchParams;
-  const redirectTo = typeof sp.redirect === "string" ? sp.redirect : undefined;
-  const basePath = await partnerBasePath(slug);
+  if (!company || !(await portalUsesKeypad(slug))) notFound();
 
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col justify-center py-8 sm:py-16">
-      <div className="mb-7 space-y-1.5 text-center">
+    <div className="mx-auto flex w-full max-w-sm flex-col justify-center py-10 sm:py-16">
+      <div className="mb-10 space-y-1.5 text-center">
         <h1 className="text-metal-platinum text-xl font-semibold tracking-tight">
           {company.name} Orders
         </h1>
         <p className="text-muted-foreground text-sm">
-          Sign in to submit and track design jobs.
+          Enter your code to submit and track design jobs.
         </p>
       </div>
 
-      <PartnerLoginForm
-        slug={slug}
-        basePath={basePath}
-        redirectTo={redirectTo}
+      <TasteBudzKeypad
+        logoUrl="/logo.png"
+        logoAlt={`${company.name} Orders`}
+        logoClassName="size-16"
+        hint="Enter the code to come inside."
+        action={enterPartnerCodeAction}
+        extraFields={{ slug }}
       />
 
-      <p className="text-muted-foreground mt-6 text-center text-xs">
-        Need access? Ask TD Studios to set up your login.
+      <p className="text-muted-foreground mt-10 text-center text-xs">
+        Don&apos;t have the code? Text TD Studios.
       </p>
     </div>
   );

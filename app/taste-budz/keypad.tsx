@@ -22,12 +22,14 @@ export function TasteBudzKeypad({
   logoClassName = "w-full max-w-xs",
   hint = "Enter the code to come inside.",
   action = enterTasteBudzCodeAction,
+  extraFields,
 }: {
   logoUrl: string;
   logoAlt?: string;
   logoClassName?: string;
   hint?: string;
   action?: (prev: ActionState, formData: FormData) => Promise<ActionState>;
+  extraFields?: Record<string, string>;
 }) {
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +48,9 @@ export function TasteBudzKeypad({
     startTransition(async () => {
       const formData = new FormData();
       formData.set("code", code);
+      for (const [name, value] of Object.entries(extraFields ?? {})) {
+        formData.set(name, value);
+      }
       const result = await action({}, formData);
       if (result.error) {
         setError(result.error);
@@ -56,7 +61,7 @@ export function TasteBudzKeypad({
       }
       // On success revalidatePath re-renders the server page to the gallery.
     });
-  }, [action]);
+  }, [action, extraFields]);
 
   const press = (d: string) => {
     // Compute the next code here in the event handler — never inside the
