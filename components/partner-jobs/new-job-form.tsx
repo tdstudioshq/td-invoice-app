@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+/* eslint-disable @next/next/no-img-element */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   PaperclipIcon,
@@ -52,6 +54,8 @@ import {
   PARTNER_ACCEPT_ATTRIBUTE,
   PARTNER_TYPES_LABEL,
   formatPartnerBytes,
+  isPreviewableImage,
+  partnerExtensionOf,
   validatePartnerUploadFile,
 } from "@/lib/partner-jobs/uploads";
 
@@ -84,6 +88,13 @@ interface FileRow {
   file: File;
   /** 0-100 while uploading; null before the upload starts. */
   progress: number | null;
+  /**
+   * Object URL for a raster image, so the rep can SEE what they attached before
+   * sending it. Created in the picker (never during render) and revoked the
+   * moment the row goes away, since an un-revoked object URL pins the whole file
+   * in memory for the life of the tab.
+   */
+  previewUrl: string | null;
 }
 
 function newKey(): string {
@@ -111,6 +122,8 @@ export function NewJobForm({ basePath }: { basePath: string }) {
 
   // Survives a failed submit so a retry never re-uploads what already landed.
   const uploadedRef = useRef<UploadedJobFile[]>([]);
+  /** Every object URL handed to a preview, so unmount can release them all. */
+  const objectUrls = useRef<Set<string>>(new Set());
   const jobIdRef = useRef<string | null>(null);
 
   const busy = phase !== "idle";
@@ -183,7 +196,12 @@ export function NewJobForm({ basePath }: { basePath: string }) {
           rejected.push(`${file.name}: ${invalid}`);
           continue;
         }
-        accepted.push({ key: newKey(), file, progress: null });
+        let previewUrl: string | null = null;
+        if (isPreviewableImage(file.name)) {
+          previewUrl = URL.createObjectURL(file);
+          objectUrls.current.add(previewUrl);
+        }
+        accepted.push({ key: newKey(), file, progress: null, previewUrl });
       }
 
       setFiles((rows) => {
@@ -204,11 +222,30 @@ export function NewJobForm({ basePath }: { basePath: string }) {
 
   const removeFile = useCallback(
     (key: string) => {
-      setFiles((rows) => rows.filter((row) => row.key !== key));
+      setFiles((rows) => {
+        const going = rows.find((row) => row.key === key);
+        if (going?.previewUrl) {
+          URL.revokeObjectURL(going.previewUrl);
+          objectUrls.current.delete(going.previewUrl);
+        }
+        return rows.filter((row) => row.key !== key);
+      });
       resetUploads();
     },
     [resetUploads],
   );
+
+  // Release every outstanding object URL when the form unmounts — navigating
+  // away mid-draft would otherwise strand them for the life of the tab. The set
+  // is only ever written from event handlers, and copied into a local at setup
+  // so the cleanup closes over the same object it was given.
+  useEffect(() => {
+    const urls = objectUrls.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
 
   const totalBytes = useMemo(
     () => files.reduce((sum, row) => sum + row.file.size, 0),
@@ -519,6 +556,19 @@ export function NewJobForm({ basePath }: { basePath: string }) {
                   key={row.key}
                   className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5"
                 >
+                  <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
+                    {row.previewUrl ? (
+                      <img
+                        src={row.previewUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-metal-platinum text-[10px] tracking-[0.1em]">
+                        {partnerExtensionOf(row.file.name).toUpperCase() || "FILE"}
+                      </span>
+                    )}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{row.file.name}</p>
                     <p className="text-muted-foreground text-xs tabular-nums">

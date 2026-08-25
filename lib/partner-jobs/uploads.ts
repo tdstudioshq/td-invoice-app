@@ -166,6 +166,17 @@ export function validatePartnerUploadFile(
 }
 
 /**
+ * Whether this file can be shown as an `<img>` thumbnail. Raster only — the
+ * same line `previewKind()` draws, and for the same reasons: an inline SVG can
+ * carry script, and AI/PSD/EPS have nothing a browser can render. Mirrors
+ * `isPreviewableArtwork()` in the mylar wizard.
+ */
+export function isPreviewableImage(name: string): boolean {
+  const ext = partnerExtensionOf(name);
+  return ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "webp";
+}
+
+/**
  * Strip directories and unusual characters from an uploaded filename. Path
  * separators go first, so `../` can never survive; everything outside
  * [A-Za-z0-9_.-] then collapses to `_`.
