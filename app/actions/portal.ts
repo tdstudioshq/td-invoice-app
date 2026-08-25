@@ -63,7 +63,7 @@ export async function createPortalUserAction(
 
   const owned = await requireOwnedClient(parsed.data.client_id);
   if ("error" in owned) return { error: owned.error };
-  const { supabase, userId } = owned;
+  const { supabase, ownerId } = owned;
 
   // One active portal login per client.
   const { data: existing } = await supabase
@@ -93,7 +93,7 @@ export async function createPortalUserAction(
   }
 
   const { error: mapError } = await supabase.from("client_users").insert({
-    owner_id: userId,
+    owner_id: ownerId,
     user_id: created.user.id,
     client_id: parsed.data.client_id,
     email: parsed.data.email,
@@ -237,7 +237,7 @@ export async function createFolderAction(
   if ("error" in owned) return { error: owned.error };
 
   const { error } = await owned.supabase.from("client_file_folders").insert({
-    owner_id: owned.userId,
+    owner_id: owned.ownerId,
     client_id: parsed.data.client_id,
     category: parsed.data.category,
     name: parsed.data.name,
@@ -332,7 +332,7 @@ export async function deleteFileAction(
 
   const owned = await requireOwnedClient(clientId);
   if ("error" in owned) return;
-  const { supabase, userId } = owned;
+  const { supabase, ownerId, userId } = owned;
 
   const { data: file } = await supabase
     .from("client_files")
@@ -344,7 +344,7 @@ export async function deleteFileAction(
   await supabase.storage.from(BUCKET).remove([file.storage_path]);
   await supabase.from("client_files").delete().eq("id", id);
   await supabase.from("file_activity").insert({
-    owner_id: userId,
+    owner_id: ownerId,
     client_id: clientId,
     actor_id: userId,
     action: "delete",

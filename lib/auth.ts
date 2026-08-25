@@ -195,3 +195,36 @@ export async function requirePortalUser(): Promise<PortalContext | null> {
   if (!portal) redirect("/dashboard");
   return portal;
 }
+
+/**
+ * The `owner_id` every owner-scoped row must be written under.
+ *
+ * Admin identity lives in `ADMIN_EMAILS`, which Postgres cannot read, so the
+ * database keeps its own uid allowlist (`workspace_admins` + `workspace_owner`,
+ * migration `20260824193000`) and exposes it as the `current_owner_id()` RPC.
+ * This helper calls that same function rather than recomputing the answer, so
+ * the application and the RLS policies can never disagree about who owns a row
+ * — a mismatch would fail the policy's `with check` and reject the write.
+ *
+ * Returns the canonical workspace owner for a workspace admin and the caller's
+ * own `auth.uid()` for everyone else, matching the policy predicate exactly.
+ * `null` means the RPC failed; callers must surface an error rather than
+ * falling back to `user.id`, which would recreate the forked-dataset bug this
+ * whole mechanism exists to prevent.
+ */
+export async function currentOwnerId(
+  client?: Awaited<ReturnType<typeof createClient>>,
+): Promise<string | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabase = client ?? (await createClient());
+  const { data, error } = await supabase.rpc("current_owner_id");
+  if (error) {
+    console.error("current_owner_id", error.message);
+    return null;
+  }
+  return data ?? null;
+}
+
+/** Shared message for the (unexpected) case where the RPC above fails. */
+export const OWNER_RESOLVE_ERROR =
+  "Could not resolve the workspace owner. Run `npm run admin:sync` and try again.";

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/tasks";
 import type { ActionState } from "@/app/actions/types";
@@ -48,7 +49,11 @@ async function requireDb() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." } as const;
-  return { supabase, userId: user.id } as const;
+  // ownerId is the canonical workspace owner (shared by all admins); userId is
+  // the actual signed-in admin, for attribution only.
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR } as const;
+  return { supabase, ownerId, userId: user.id } as const;
 }
 
 export async function createTaskAction(
@@ -64,7 +69,7 @@ export async function createTaskAction(
   if ("error" in db) return { error: db.error };
 
   const { error } = await db.supabase.from("tasks").insert({
-    owner_id: db.userId,
+    owner_id: db.ownerId,
     title: parsed.data.title,
     notes: parsed.data.notes || null,
     priority: parsed.data.priority,

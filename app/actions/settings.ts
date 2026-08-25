@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ActionState } from "@/app/actions/types";
 
@@ -63,11 +64,14 @@ export async function updateSettingsAction(
     payment_instructions: nullify(parsed.data.payment_instructions),
   };
 
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
   const { error } = id
     ? await supabase.from("company_settings").update(values).eq("id", id)
     : await supabase
         .from("company_settings")
-        .insert({ ...values, owner_id: user.id });
+        .insert({ ...values, owner_id: ownerId });
 
   if (error) return { error: error.message };
 

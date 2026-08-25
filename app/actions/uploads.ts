@@ -213,7 +213,9 @@ export async function finalizeUploadAction(input: {
 
   const owned = await requireOwnedClient(clientId);
   if ("error" in owned) return { error: owned.error };
-  const { supabase, userId } = owned;
+  // ownerId owns the row (shared across workspace admins); userId records WHICH
+  // admin uploaded it.
+  const { supabase, ownerId, userId } = owned;
 
   // The path must be exactly what a ticket for this client/category could have
   // produced: `{clientId}/{prefix}/{timestamp}-{sanitized name}` with an
@@ -271,7 +273,7 @@ export async function finalizeUploadAction(input: {
   const { data: row, error: rowError } = await supabase
     .from("client_files")
     .insert({
-      owner_id: userId,
+      owner_id: ownerId,
       client_id: clientId,
       folder_id: folderId,
       project_id: projectId,
@@ -291,7 +293,7 @@ export async function finalizeUploadAction(input: {
   }
 
   await supabase.from("file_activity").insert({
-    owner_id: userId,
+    owner_id: ownerId,
     client_id: clientId,
     file_id: row.id,
     actor_id: userId,

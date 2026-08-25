@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ActionState } from "@/app/actions/types";
 
@@ -65,8 +66,13 @@ export async function createClientAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
+  // Written under the canonical workspace owner, not this admin's uid, so every
+  // workspace admin sees the client immediately (see currentOwnerId()).
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
   const { error } = await supabase.from("clients").insert({
-    owner_id: user.id,
+    owner_id: ownerId,
     company_name: parsed.data.company_name,
     contact_name: nullify(parsed.data.contact_name),
     email: nullify(parsed.data.email),

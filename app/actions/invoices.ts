@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCompanySettings, getInvoice } from "@/lib/data";
 import { buildInvoicePdfData } from "@/lib/pdf/invoice-pdf-data";
@@ -143,12 +144,17 @@ export async function createInvoiceAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name, user.id);
+  // Everything below is stamped with the canonical workspace owner so all
+  // workspace admins share one set of clients and invoices.
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
+  const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
   if (client.error) return { error: client.error };
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .insert(buildInvoiceRow(parsed.data, client.id, user.id))
+    .insert(buildInvoiceRow(parsed.data, client.id, ownerId))
     .select("id")
     .single();
 
@@ -156,7 +162,7 @@ export async function createInvoiceAction(
     return { error: invoiceError?.message ?? "Could not create invoice" };
   }
 
-  const itemRows = buildItemRows(invoice.id, parsed.data.items, user.id);
+  const itemRows = buildItemRows(invoice.id, parsed.data.items, ownerId);
   if (itemRows.length > 0) {
     const { error: itemsError } = await supabase
       .from("invoice_items")
@@ -188,10 +194,13 @@ export async function updateInvoiceAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name, user.id);
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
+  const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
   if (client.error) return { error: client.error };
 
-  // owner_id intentionally omitted on update; RLS scopes this to the owner.
+  // owner_id intentionally omitted on update; RLS scopes this to the workspace.
   const { error: invoiceError } = await supabase
     .from("invoices")
     .update(buildInvoiceRow(parsed.data, client.id))
@@ -205,7 +214,7 @@ export async function updateInvoiceAction(
     .eq("invoice_id", id);
   if (deleteError) return { error: deleteError.message };
 
-  const itemRows = buildItemRows(id, parsed.data.items, user.id);
+  const itemRows = buildItemRows(id, parsed.data.items, ownerId);
   if (itemRows.length > 0) {
     const { error: itemsError } = await supabase
       .from("invoice_items")
@@ -283,9 +292,12 @@ export async function addPaymentAction(
 
   const { invoice_id } = parsed.data;
 
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
   const { error } = await supabase.from("payments").insert({
     invoice_id,
-    owner_id: user.id,
+    owner_id: ownerId,
     amount: parsed.data.amount,
     payment_date: parsed.data.payment_date,
     method: parsed.data.method ? parsed.data.method.trim() : null,

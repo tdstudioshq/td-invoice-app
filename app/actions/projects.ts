@@ -62,7 +62,7 @@ export async function createProjectAction(
   if ("error" in owned) return { error: owned.error };
 
   const { error } = await owned.supabase.from("client_projects").insert({
-    owner_id: owned.userId,
+    owner_id: owned.ownerId,
     client_id: parsed.data.client_id,
     name: parsed.data.name,
     description: parsed.data.description || null,

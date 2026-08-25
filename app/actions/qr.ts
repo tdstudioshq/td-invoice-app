@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DEFAULT_QR_STYLE, parseQrStyle } from "@/lib/qr/style";
 import type { ActionState } from "@/app/actions/types";
@@ -150,6 +151,9 @@ export async function saveQrCodeAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in." };
 
+  const ownerId = await currentOwnerId(supabase);
+  if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
+
   const style = readStyle(formData);
   const base = slugify(parsed.data.name);
 
@@ -162,7 +166,7 @@ export async function saveQrCodeAction(
     const { data, error } = await supabase
       .from("qr_codes")
       .insert({
-        owner_id: user.id,
+        owner_id: ownerId,
         name: parsed.data.name,
         slug,
         type: "url",

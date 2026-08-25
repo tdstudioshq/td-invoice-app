@@ -777,6 +777,36 @@ export interface Database {
         >;
         Relationships: [];
       };
+      workspace_admins: {
+        Row: {
+          user_id: string;
+          added_at: string;
+          note: string | null;
+        };
+        Insert: {
+          user_id: string;
+          added_at?: string;
+          note?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["workspace_admins"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      workspace_owner: {
+        Row: {
+          singleton: boolean;
+          owner_id: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          owner_id: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["workspace_owner"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -788,6 +818,13 @@ export interface Database {
       };
     };
     Functions: {
+      // The owner_id the caller may read and write: the canonical workspace
+      // owner for a workspace admin, auth.uid() for everyone else. The single
+      // source of truth shared by RLS and the app (see currentOwnerId()).
+      current_owner_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
       list_premade_design_paths: {
         Args: Record<string, never>;
         Returns: Json;
