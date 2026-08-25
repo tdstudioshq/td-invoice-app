@@ -1,0 +1,219 @@
+/**
+ * Upload rules for print-partner job reference files.
+ *
+ * Server- and client-safe (no `fs`, no Supabase, no `server-only`), mirroring
+ * lib/uploads.ts and lib/mylar-printing/artwork.ts so the browser rejects
+ * exactly what the server would.
+ *
+ * This is a THIRD allowlist on purpose, and the reason is the same one that
+ * split the mylar list off from the portal list: widening either existing list
+ * to suit this form would quietly widen what admins, portal clients or public
+ * visitors may upload. Partners send press-ready sources, so this list carries
+ * .ai/.eps/.psd but no .zip or .gif.
+ *
+ * Where the limits are actually enforced:
+ *   1. Client pre-check (UX only — bypassable).
+ *   2. createPartnerJobUploadTicketsAction — nothing uploads without a
+ *      server-minted signed-URL ticket, and tickets are only issued for
+ *      allowlisted extensions within MAX_PARTNER_UPLOAD_BYTES, at paths the
+ *      server builds.
+ *   3. The `partner-job-files` bucket's file_size_limit (50 MB, migration
+ *      20260825120000) — the authoritative byte cap Storage applies.
+ *   4. Storage RLS: the object key's first segment must be the caller's own
+ *      company id (see the bucket policies in the same migration).
+ *   5. submitPartnerJobAction re-reads every object with storage.info() before
+ *      its path is written to design_job_files.
+ */
+
+export const ALLOWED_PARTNER_UPLOAD_EXTENSIONS = [
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "pdf",
+  "ai",
+  "eps",
+  "svg",
+  "psd",
+] as const;
+
+export type AllowedPartnerUploadExtension =
+  (typeof ALLOWED_PARTNER_UPLOAD_EXTENSIONS)[number];
+
+/** Canonical Content-Type sent with the storage PUT for each extension. */
+export const PARTNER_EXTENSION_MIME: Record<
+  AllowedPartnerUploadExtension,
+  string
+> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  ai: "application/pdf",
+  eps: "application/postscript",
+  svg: "image/svg+xml",
+  psd: "image/vnd.adobe.photoshop",
+};
+
+/**
+ * Reported MIME types tolerated per extension, beyond the canonical one.
+ * Browsers report design formats as octet-stream (or nothing) constantly, so a
+ * missing/octet-stream type is always accepted; only a type that actively
+ * contradicts the extension is rejected. The browser's value is advisory — the
+ * extension allowlist plus the post-upload storage.info() check are the gate.
+ */
+const ACCEPTED_PARTNER_MIME: Record<
+  AllowedPartnerUploadExtension,
+  readonly string[]
+> = {
+  jpg: ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  png: ["image/png"],
+  webp: ["image/webp"],
+  pdf: ["application/pdf"],
+  ai: ["application/pdf", "application/postscript", "application/illustrator"],
+  eps: ["application/postscript", "application/eps", "image/x-eps"],
+  svg: ["image/svg+xml"],
+  psd: [
+    "image/vnd.adobe.photoshop",
+    "application/x-photoshop",
+    "application/photoshop",
+    "application/psd",
+    "image/psd",
+  ],
+};
+
+/** For <input type="file" accept={...}>. */
+export const PARTNER_ACCEPT_ATTRIBUTE = ALLOWED_PARTNER_UPLOAD_EXTENSIONS.map(
+  (ext) => `.${ext}`,
+).join(",");
+
+export const PARTNER_TYPES_LABEL = "JPG, PNG, WEBP, PDF, AI, EPS, SVG, PSD";
+
+/**
+ * 50 MB, matching the mylar-artwork bucket rather than the 25 MB used by
+ * client-files: these are production print sources. Safe because bytes go
+ * browser -> Storage over a signed upload URL and never through a Server
+ * Action. Keep in sync with the bucket's file_size_limit in migration
+ * 20260825120000.
+ */
+export const MAX_PARTNER_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+/** Longest original filename accepted, before sanitizing. */
+export const MAX_PARTNER_FILENAME_LENGTH = 200;
+
+export function partnerExtensionOf(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot === -1 ? "" : name.slice(dot + 1).toLowerCase();
+}
+
+export function isAllowedPartnerExtension(
+  ext: string,
+): ext is AllowedPartnerUploadExtension {
+  return (ALLOWED_PARTNER_UPLOAD_EXTENSIONS as readonly string[]).includes(ext);
+}
+
+/** Human-readable file size, e.g. 1536 -> "1.5 KB". Mirrors lib/portal.ts. */
+export function formatPartnerBytes(bytes: number | null | undefined): string {
+  const n = Number(bytes ?? 0);
+  if (n <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+  const value = n / Math.pow(1024, i);
+  return `${i === 0 ? value : value.toFixed(1)} ${units[i]}`;
+}
+
+/** The Content-Type the storage object should carry for this file. */
+export function resolvePartnerContentType(
+  name: string,
+  reported?: string | null,
+): string {
+  const ext = partnerExtensionOf(name);
+  if (isAllowedPartnerExtension(ext)) return PARTNER_EXTENSION_MIME[ext];
+  return reported || "application/octet-stream";
+}
+
+/**
+ * Validate a candidate file by name, size and (advisory) reported MIME.
+ * Returns a human-readable error, or null when acceptable.
+ */
+export function validatePartnerUploadFile(
+  name: string,
+  size: number,
+  type?: string | null,
+): string | null {
+  if (!name || name.length > MAX_PARTNER_FILENAME_LENGTH) {
+    return "That filename is too long. Rename the file and try again.";
+  }
+  const ext = partnerExtensionOf(name);
+  if (!isAllowedPartnerExtension(ext)) {
+    return `${ext ? `.${ext} files` : "That file type"} can't be attached. Upload ${PARTNER_TYPES_LABEL}.`;
+  }
+  if (size <= 0) return "That file is empty.";
+  if (size > MAX_PARTNER_UPLOAD_BYTES) {
+    return `That file is ${formatPartnerBytes(size)} — the limit is ${formatPartnerBytes(MAX_PARTNER_UPLOAD_BYTES)}.`;
+  }
+  const reported = (type ?? "").toLowerCase().trim();
+  if (
+    reported &&
+    reported !== "application/octet-stream" &&
+    !ACCEPTED_PARTNER_MIME[ext].includes(reported)
+  ) {
+    return `That file says it's ${reported}, which doesn't match its .${ext} extension.`;
+  }
+  return null;
+}
+
+/**
+ * Strip directories and unusual characters from an uploaded filename. Path
+ * separators go first, so `../` can never survive; everything outside
+ * [A-Za-z0-9_.-] then collapses to `_`.
+ */
+export function sanitizePartnerFileName(name: string): string {
+  const base = name.split(/[\\/]/).pop() ?? name;
+  return (
+    base.replace(/[^\w.\-]+/g, "_").slice(0, MAX_PARTNER_FILENAME_LENGTH) ||
+    "file"
+  );
+}
+
+/**
+ * Build the object key for one reference file:
+ *   {companyId}/{jobId}/{objectId}-{sanitized-name}
+ *
+ * The FIRST segment is the company id, which is exactly what the bucket's RLS
+ * policies match on — so Storage itself refuses a write outside the caller's
+ * own company, independently of anything this application checks. The second is
+ * the job uuid minted before upload and reused as the design_jobs primary key,
+ * so an object can only ever be claimed by the submission it was uploaded for.
+ */
+export function buildPartnerJobFilePath(
+  companyId: string,
+  jobId: string,
+  objectId: string,
+  fileName: string,
+): string {
+  return `${companyId}/${jobId}/${objectId}-${sanitizePartnerFileName(fileName)}`;
+}
+
+const UUID_RE =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+/**
+ * Whether `path` is a key this company + job could legitimately own. Used
+ * server-side before an uploaded object is claimed by a submission, so a client
+ * can never point a job at another company's folder — or anywhere else in the
+ * bucket. Built from ids the server has already validated as uuids.
+ */
+export function isOwnPartnerJobFilePath(
+  path: string,
+  companyId: string,
+  jobId: string,
+): boolean {
+  const uuidOnly = new RegExp(`^${UUID_RE}$`);
+  if (!uuidOnly.test(companyId) || !uuidOnly.test(jobId)) return false;
+  return new RegExp(
+    `^${companyId}/${jobId}/${UUID_RE}-[\\w.\\-]{1,${MAX_PARTNER_FILENAME_LENGTH}}$`,
+  ).test(path);
+}

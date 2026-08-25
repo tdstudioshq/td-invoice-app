@@ -51,6 +51,21 @@ export type MylarArtworkSideValue = "front" | "back";
 // existed genuinely stated nothing, and null says so.
 export type MylarContactMethod = "text" | "call" | "email";
 
+// Print-partner job portal (migration 20260825120000). Same text + check
+// reasoning as the mylar/design-request lists above: the product line-up will
+// grow, and a check constraint can be widened in one statement where
+// `alter type ... add value` cannot run in a transaction. Labels and the
+// runtime arrays live in lib/partner-jobs/types.ts — widen both together.
+export type PartnerProductType =
+  | "eighth_bag"
+  | "seven_gram_bag"
+  | "two_in_one_bag"
+  | "pound_bag"
+  | "jar_100ml"
+  | "jar_150ml";
+export type PartnerProductFinish = "matte" | "spot_gloss";
+export type DesignJobStatus = "new" | "in_progress" | "completed";
+
 export type CustomDesignType = "Bag design" | "Jar design" | "Other";
 export type CustomDesignRequestStatus =
   | "new"
@@ -807,6 +822,133 @@ export interface Database {
         >;
         Relationships: [];
       };
+      partner_companies: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          job_prefix: string;
+          next_job_number: number;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          job_prefix: string;
+          next_job_number?: number;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_companies"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      partner_users: {
+        Row: {
+          id: string;
+          user_id: string;
+          company_id: string;
+          display_name: string | null;
+          active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          company_id: string;
+          display_name?: string | null;
+          active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_users"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      design_jobs: {
+        Row: {
+          id: string;
+          company_id: string;
+          submitted_by: string | null;
+          job_number: string;
+          job_name: string;
+          status: DesignJobStatus;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        // job_number is assigned by a BEFORE INSERT trigger and is never
+        // accepted from the client, so it is absent here on purpose.
+        Insert: {
+          id?: string;
+          company_id: string;
+          submitted_by?: string | null;
+          job_name: string;
+          status?: DesignJobStatus;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["design_jobs"]["Insert"]
+        > & { status?: DesignJobStatus };
+        Relationships: [];
+      };
+      design_job_items: {
+        Row: {
+          id: string;
+          job_id: string;
+          product_type: PartnerProductType;
+          finish: PartnerProductFinish;
+          quantity: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          product_type: PartnerProductType;
+          finish: PartnerProductFinish;
+          quantity: number;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["design_job_items"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      design_job_files: {
+        Row: {
+          id: string;
+          job_id: string;
+          storage_path: string;
+          original_filename: string;
+          mime_type: string | null;
+          file_size: number;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          storage_path: string;
+          original_filename: string;
+          mime_type?: string | null;
+          file_size: number;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["design_job_files"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -836,6 +978,28 @@ export interface Database {
       portal_client_id: {
         Args: Record<string, never>;
         Returns: string | null;
+      };
+      // Print-partner membership (migration 20260825120000), mirroring
+      // portal_client_id()/is_portal_user() above.
+      partner_company_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      is_partner_user: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      // Files a whole job — row, items and files — in ONE transaction, under
+      // the caller's own RLS (security invoker). See the migration.
+      create_design_job: {
+        Args: {
+          p_job_id: string;
+          p_job_name: string;
+          p_notes: string | null;
+          p_items: Json;
+          p_files: Json;
+        };
+        Returns: { job_id: string; job_number: string }[];
       };
       is_portal_user: {
         Args: Record<string, never>;
@@ -964,4 +1128,34 @@ export type ClientPortalSummary = Client & {
 // A project plus how many files are attached to it.
 export type ClientProjectWithFileCount = ClientProject & {
   file_count: number;
+};
+
+// Print-partner job portal (migration 20260825120000).
+export type PartnerCompany =
+  Database["public"]["Tables"]["partner_companies"]["Row"];
+export type PartnerUser = Database["public"]["Tables"]["partner_users"]["Row"];
+export type DesignJob = Database["public"]["Tables"]["design_jobs"]["Row"];
+export type DesignJobItem =
+  Database["public"]["Tables"]["design_job_items"]["Row"];
+export type DesignJobFile =
+  Database["public"]["Tables"]["design_job_files"]["Row"];
+
+/** A dashboard row: the job plus how many products it holds. */
+export type DesignJobListItem = DesignJob & { item_count: number };
+
+/** One job with everything the detail pages render. */
+export type DesignJobWithDetail = DesignJob & {
+  items: DesignJobItem[];
+  files: DesignJobFile[];
+};
+
+/** The admin list additionally names the company a job came from. */
+export type AdminDesignJobListItem = DesignJobListItem & {
+  company: Pick<PartnerCompany, "id" | "name" | "slug"> | null;
+};
+
+export type AdminDesignJobDetail = DesignJobWithDetail & {
+  company: PartnerCompany | null;
+  submitted_by_name: string | null;
+  submitted_by_email: string | null;
 };

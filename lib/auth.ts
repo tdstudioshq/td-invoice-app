@@ -97,6 +97,68 @@ export async function getPortalContext(): Promise<PortalContext | null> {
   };
 }
 
+export interface PartnerContext {
+  userId: string;
+  email: string | null;
+  /** The rep's name for display, when one was recorded on their membership. */
+  displayName: string | null;
+  companyId: string;
+  companySlug: string;
+  companyName: string;
+}
+
+/**
+ * The print-partner context for the current user, or `null` when they are not a
+ * partner rep. A user is a partner rep iff they have an ACTIVE `partner_users`
+ * row whose company is also active — the direct analogue of `getPortalContext()`
+ * above, and the basis for every partner-portal role decision.
+ *
+ * Two plain selects rather than one PostgREST embedded select: the embed needs
+ * the foreign key visible in PostgREST's schema cache, which lags a fresh
+ * migration and fails with PGRST200 until it reloads (same reason
+ * `getMylarInquiry()` avoids it).
+ *
+ * Both reads are cookie-scoped, so RLS is doing the work: `partner_users` is
+ * readable only for `user_id = auth.uid()`, and `partner_companies` only for the
+ * caller's own company. An inactive company therefore disappears here too,
+ * because `partner_company_id()` — which that policy is built on — requires
+ * both flags.
+ */
+export async function getPartnerContext(): Promise<PartnerContext | null> {
+  const user = await getUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("partner_users")
+    .select("company_id, display_name")
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .maybeSingle();
+  if (!membership) return null;
+
+  const { data: company } = await supabase
+    .from("partner_companies")
+    .select("id, name, slug, active")
+    .eq("id", membership.company_id)
+    .maybeSingle();
+  if (!company || !company.active) return null;
+
+  return {
+    userId: user.id,
+    email: user.email ?? null,
+    displayName: membership.display_name,
+    companyId: company.id,
+    companySlug: company.slug,
+    companyName: company.name,
+  };
+}
+
+/** Where a partner rep's portal lives, in INTERNAL path terms. */
+export function partnerHomePath(companySlug: string): string {
+  return `/partner/${companySlug}/jobs`;
+}
+
 export interface CustomerProfile {
   userId: string;
   email: string | null;
@@ -137,6 +199,7 @@ export async function getCustomerProfile(
 /**
  * The correct landing path for a signed-in user, by role:
  *   admin → `adminTarget` (default `/dashboard`), portal → `/portal`,
+ *   print partner → their company's job portal,
  *   customer → `/onboarding` until their profile is complete, then
  *   `/account/pending` while they wait for an admin to approve portal access.
  *
@@ -144,6 +207,16 @@ export async function getCustomerProfile(
  * `/account/pending` and `/portal` is the `client_users` row an admin creates
  * by approving them, which `getPortalContext()` above picks up on the very next
  * request. There is no third state and no post-approval setup step.
+ *
+ * The order is the precedence, and it matters: a print partner is checked AFTER
+ * the portal so that a user who somehow holds both mappings keeps the access
+ * they had before partners existed, and BEFORE the customer fallback so a rep
+ * with no `profiles` row is never mistaken for an un-onboarded signup.
+ *
+ * The partner path returned here is the INTERNAL one (`/partner/<slug>/jobs`).
+ * It renders correctly on every host; the partner portal's own login form
+ * passes an explicit subdomain-relative target instead, so a rep signing in at
+ * zazaorders.tdstudiosny.com keeps a clean address bar.
  */
 export async function roleHome(
   user: User,
@@ -151,6 +224,8 @@ export async function roleHome(
 ): Promise<string> {
   if (isAdminEmail(user.email)) return adminTarget;
   if (await getPortalContext()) return "/portal";
+  const partner = await getPartnerContext();
+  if (partner) return partnerHomePath(partner.companySlug);
   const profile = await getCustomerProfile(user.id);
   return profile?.onboardedAt ? "/account/pending" : "/onboarding";
 }
@@ -174,7 +249,8 @@ export interface CustomerContext {
 }
 
 /**
- * Require a CUSTOMER user (authenticated, NOT an admin, NOT a portal user).
+ * Require a CUSTOMER user (authenticated, NOT an admin, NOT a portal user, NOT
+ * a print-partner rep).
  * Admins go to `/dashboard`, portal users to `/portal`, unauthenticated to
  * login. Returns the user plus their profile (which may be null pre-onboarding).
  * Guards the `(customer)` route group (`/onboarding`, `/account`).
@@ -185,6 +261,10 @@ export async function requireCustomer(): Promise<CustomerContext | null> {
   if (!user) redirect("/login");
   if (isAdminEmail(user.email)) redirect("/dashboard");
   if (await getPortalContext()) redirect("/portal");
+  // A print-partner rep has an account but is not an applicant for a client
+  // portal; without this they would land in the customer onboarding flow.
+  const partner = await getPartnerContext();
+  if (partner) redirect(partnerHomePath(partner.companySlug));
   return { user, profile: await getCustomerProfile(user.id) };
 }
 

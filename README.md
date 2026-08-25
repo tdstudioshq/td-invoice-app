@@ -103,6 +103,8 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/mylar-requests/[id]`       | One inquiry: details, artwork, status            |
 | `/design-requests`           | Custom design requests                           |
 | `/design-requests/[id]`      | One request: details, reference files, status    |
+| `/partner-jobs`              | Print-partner design jobs (all companies)        |
+| `/partner-jobs/[jobId]`      | One job: products, files, notes, status          |
 | `/client-portals`            | Manage client portal logins & files              |
 | `/client-portals/[clientId]` | One client's portal access, projects, and files  |
 | `/settings`                  | Company settings                                 |
@@ -123,6 +125,24 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | -------------- | ------------------------- |
 | `/onboarding`  | First-run profile setup   |
 | `/account`     | Customer account          |
+
+### Print-partner portal (`app/(partner)/`, partner membership required)
+
+A private ordering portal for print companies, served on its own hostname. The
+routes really live at `/partner/<slug>/…`; a partner reaches them without ever
+seeing that prefix.
+
+| Address (production)                     | Internal route              | Description                  |
+| ---------------------------------------- | --------------------------- | ---------------------------- |
+| `zazaorders.tdstudiosny.com/`            | `/partner/zaza`             | Redirects to the job list    |
+| `zazaorders.tdstudiosny.com/login`       | `/partner/zaza/login`       | Portal sign-in               |
+| `zazaorders.tdstudiosny.com/jobs`        | `/partner/zaza/jobs`        | Submitted jobs, newest first |
+| `zazaorders.tdstudiosny.com/jobs/new`    | `/partner/zaza/jobs/new`    | File a new design job        |
+| `zazaorders.tdstudiosny.com/jobs/[id]`   | `/partner/zaza/jobs/[id]`   | One job: products, files, status |
+
+Locally (and before the subdomain is attached) the same portal is at
+`/zaza-orders/…` on the main host, or directly at `/partner/zaza/…`. See
+**Print-partner portals** below.
 
 ### Public (no session required)
 
@@ -161,6 +181,7 @@ enforcement is Postgres RLS plus `requireUser()` / `requireAdmin()` /
 | `/api/files/[fileId]`             | Portal file download / inline preview          |
 | `/api/mylar-artwork/[inquiryId]`  | Signed artwork link (admin only)               |
 | `/api/design-request-assets/[requestId]` | Signed reference link (admin only)      |
+| `/api/partner-job-files/[fileId]`  | Signed job-file link (partner or admin)        |
 | `/api/cutline/generate`           | Cutline PDF — public, in-memory, no storage    |
 | `/api/mockup-sheet/generate`      | 8-piece sheet export — public, in-memory       |
 | `/api/bag-mockup-grid/generate`   | Bag grid export — public, in-memory            |
@@ -382,12 +403,15 @@ re-checked in every route group layout, page, and Server Action.
 
 ### Roles
 
-There are three roles:
+There are four roles:
 
 - **Admin** — email listed in the server-only `ADMIN_EMAILS` env allowlist. Gets
   the full `app/(app)` dashboard.
 - **Client portal user** — a user with an active (`revoked_at is null`)
   `client_users` row mapping them to exactly one client. Confined to `/portal/*`.
+- **Print-partner rep** — a user with an active `partner_users` row mapping them
+  to one partner company. Confined to that company's portal (see **Print-partner
+  portals**).
 - **Customer** — any other authenticated user (self-signup). Lives in
   `/onboarding` until their profile is complete, then `/account/pending`.
 
@@ -459,6 +483,111 @@ invoices, without touching the admin app.
   portal user, including via a direct Storage request.
 - Revoke access → that user can no longer sign in to the portal.
 
+## Print-partner portals
+
+A private ordering portal for print companies, replacing the group chat a sales
+rep used to send design jobs through. V1 serves one company, **Zaza**, at
+`zazaorders.tdstudiosny.com`.
+
+### What a rep can do
+
+Sign in, file a design job (a job name, one or more products with a finish and a
+quantity, reference files, and notes), and watch its status — **New → In Progress
+→ Completed**. That's the whole surface: no messaging, quoting, invoicing,
+approvals or revisions.
+
+### What TD Studios can do
+
+`/partner-jobs` lists every job from every partner; `/partner-jobs/[id]` shows
+the full submission and is the **only** place a status changes.
+
+### Hostname routing
+
+One set of routes, three ways in — all resolved in
+`lib/partner-jobs/routing.ts` and applied by `proxy.ts`:
+
+| Reached by | Example | Rewritten to |
+| --- | --- | --- |
+| subdomain | `zazaorders.tdstudiosny.com/jobs` | `/partner/zaza/jobs` |
+| path alias | `tdstudiosny.com/zaza-orders/jobs` | `/partner/zaza/jobs` |
+| internal path | `tdstudiosny.com/partner/zaza/jobs` | (no rewrite) |
+
+Matching is on the leftmost hostname label, so `zazaorders.localhost:3000` works
+in development with no hosts-file entry. Every other host and path resolves to
+`null` and is left completely alone.
+
+### Adding another print company
+
+1. Insert a `partner_companies` row (`name`, `slug`, a unique 2–6 letter
+   `job_prefix`).
+2. Add one entry to `PARTNER_SUBDOMAINS` in `lib/partner-jobs/routing.ts`
+   (and optionally one to `PARTNER_PATH_ALIASES`).
+3. Add the domain in Vercel.
+
+No new route folder — `app/(partner)/partner/[slug]` serves every company.
+
+### Giving a sales rep access
+
+There is no self-signup. Create the auth user, then map them to the company:
+
+1. Supabase dashboard → **Authentication → Users → Add user**, check
+   *Auto Confirm*, and set a password to hand over.
+2. SQL Editor:
+
+   ```sql
+   insert into public.partner_users (user_id, company_id, display_name)
+   select u.id, c.id, 'Rep name'
+     from auth.users u, public.partner_companies c
+    where u.email = 'rep@printcompany.com'
+      and c.slug = 'zaza';
+   ```
+
+3. They sign in at `zazaorders.tdstudiosny.com/login`.
+
+Revoke with `update public.partner_users set active = false where user_id = …`;
+pause a whole company with `partner_companies.active = false`. Both take effect
+on the rep's next request, because `partner_company_id()` — the function every
+policy is built on — checks both flags.
+
+### Security model
+
+| | Partner rep | TD Studios admin |
+| --- | --- | --- |
+| See their own company's jobs | ✅ | ✅ (all companies) |
+| See another company's jobs | ❌ RLS | ✅ |
+| File a job | ✅ (own company only) | — |
+| Change job status | ❌ **no UPDATE policy exists** | ✅ |
+| Delete a job | ❌ no DELETE policy exists | — |
+| Download job files | ✅ own company only | ✅ |
+| Join / move company | ❌ no INSERT or UPDATE policy on `partner_users` | via service role |
+
+Enforcement is Postgres RLS, not application code: reps read and write through
+the cookie-scoped client, so every query is re-checked by the policies in
+`supabase/migrations/20260825120000_partner_job_portal.sql`. Admin access runs
+through the service-role client behind `requireAdmin()`, because partner tables
+have no `owner_id` to scope an admin policy to.
+
+Job files live in the private `partner-job-files` bucket, keyed
+`{companyId}/{jobId}/{uuid}-{name}`. The bucket's own storage policies pin the
+first path segment to the caller's company, so Storage refuses a cross-company
+write independently of the app. Bytes are never served by raw object URL —
+`/api/partner-job-files/[fileId]` authorizes the request and 302s to a
+60-second signed URL.
+
+Job numbers (`ZA-1001`, `ZA-1002`, …) come from a per-company counter incremented
+inside a `BEFORE INSERT` trigger; the `update … returning` row lock serializes
+concurrent submissions, and `job_number` is `UNIQUE` as a second line of defence.
+
+### Testing checklist
+
+- Signed out, `zazaorders.tdstudiosny.com/jobs` → the portal login, not the main site's
+- A rep signs in → their job list; the main site's `/dashboard` stays out of reach
+- File a job with **several products** and **several files** → lands on its detail page with a `ZA-####` number
+- A rep of another company cannot open that job's URL (404) or its files
+- A customer or client-portal user signing in at the partner login is refused
+- `/partner-jobs` lists it; changing the status there shows up on the rep's page
+- `tdstudiosny.com` and `www.tdstudiosny.com` behave exactly as before
+
 ## Email (Resend)
 
 Transactional email is sent via [Resend](https://resend.com) for four flows:
@@ -509,7 +638,8 @@ Supabase project with the anon key and existing RLS only. See
 
 1. **Database** — apply migrations to your Supabase project **in order** via the
    SQL Editor, or `supabase db push` if linked. Verify the private
-   `client-files`, `design-requests`, and `mylar-artwork` buckets were created,
+   `client-files`, `design-requests`, `mylar-artwork`, and `partner-job-files`
+   buckets were created,
    and create the gallery buckets by hand (see Getting started). `owner_id` +
    owner-scoped policies apply to every table except the five anonymous-intake
    tables, which have RLS on with no policies (see Data model).
@@ -535,9 +665,15 @@ Supabase project with the anon key and existing RLS only. See
    | `QR_SCAN_SALT` | optional | salts hashed IPs; a default is used when unset |
    | `PREMADE_GALLERY_COOKIE_SECRET` | optional | signs the `/premadedesigns` keypad cookie; falls back to `SUPABASE_SECRET_KEY` |
 
-5. **Build settings** — defaults work: build `next build`, output auto-detected,
+5. **Partner subdomains (optional)** — to serve a print partner's portal on its
+   own hostname, add the domain to this same Vercel project (Project → Settings →
+   Domains → Add, e.g. `zazaorders.tdstudiosny.com`) and point the DNS record
+   Vercel shows at it. No separate project, no `vercel.json`, and no code change
+   for the domain itself — `proxy.ts` maps the subdomain label to a partner slug
+   through `PARTNER_SUBDOMAINS` in `lib/partner-jobs/routing.ts`.
+6. **Build settings** — defaults work: build `next build`, output auto-detected,
    Node.js 20+. No `vercel.json` needed.
-6. **Deploy**, then smoke-test:
+7. **Deploy**, then smoke-test:
    - `/login` loads and authenticates → an admin lands on `/dashboard`
    - create a client/invoice; confirm it's scoped to your user
    - **Download PDF** on an invoice returns `TD-INV-####.pdf`
