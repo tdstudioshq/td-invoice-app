@@ -1,7 +1,9 @@
 "use server";
 
 import { createHash } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { getPartnerContext } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -138,6 +140,11 @@ export async function enterPartnerCodeAction(
   // the resulting session to that same company.
   const slug = read("slug");
   const code = read("code");
+  // Where to land once the session exists. Only same-origin in-app paths are
+  // honored, so this can never become an open redirect.
+  const requested = read("next");
+  const next =
+    requested.startsWith("/") && !requested.startsWith("//") ? requested : "/jobs";
   const access = PORTAL_ACCESS[slug];
   if (!access || !isSupabaseConfigured()) return { error: GENERIC };
 
@@ -176,5 +183,11 @@ export async function enterPartnerCodeAction(
     return { error: "This portal isn't set up yet. Text TD Studios." };
   }
 
-  return { success: true };
+  // Navigate explicitly. The gallery gates get away with only revalidating
+  // because their page renders EITHER the keypad or the gallery; this portal's
+  // /login renders the keypad unconditionally, so without a redirect a correct
+  // code silently does nothing — the session is created and the rep is left
+  // staring at the keypad.
+  revalidatePath("/", "layout");
+  redirect(next);
 }
