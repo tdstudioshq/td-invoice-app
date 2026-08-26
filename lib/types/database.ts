@@ -991,6 +991,17 @@ export interface Database {
       };
       // Files a whole job — row, items and files — in ONE transaction, under
       // the caller's own RLS (security invoker). See the migration.
+      // Replaces a job's name, notes and item set in ONE transaction, under the
+      // caller's own RLS (security invoker). See migration 20260826000000.
+      update_design_job: {
+        Args: {
+          p_job_id: string;
+          p_job_name: string;
+          p_notes: string | null;
+          p_items: Json;
+        };
+        Returns: { job_id: string; job_number: string }[];
+      };
       create_design_job: {
         Args: {
           p_job_id: string;

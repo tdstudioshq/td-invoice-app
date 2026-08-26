@@ -112,3 +112,24 @@ export const discardPartnerUploadsSchema = z.object({
   jobId: z.string().uuid(),
   paths: z.array(z.string().min(1).max(500)).min(1).max(MAX_JOB_FILES),
 });
+
+/**
+ * An edit. `addFiles` are objects already uploaded to this job's prefix and
+ * awaiting a row; `removeFileIds` are rows whose objects should go with them.
+ * The server re-derives every path and never trusts these to point anywhere.
+ */
+export const partnerJobEditSchema = z.object({
+  jobId: z.string().uuid(),
+  jobName: jobNameSchema,
+  notes: notesSchema.default(""),
+  items: z
+    .array(jobItemSchema)
+    .min(1, "Add at least one product.")
+    .max(MAX_JOB_ITEMS, `A job can hold at most ${MAX_JOB_ITEMS} products.`),
+  addFiles: z.array(jobFileSchema).max(MAX_JOB_FILES).default([]),
+  removeFileIds: z.array(z.string().uuid()).max(MAX_JOB_FILES).default([]),
+});
+
+export type PartnerJobEdit = z.infer<typeof partnerJobEditSchema>;
+
+export const deletePartnerJobSchema = z.object({ jobId: z.string().uuid() });

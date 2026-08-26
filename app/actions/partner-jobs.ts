@@ -5,10 +5,13 @@ import { revalidatePath } from "next/cache";
 
 import { getPartnerContext, partnerHomePath } from "@/lib/auth";
 import {
+  deletePartnerJobSchema,
   discardPartnerUploadsSchema,
   mintPartnerUploadsSchema,
+  partnerJobEditSchema,
   partnerJobSubmissionSchema,
 } from "@/lib/partner-jobs/schema";
+import { MAX_JOB_FILES } from "@/lib/partner-jobs/types";
 import {
   MAX_PARTNER_UPLOAD_BYTES,
   buildPartnerJobFilePath,
@@ -336,4 +339,211 @@ export async function discardPartnerJobFilesAction(input: {
     console.error("discardPartnerJobFilesAction", error);
     return { ok: false };
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// Editing an existing job
+// ---------------------------------------------------------------------------
+
+export type EditPartnerJobResult =
+  | { error: string; fieldErrors?: Record<string, string> }
+  | { jobId: string; jobNumber: string };
+
+/**
+ * Save an edit: name, notes, the whole item set, plus files added and removed.
+ *
+ * Order matters and is deliberate. Everything that can be validated is
+ * validated BEFORE anything is written, then the job and its items go through
+ * the transactional `update_design_job` RPC, then the file index catches up.
+ * If the RPC fails nothing has changed at all; file work only ever runs against
+ * a job that has already saved cleanly.
+ *
+ * RLS is the authorization throughout — the cookie-scoped client cannot see, let
+ * alone edit, another company's job, so this action carries no company check of
+ * its own. What it DOES check is that every removed file actually belongs to
+ * this job, since a file id is caller-supplied.
+ *
+ * `status` is untouchable here by construction: the RPC never writes it and a
+ * database trigger forces it back for any caller with an auth.uid().
+ */
+export async function updatePartnerJobAction(
+  input: unknown,
+): Promise<EditPartnerJobResult> {
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
+
+  const partner = await getPartnerContext();
+  if (!partner) return { error: NOT_A_PARTNER };
+
+  const parsed = partnerJobEditSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = String(issue.path[0] ?? "form");
+      if (!fieldErrors[key]) fieldErrors[key] = issue.message;
+    }
+    return { error: "Please check the highlighted details and try again.", fieldErrors };
+  }
+  const edit = parsed.data;
+  const supabase = await createClient();
+
+  // --- The files currently on this job. RLS scopes the read, so this doubles as
+  // proof that the caller may touch this job at all.
+  const { data: existing, error: existingError } = await supabase
+    .from("design_job_files")
+    .select("id, storage_path")
+    .eq("job_id", edit.jobId);
+  if (existingError) {
+    console.error("updatePartnerJobAction files", existingError.message);
+    return { error: "Couldn't load this job's files. Try again." };
+  }
+  const current = existing ?? [];
+
+  // A removal must name a file that is actually on THIS job.
+  const byId = new Map(current.map((f) => [f.id, f.storage_path]));
+  const removePaths: string[] = [];
+  for (const id of edit.removeFileIds) {
+    const path = byId.get(id);
+    if (!path) return { error: "One of those files is no longer on this job. Reload and try again." };
+    removePaths.push(path);
+  }
+
+  const remaining = current.length - removePaths.length + edit.addFiles.length;
+  if (remaining > MAX_JOB_FILES) {
+    return { error: `A job can hold at most ${MAX_JOB_FILES} files.` };
+  }
+
+  // --- Verify every newly uploaded object before it is claimed, exactly as the
+  // original submission does.
+  const verified: {
+    job_id: string;
+    storage_path: string;
+    original_filename: string;
+    mime_type: string;
+    file_size: number;
+  }[] = [];
+
+  for (const file of edit.addFiles) {
+    if (!isOwnPartnerJobFilePath(file.path, partner.companyId, edit.jobId)) {
+      return { error: "One of those files couldn't be verified. Remove it and try again." };
+    }
+    const ext = partnerExtensionOf(file.name);
+    if (!isAllowedPartnerExtension(ext)) {
+      return { error: `“${file.name}” isn't a file type we can use.` };
+    }
+    const { data: info, error } = await supabase.storage.from(BUCKET).info(file.path);
+    if (error || !info) {
+      return { error: `“${file.name}” didn't finish uploading. Attach it again.` };
+    }
+    const size = Number(info.size ?? 0);
+    if (size <= 0) return { error: `“${file.name}” uploaded empty. Attach it again.` };
+    if (size > MAX_PARTNER_UPLOAD_BYTES) return { error: `“${file.name}” is too large.` };
+    verified.push({
+      job_id: edit.jobId,
+      storage_path: file.path,
+      original_filename: file.name,
+      mime_type: info.contentType || resolvePartnerContentType(file.name, null),
+      file_size: size,
+    });
+  }
+
+  // --- Job + items, atomically.
+  const { data, error } = await supabase.rpc("update_design_job", {
+    p_job_id: edit.jobId,
+    p_job_name: edit.jobName,
+    p_notes: edit.notes || null,
+    p_items: edit.items.map((item) => ({
+      product_type: item.productType,
+      finish: item.finish,
+      quantity: item.quantity,
+    })),
+  });
+  if (error) {
+    console.error("updatePartnerJobAction rpc", error.code, error.message);
+    return { error: "We couldn't save those changes. Nothing was modified — try again." };
+  }
+  const saved = Array.isArray(data) ? data[0] : data;
+  if (!saved?.job_id) return { error: "We couldn't save those changes. Try again." };
+
+  // --- File index. The job itself is already saved, so a failure here is
+  // reported plainly rather than pretending the whole edit failed.
+  if (verified.length > 0) {
+    const { error: addError } = await supabase.from("design_job_files").insert(verified);
+    if (addError) {
+      console.error("updatePartnerJobAction add files", addError.message);
+      return { error: "Your changes saved, but the new files didn't attach. Try adding them again." };
+    }
+  }
+  if (edit.removeFileIds.length > 0) {
+    const { error: delError } = await supabase
+      .from("design_job_files")
+      .delete()
+      .in("id", edit.removeFileIds);
+    if (delError) {
+      console.error("updatePartnerJobAction remove files", delError.message);
+      return { error: "Your changes saved, but a file couldn't be removed. Try again." };
+    }
+    // Drop the bytes too — a row-only delete would leave the object stranded in
+    // a private bucket with nothing referencing it. RLS on storage.objects pins
+    // this to the caller's own company prefix.
+    const { error: objError } = await supabase.storage.from(BUCKET).remove(removePaths);
+    if (objError) console.error("updatePartnerJobAction storage remove", objError.message);
+  }
+
+  revalidatePath(partnerHomePath(partner.companySlug));
+  revalidatePath(`${partnerHomePath(partner.companySlug)}/${edit.jobId}`);
+  revalidatePath("/partner-jobs");
+  revalidatePath(`/partner-jobs/${edit.jobId}`);
+  return { jobId: saved.job_id, jobNumber: saved.job_number };
+}
+
+/**
+ * Delete a job outright, with its products and its artwork.
+ *
+ * The item and file ROWS go by cascade; the storage objects do not, so their
+ * keys are collected first and removed after. Both the row delete and the object
+ * delete are RLS-scoped to the caller's own company.
+ */
+export async function deletePartnerJobAction(
+  input: unknown,
+): Promise<{ error: string } | { deleted: true }> {
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
+
+  const partner = await getPartnerContext();
+  if (!partner) return { error: NOT_A_PARTNER };
+
+  const parsed = deletePartnerJobSchema.safeParse(input);
+  if (!parsed.success) return { error: "That job couldn't be found." };
+  const { jobId } = parsed.data;
+
+  const supabase = await createClient();
+  // Collect the object keys while the rows are still readable.
+  const { data: files } = await supabase
+    .from("design_job_files")
+    .select("storage_path")
+    .eq("job_id", jobId);
+  const paths = (files ?? []).map((f) => f.storage_path);
+
+  const { data: deleted, error } = await supabase
+    .from("design_jobs")
+    .delete()
+    .eq("id", jobId)
+    .select("id");
+  if (error) {
+    console.error("deletePartnerJobAction", error.message);
+    return { error: "We couldn't delete that job. Try again." };
+  }
+  // RLS returns no rows rather than an error when the job isn't the caller's.
+  if (!deleted || deleted.length === 0) {
+    return { error: "That job couldn't be found." };
+  }
+
+  if (paths.length > 0) {
+    const { error: objError } = await supabase.storage.from(BUCKET).remove(paths);
+    if (objError) console.error("deletePartnerJobAction storage", objError.message);
+  }
+
+  revalidatePath(partnerHomePath(partner.companySlug));
+  revalidatePath("/partner-jobs");
+  return { deleted: true };
 }

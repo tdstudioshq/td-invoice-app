@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeftIcon, PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobItemTable } from "@/components/partner-jobs/job-item-table";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
@@ -20,9 +21,9 @@ export const metadata = { title: "Job" };
 /**
  * One job, as the rep who filed it sees it.
  *
- * There is nothing to edit here — a filed job is a record, and the database
- * backs that up (partners have no UPDATE policy on any partner table). Status
- * moves only from the TD Studios side.
+ * Edit opens the same form that filed it. Status is the one thing that does NOT
+ * move from here: it is the studio's field, and a database trigger forces it
+ * back on any rep-side write, so hiding the control is not what enforces it.
  */
 export default async function PartnerJobDetailPage({
   params,
@@ -53,7 +54,15 @@ export default async function PartnerJobDetailPage({
       </Link>
 
       <PageHeader title={job.job_number} description={job.job_name}>
-        <JobStatusBadge status={job.status} className="h-7 self-start" />
+        <div className="flex items-center gap-3">
+          <JobStatusBadge status={job.status} className="h-7" />
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href={partnerHref(basePath, `/jobs/${job.id}/edit`)}>
+              <PencilSimpleIcon className="size-4" />
+              Edit
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="space-y-5">

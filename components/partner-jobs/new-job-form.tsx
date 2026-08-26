@@ -14,8 +14,10 @@ import {
 import { toast } from "sonner";
 
 import {
+  deletePartnerJobAction,
   discardPartnerJobFilesAction,
   submitPartnerJobAction,
+  updatePartnerJobAction,
 } from "@/app/actions/partner-jobs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +31,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { DesignJobFile, DesignJobItem } from "@/lib/types/database";
+import { previewKind } from "@/lib/portal";
 import {
   jobNameSchema,
   notesSchema,
@@ -60,7 +64,12 @@ import {
 } from "@/lib/partner-jobs/uploads";
 
 /**
- * The New Job form.
+ * The job form — used to file a new job and to edit an existing one.
+ *
+ * One component for both because the two differ in three places only: where the
+ * initial values come from, which action saves them, and whether already-stored
+ * files are on screen. Splitting them would have meant maintaining the same
+ * multi-item editor and upload pipeline twice.
  *
  * NOT a `useActionState` form, for one reason that shapes everything else: file
  * bytes cannot go through a Server Action (Next caps those bodies at ~4 MB), so
@@ -107,15 +116,44 @@ function emptyItem(): ItemRow {
   return { key: newKey(), productType: "", finish: "", quantity: "" };
 }
 
-export function NewJobForm({ basePath }: { basePath: string }) {
+export interface EditableJob {
+  id: string;
+  jobName: string;
+  notes: string | null;
+  items: DesignJobItem[];
+  files: DesignJobFile[];
+}
+
+export function NewJobForm({
+  basePath,
+  job,
+}: {
+  basePath: string;
+  /** Present in edit mode; absent when filing a new job. */
+  job?: EditableJob;
+}) {
+  const editing = Boolean(job);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [jobName, setJobName] = useState("");
-  const [notes, setNotes] = useState("");
+  const [jobName, setJobName] = useState(job?.jobName ?? "");
+  const [notes, setNotes] = useState(job?.notes ?? "");
   // One row to start with: the common case is a single product, and an empty
   // list would make the rep's first action "add" before they can type anything.
-  const [items, setItems] = useState<ItemRow[]>([emptyItem()]);
+  const [items, setItems] = useState<ItemRow[]>(() =>
+    job && job.items.length > 0
+      ? job.items.map((item) => ({
+          key: newKey(),
+          productType: item.product_type,
+          finish: item.finish,
+          quantity: String(item.quantity),
+        }))
+      : [emptyItem()],
+  );
+  /** Stored files marked for removal — applied on save, not immediately, so a
+   *  mistaken click is undone by simply not saving. */
+  const [removedFileIds, setRemovedFileIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const [files, setFiles] = useState<FileRow[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<"idle" | "uploading" | "saving">("idle");
@@ -311,7 +349,9 @@ export function NewJobForm({ basePath }: { basePath: string }) {
       .map((row) => row.file);
 
     let uploaded = uploadedRef.current;
-    let jobId = jobIdRef.current;
+    // An edit uploads into the job's EXISTING prefix, so the id is known up
+    // front rather than minted by the first ticket.
+    let jobId = editing ? job!.id : jobIdRef.current;
 
     if (pending.length > 0) {
       setPhase("uploading");
@@ -344,13 +384,22 @@ export function NewJobForm({ basePath }: { basePath: string }) {
     }
 
     setPhase("saving");
-    const result = await submitPartnerJobAction({
-      jobId,
-      jobName: jobName.trim(),
-      notes: notes.trim(),
-      items: parsedItems,
-      files: uploaded,
-    });
+    const result = editing
+      ? await updatePartnerJobAction({
+          jobId: job!.id,
+          jobName: jobName.trim(),
+          notes: notes.trim(),
+          items: parsedItems,
+          addFiles: uploaded,
+          removeFileIds: removedFileIds,
+        })
+      : await submitPartnerJobAction({
+          jobId,
+          jobName: jobName.trim(),
+          notes: notes.trim(),
+          items: parsedItems,
+          files: uploaded,
+        });
 
     if ("error" in result) {
       setPhase("idle");
@@ -361,13 +410,34 @@ export function NewJobForm({ basePath }: { basePath: string }) {
       // effort, and never something the rep has to care about. Resetting here
       // also means the retry re-uploads from a known-clean state instead of
       // trying to reconcile a half-finished one.
-      resetUploads();
-      setFiles((rows) => rows.map((row) => ({ ...row, progress: null })));
+      // Only a NEW job's uploads are orphans worth reclaiming. On an edit the
+      // job already exists, so the discard action refuses by design — the files
+      // stay uploaded and a retry simply re-attaches them.
+      if (!editing) {
+        resetUploads();
+        setFiles((rows) => rows.map((row) => ({ ...row, progress: null })));
+      }
       return;
     }
 
-    toast.success(`Job ${result.jobNumber} submitted`);
+    toast.success(
+      editing ? `Job ${result.jobNumber} updated` : `Job ${result.jobNumber} submitted`,
+    );
     router.push(`${basePath}/jobs/${result.jobId}`);
+    router.refresh();
+  }
+
+  async function onDelete() {
+    if (!job || busy || deleting) return;
+    setDeleting(true);
+    const result = await deletePartnerJobAction({ jobId: job.id });
+    if ("error" in result) {
+      setDeleting(false);
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Job deleted");
+    router.push(`${basePath}/jobs`);
     router.refresh();
   }
 
@@ -524,6 +594,70 @@ export function NewJobForm({ basePath }: { basePath: string }) {
           <CardTitle>Files</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {editing && job!.files.length > 0 ? (
+            <ul className="space-y-2">
+              {job!.files.map((file) => {
+                const removed = removedFileIds.includes(file.id);
+                const isImage = previewKind(file.mime_type) === "image";
+                return (
+                  <li
+                    key={file.id}
+                    data-removed={removed}
+                    className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5 data-[removed=true]:opacity-45"
+                  >
+                    <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
+                      {isImage ? (
+                        <img
+                          src={`/api/partner-job-files/${file.id}?inline=1`}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-metal-platinum text-[10px] tracking-[0.1em]">
+                          {partnerExtensionOf(file.original_filename).toUpperCase() || "FILE"}
+                        </span>
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        data-removed={removed}
+                        className="truncate text-sm data-[removed=true]:line-through"
+                      >
+                        {file.original_filename}
+                      </p>
+                      <p className="text-muted-foreground text-xs tabular-nums">
+                        {removed
+                          ? "Will be deleted when you save"
+                          : formatPartnerBytes(file.file_size)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRemovedFileIds((ids) =>
+                          removed ? ids.filter((id) => id !== file.id) : [...ids, file.id],
+                        )
+                      }
+                      disabled={busy}
+                      className="text-muted-foreground hover:text-foreground inline-flex min-h-9 shrink-0 items-center gap-1.5 px-1 text-xs transition-colors disabled:opacity-50"
+                    >
+                      {removed ? (
+                        "Undo"
+                      ) : (
+                        <>
+                          <TrashIcon className="size-4" />
+                          Remove
+                        </>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+
           <input
             ref={fileInputRef}
             type="file"
@@ -624,18 +758,35 @@ export function NewJobForm({ basePath }: { basePath: string }) {
         </CardContent>
       </Card>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {editing ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onDelete}
+            disabled={busy || deleting}
+            className="text-destructive hover:text-destructive h-11 w-full sm:w-auto"
+          >
+            {deleting ? <SpinnerIcon className="size-4 animate-spin" /> : <TrashIcon className="size-4" />}
+            {deleting ? "Deleting…" : "Delete job"}
+          </Button>
+        ) : (
+          <span />
+        )}
+
         <Button
           type="submit"
-          disabled={busy}
+          disabled={busy || deleting}
           className="h-11 w-full sm:w-auto"
         >
           {busy ? <SpinnerIcon className="size-4 animate-spin" /> : null}
           {phase === "uploading"
             ? "Uploading files…"
             : phase === "saving"
-              ? "Submitting…"
-              : "Submit job"}
+              ? "Saving…"
+              : editing
+                ? "Save changes"
+                : "Submit job"}
         </Button>
       </div>
     </form>
