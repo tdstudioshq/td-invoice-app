@@ -55,7 +55,7 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="reset-email">Email</Label>
         <Input
           id="reset-email"
@@ -77,7 +77,7 @@ export function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
       <button
         type="button"
         onClick={onBack}
-        className="text-muted-foreground hover:text-foreground flex min-h-11 w-full items-center justify-center text-center text-xs underline-offset-4 hover:underline"
+        className="text-muted-foreground hover:text-foreground flex min-h-11 w-full items-center justify-center text-center text-sm underline-offset-4 hover:underline md:text-xs"
       >
         Back to sign in
       </button>

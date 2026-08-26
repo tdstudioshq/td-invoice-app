@@ -49,7 +49,7 @@ export default async function DesignRequestsPage() {
                   </div>
                   <CustomDesignStatusBadge status={request.status} />
                 </div>
-                <div className="text-muted-foreground mt-3 flex justify-between gap-3 text-xs">
+                <div className="text-muted-foreground mt-3 flex justify-between gap-3 text-sm md:text-xs">
                   <span>{request.design_type}</span>
                   <span>{formatDate(request.created_at)}</span>
                 </div>

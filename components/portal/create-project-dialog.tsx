@@ -78,7 +78,7 @@ export function CreateProjectDialog({ clientId }: { clientId: string }) {
               aria-invalid={Boolean(state.fieldErrors?.name)}
             />
             {state.fieldErrors?.name ? (
-              <p className="text-destructive text-xs">
+              <p className="text-destructive text-sm md:text-xs">
                 {state.fieldErrors.name}
               </p>
             ) : null}

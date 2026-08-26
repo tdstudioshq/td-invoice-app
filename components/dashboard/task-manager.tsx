@@ -314,11 +314,11 @@ function TaskRow({
       <div className="min-w-0 flex-1">
         <p className={cn("truncate", done && "line-through")}>{task.title}</p>
         {task.notes ? (
-          <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+          <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm md:text-xs">
             {task.notes}
           </p>
         ) : null}
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm md:text-xs">
           {task.client ? (
             <span className="text-muted-foreground inline-flex items-center gap-1">
               <UserIcon className="size-3.5" />

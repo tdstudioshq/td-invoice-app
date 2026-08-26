@@ -1,6 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 import { AtSign, UserRound, Users } from "lucide-react";
 
 import { enterMartyigCodeAction, hasMartyigAccess } from "@/app/martyig/access";
@@ -8,6 +6,7 @@ import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { MartyigTable } from "./martyig-table";
 import leads from "./leads.json";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/zazalogo.png";
 const SOURCE = "martydetroit";
@@ -36,7 +35,7 @@ export default async function MartyigPage() {
 
   if (!unlocked) {
     return (
-      <main className="on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-black px-4 py-12">
+      <main className="public-page on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-black">
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
           <TasteBudzKeypad
             logoUrl={LOGO}
@@ -44,13 +43,7 @@ export default async function MartyigPage() {
             logoClassName="w-full max-w-[15rem]"
             action={enterMartyigCodeAction}
           />
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          <BackToStudiosLink className="mx-auto" />
         </div>
       </main>
     );
@@ -60,11 +53,11 @@ export default async function MartyigPage() {
   const named = leads.filter((lead) => lead.name).length;
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden bg-black px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden bg-black">
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <img src={LOGO} alt="Marty IG Leads" className="w-full max-w-[13rem]" />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Marty IG Leads
           </h1>
           <p className="text-sm text-white/60">
@@ -95,13 +88,7 @@ export default async function MartyigPage() {
 
         <MartyigTable />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

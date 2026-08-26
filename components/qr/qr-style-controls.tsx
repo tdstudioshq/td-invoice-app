@@ -158,7 +158,7 @@ export function QrStyleControls({
           Add logo
         </Button>
       )}
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
         Centered logo. Error correction is raised automatically so the code
         still scans.
       </p>

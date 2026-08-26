@@ -98,16 +98,16 @@ export function CustomDesignForm() {
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
         <CheckCircleIcon
           weight="fill"
-          className="size-12 text-emerald-400"
+          className="size-14 text-emerald-400 md:size-12"
         />
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Request sent!</h2>
+          <h2 className="text-xl font-semibold text-white md:text-lg">Request sent!</h2>
           <p className="text-muted-foreground text-sm">
             Thanks — we&apos;ll review your custom design request and get back to
             you shortly.
           </p>
           {referenceNumber ? (
-            <p className="text-xs text-white/70">
+            <p className="text-sm text-white/70 md:text-xs">
               Reference: <span className="font-medium text-white">{referenceNumber}</span>
             </p>
           ) : null}
@@ -145,7 +145,7 @@ export function CustomDesignForm() {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="name" className="text-white">
             Name
           </Label>
@@ -156,11 +156,11 @@ export function CustomDesignForm() {
             autoComplete="name"
             required
             placeholder="Your full name"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="email" className="text-white">
             Email
           </Label>
@@ -171,11 +171,11 @@ export function CustomDesignForm() {
             autoComplete="email"
             required
             placeholder="you@example.com"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="phone" className="text-white">
             Phone number
           </Label>
@@ -186,11 +186,11 @@ export function CustomDesignForm() {
             autoComplete="tel"
             required
             placeholder="(555) 555-5555"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="instagram" className="text-white">
             Instagram username
           </Label>
@@ -200,12 +200,12 @@ export function CustomDesignForm() {
             type="text"
             required
             placeholder="@yourhandle"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="design_type" className="text-white">
           Design type
         </Label>
@@ -214,7 +214,7 @@ export function CustomDesignForm() {
           name="design_type"
           required
           defaultValue=""
-          className={`h-11 w-full appearance-none rounded-xl border bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat ${fieldClass}`}
+          className={`h-12 w-full appearance-none rounded-xl border bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat md:h-11 ${fieldClass}`}
           style={{
             backgroundImage:
               "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
@@ -235,7 +235,7 @@ export function CustomDesignForm() {
         </select>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="notes" className="text-white">
           Project notes / request details
         </Label>
@@ -249,7 +249,7 @@ export function CustomDesignForm() {
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="assets" className="text-white">
           Logos / assets / references
         </Label>
@@ -259,9 +259,9 @@ export function CustomDesignForm() {
           type="file"
           multiple
           accept={ACCEPT_ATTRIBUTE}
-          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:text-white ${fieldClass}`}
+          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-white ${fieldClass}`}
         />
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           {ALLOWED_TYPES_LABEL} files, up to 25 MB each. You can select
           multiple.
         </p>
@@ -277,7 +277,7 @@ export function CustomDesignForm() {
       <Button
         type="submit"
         disabled={status === "uploading" || status === "submitting"}
-        className="h-11 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90"
+        className="h-12 w-full gap-2 text-base bg-white text-neutral-900 hover:bg-white/90 md:h-11 md:text-[15px]"
       >
         <PaperPlaneTiltIcon weight="bold" className="size-4" />
         {status === "uploading"

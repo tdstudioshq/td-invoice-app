@@ -43,8 +43,10 @@ function PortalBrand({ companyName }: { companyName?: string | null }) {
         className="size-9 shrink-0"
       />
       <span className="flex flex-col leading-none">
-        <span className="text-sm font-semibold tracking-tight">TD Studios</span>
-        <span className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">
+        <span className="text-base font-semibold tracking-tight md:text-sm">
+          TD Studios
+        </span>
+        <span className="text-muted-foreground text-[11px] tracking-[0.18em] uppercase md:text-[10px]">
           {companyName ? "Client Portal" : "Portal"}
         </span>
       </span>
@@ -68,7 +70,7 @@ function PortalNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             data-active={active}
             className={cn(
-              "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors",
+              "flex min-h-11 items-center gap-2.5 rounded-[6px] px-3 py-2 text-sm transition-colors md:min-h-0",
               "text-muted-foreground hover:bg-muted hover:text-foreground",
               "data-[active=true]:bg-muted data-[active=true]:text-foreground data-[active=true]:font-medium",
             )}
@@ -101,7 +103,7 @@ export function PortalShell({
         </div>
         {companyName ? (
           <div className="border-border border-b px-5 py-3">
-            <p className="text-muted-foreground text-[11px] tracking-wide uppercase">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase md:text-[11px]">
               Signed in as
             </p>
             <p className="truncate text-sm font-medium">{companyName}</p>
@@ -112,7 +114,7 @@ export function PortalShell({
         </div>
         <div className="border-border border-t px-5 py-4">
           {userEmail ? (
-            <p className="text-muted-foreground mb-2 truncate text-[11px]">
+            <p className="text-muted-foreground mb-2 truncate text-xs md:text-[11px]">
               {userEmail}
             </p>
           ) : null}

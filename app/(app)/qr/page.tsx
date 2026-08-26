@@ -38,7 +38,7 @@ export default async function QrPage() {
             <h2 className="text-sm font-medium text-metal-platinum">
               Saved dynamic QR codes
             </h2>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
               Each code encodes a short /q/… link that redirects to its
               destination — change the target without reprinting.
             </p>

@@ -25,7 +25,7 @@ function Detail({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">{label}</dt>
       <dd className="mt-0.5 text-sm break-words">{children}</dd>
     </div>
   );

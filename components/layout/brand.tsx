@@ -18,10 +18,10 @@ export function Brand({ className }: { className?: string }) {
         className="size-9 shrink-0"
       />
       <span className="flex flex-col leading-none">
-        <span className="text-sm font-semibold tracking-tight">
+        <span className="text-base font-semibold tracking-tight md:text-sm">
           TD Studios
         </span>
-        <span className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">
+        <span className="text-muted-foreground text-[11px] tracking-[0.18em] uppercase md:text-[10px]">
           Invoicing
         </span>
       </span>

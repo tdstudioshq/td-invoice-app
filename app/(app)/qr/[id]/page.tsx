@@ -91,7 +91,7 @@ export default async function QrDetailPage({
                   key={day.date}
                   className="flex flex-1 flex-col items-center gap-2"
                 >
-                  <span className="text-muted-foreground text-xs tabular-nums">
+                  <span className="text-muted-foreground text-sm tabular-nums md:text-xs">
                     {day.count}
                   </span>
                   <div
@@ -105,7 +105,7 @@ export default async function QrDetailPage({
                       }}
                     />
                   </div>
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                     {weekdayLabel(day.date)}
                   </span>
                 </div>

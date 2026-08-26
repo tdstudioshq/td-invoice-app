@@ -18,7 +18,7 @@ export const metadata = { title: "Design Request" };
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">{label}</dt>
       <dd className="mt-0.5 text-sm break-words">{children}</dd>
     </div>
   );
@@ -36,7 +36,7 @@ function AssetCard({ requestId, file }: { requestId: string; file: CustomDesignR
         </a>
       ) : null}
       <p className="mt-2 truncate text-sm font-medium" title={file.file_name}>{file.file_name}</p>
-      <p className="text-muted-foreground text-xs">{formatBytes(file.file_size)} · {file.mime_type}</p>
+      <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">{formatBytes(file.file_size)} · {file.mime_type}</p>
       <div className="mt-3 flex gap-2">
         {kind ? (
           <Button variant="outline" size="sm" asChild>
@@ -74,7 +74,7 @@ export default async function DesignRequestDetailPage(
                 <Detail label="Last updated">{formatDateTime(request.updated_at)}</Detail>
               </dl>
               <div>
-                <p className="text-muted-foreground text-xs">Project details</p>
+                <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">Project details</p>
                 <p className="mt-1 text-sm break-words whitespace-pre-wrap">{request.notes}</p>
               </div>
             </CardContent>

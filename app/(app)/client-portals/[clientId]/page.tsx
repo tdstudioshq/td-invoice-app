@@ -105,7 +105,7 @@ export default async function ClientPortalDetailPage(
                   >
                     {portalUser.can_upload ? "Uploads enabled" : "Uploads off"}
                   </Badge>
-                  <span className="text-muted-foreground text-xs">
+                  <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                     Since {formatDate(portalUser.created_at)}
                   </span>
                 </div>
@@ -151,7 +151,7 @@ export default async function ClientPortalDetailPage(
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium">{project.name}</p>
-                          <p className="text-muted-foreground text-xs">
+                          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                             {count} {count === 1 ? "file" : "files"}
                             {project.due_date
                               ? ` · Due ${formatDate(project.due_date)}`
@@ -198,7 +198,7 @@ export default async function ClientPortalDetailPage(
                       <h3 className="text-sm font-medium">
                         {CATEGORY_LABEL[category]}
                       </h3>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                         {CATEGORY_DESCRIPTION[category]}
                       </p>
                     </div>

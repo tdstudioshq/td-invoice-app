@@ -24,7 +24,7 @@ export async function AuthScreen({
   }
 
   return (
-    <main className="on-glass relative flex min-h-svh items-center justify-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh items-center justify-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 w-full max-w-sm">
         {error ? <AuthErrorToast message={error} /> : null}

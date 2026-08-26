@@ -123,7 +123,7 @@ export function FileList({
                   </Badge>
                 ) : null}
               </div>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                 {CATEGORY_LABEL[file.category]} · {formatBytes(file.size_bytes)}{" "}
                 · {formatDate(file.created_at)}
               </p>
@@ -293,7 +293,7 @@ function RenameFileDialog({
               aria-invalid={Boolean(state.fieldErrors?.name)}
             />
             {state.fieldErrors?.name ? (
-              <p className="text-destructive text-xs">
+              <p className="text-destructive text-sm md:text-xs">
                 {state.fieldErrors.name}
               </p>
             ) : null}

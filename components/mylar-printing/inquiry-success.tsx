@@ -26,23 +26,23 @@ export function InquirySuccess({
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col items-center gap-4 text-center">
-        <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
+        <CheckCircleIcon weight="fill" className="size-14 text-emerald-400 md:size-12" />
         <div className="space-y-2">
-          <h2 className="text-2xl leading-tight text-white">
+          <h2 className="text-3xl leading-tight text-white md:text-2xl">
             Printing Request Received
           </h2>
-          <p className="text-muted-foreground mx-auto max-w-md text-sm">
+          <p className="text-muted-foreground mx-auto max-w-md text-base leading-relaxed md:text-sm">
             We received your custom Mylar printing request. TD Studios will
             review your order details and artwork and contact you with the next
             steps.
           </p>
         </div>
 
-        <div className="rounded-xl border border-white/15 bg-black/35 px-5 py-3">
-          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
+        <div className="rounded-xl border border-white/15 bg-black/35 px-5 py-3.5">
+          <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase md:text-[11px]">
             Reference
           </p>
-          <p className="mt-0.5 font-mono text-xl tracking-widest text-white">
+          <p className="mt-1 font-mono text-2xl tracking-widest text-white md:text-xl">
             {referenceNumber}
           </p>
         </div>

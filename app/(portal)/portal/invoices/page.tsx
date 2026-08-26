@@ -57,11 +57,11 @@ export default async function PortalInvoicesPage() {
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-glass-border pt-3 text-sm">
                   <div>
-                    <dt className="text-muted-foreground text-xs">Issued</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Issued</dt>
                     <dd className="mt-0.5">{formatDate(invoice.issue_date)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground text-xs">Due</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Due</dt>
                     <dd className="mt-0.5">{formatDate(invoice.due_date)}</dd>
                   </div>
                 </dl>

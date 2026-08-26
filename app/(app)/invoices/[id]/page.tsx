@@ -165,7 +165,7 @@ export default async function InvoiceDetailPage(
               />
               <div className="leading-tight">
                 <p className="text-base font-semibold">{companyName}</p>
-                <p className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">
+                <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase md:text-[10px]">
                   Invoicing
                 </p>
               </div>
@@ -186,7 +186,7 @@ export default async function InvoiceDetailPage(
           {/* From / Bill to */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground mb-1 text-xs uppercase">
+              <p className="text-muted-foreground mb-1 text-[13px] uppercase md:text-xs">
                 From
               </p>
               <p className="font-medium">{companyName}</p>
@@ -203,7 +203,7 @@ export default async function InvoiceDetailPage(
               ) : null}
             </div>
             <div className="sm:text-right">
-              <p className="text-muted-foreground mb-1 text-xs uppercase">
+              <p className="text-muted-foreground mb-1 text-[13px] uppercase md:text-xs">
                 Bill to
               </p>
               {invoice.client ? (
@@ -266,17 +266,17 @@ export default async function InvoiceDetailPage(
                   <p className="font-medium">{item.description || "—"}</p>
                   <dl className="mt-3 grid grid-cols-3 gap-3 border-t border-glass-border pt-3 text-sm">
                     <div>
-                      <dt className="text-muted-foreground text-xs">Qty</dt>
+                      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Qty</dt>
                       <dd className="mt-0.5 tabular-nums">{item.quantity}</dd>
                     </div>
                     <div>
-                      <dt className="text-muted-foreground text-xs">Unit price</dt>
+                      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Unit price</dt>
                       <dd className="mt-0.5 tabular-nums">
                         {formatCurrency(item.unit_price)}
                       </dd>
                     </div>
                     <div className="text-right">
-                      <dt className="text-muted-foreground text-xs">Amount</dt>
+                      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Amount</dt>
                       <dd className="mt-0.5 font-medium tabular-nums">
                         {formatCurrency(
                           Number(item.quantity) * Number(item.unit_price),
@@ -359,7 +359,7 @@ export default async function InvoiceDetailPage(
 
           {invoice.notes ? (
             <div>
-              <p className="text-muted-foreground mb-1 text-xs uppercase">
+              <p className="text-muted-foreground mb-1 text-[13px] uppercase md:text-xs">
                 Notes
               </p>
               <p className="text-sm whitespace-pre-line">{invoice.notes}</p>
@@ -368,7 +368,7 @@ export default async function InvoiceDetailPage(
 
           {settings?.payment_instructions ? (
             <div>
-              <p className="text-muted-foreground mb-1 text-xs uppercase">
+              <p className="text-muted-foreground mb-1 text-[13px] uppercase md:text-xs">
                 Payment instructions
               </p>
               <p className="text-sm whitespace-pre-line">
@@ -428,7 +428,7 @@ function Meta({
 }) {
   return (
     <div>
-      <p className="text-muted-foreground mb-1 text-xs uppercase">{label}</p>
+      <p className="text-muted-foreground mb-1 text-[13px] uppercase md:text-xs">{label}</p>
       <div>{children}</div>
     </div>
   );

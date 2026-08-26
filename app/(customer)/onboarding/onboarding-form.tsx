@@ -43,7 +43,7 @@ export function OnboardingForm({
         </p>
       ) : null}
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="full_name" className="text-white">
           Your name
         </Label>
@@ -59,13 +59,13 @@ export function OnboardingForm({
           className={fieldClass}
         />
         {state.fieldErrors?.full_name ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.full_name}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="business_name" className="text-white">
           Business name
         </Label>
@@ -81,13 +81,13 @@ export function OnboardingForm({
           className={fieldClass}
         />
         {state.fieldErrors?.business_name ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.business_name}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label className="text-white">Email</Label>
         <Input
           type="email"
@@ -96,7 +96,7 @@ export function OnboardingForm({
           readOnly
           className={`${fieldClass} opacity-70`}
         />
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           Linked to your account — contact us to change it.
         </p>
       </div>

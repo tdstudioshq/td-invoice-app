@@ -30,7 +30,7 @@ export function LoginForm({
         <input type="hidden" name="redirect" value={redirectTo} />
       ) : null}
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
@@ -42,17 +42,17 @@ export function LoginForm({
           className="h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35"
         />
         {state.fieldErrors?.email ? (
-          <p className="text-destructive text-xs">{state.fieldErrors.email}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.email}</p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="password">Password</Label>
           <button
             type="button"
             onClick={onForgot}
-            className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-xs underline-offset-4 hover:underline"
+            className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-sm underline-offset-4 hover:underline md:text-xs"
           >
             Forgot password?
           </button>
@@ -67,25 +67,25 @@ export function LoginForm({
           className="h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35"
         />
         {state.fieldErrors?.password ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
 
-      <SubmitButton pendingText="Signing in…" className="h-11 w-full rounded-xl">
+      <SubmitButton pendingText="Signing in…" className="h-12 w-full rounded-xl text-base md:h-11 md:text-[15px]">
         Sign in
       </SubmitButton>
 
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-white/10" />
-        <span className="text-muted-foreground text-xs">or</span>
+        <span className="text-muted-foreground text-sm md:text-xs">or</span>
         <span className="h-px flex-1 bg-white/10" />
       </div>
 
       <GoogleSignInButton redirectTo={redirectTo} />
 
-      <p className="text-muted-foreground text-center text-xs">
+      <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
         New customer?{" "}
         <Link
           href="/sign-up"

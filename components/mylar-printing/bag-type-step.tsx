@@ -19,14 +19,15 @@ export function BagTypeStep({
     <div className="flex flex-col gap-6">
       <StepHeading
         title="What type of Mylar bag do you need?"
-        subtitle="Select the bag style you want us to print.HIGH QUALITY - 6 MIL HEAVY DUTY VINYL"
+        subtitle="Select the bag style you want us to print."
+        note="High quality · 6 mil heavy duty"
       />
       {/* One column on phones so the whole card stays an easy tap target;
           two from sm up, where four cards would otherwise run very long. */}
       <div
         role="radiogroup"
         aria-label="Bag type"
-        className="grid gap-3 sm:grid-cols-2"
+        className="grid gap-3 sm:grid-cols-2 sm:gap-4"
       >
         {MYLAR_BAG_OPTIONS.map((option) => (
           <OptionCard

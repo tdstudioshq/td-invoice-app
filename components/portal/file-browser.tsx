@@ -216,7 +216,7 @@ export function FileBrowser({
       />
       <span className="truncate">{label}</span>
       {count !== undefined && count > 0 ? (
-        <span className="text-muted-foreground ml-auto text-xs tabular-nums">
+        <span className="text-muted-foreground ml-auto text-sm tabular-nums md:text-xs">
           {count}
         </span>
       ) : null}
@@ -338,7 +338,7 @@ export function FileBrowser({
             <p className="text-sm font-medium">
               {query ? "No files match your search." : "Nothing here yet."}
             </p>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
               {query
                 ? "Try a different name or file type."
                 : "Files TD Studios shares with you will appear here."}
@@ -513,7 +513,7 @@ function FileCard({
         {group.older.length > 0 ? (
           <Badge
             variant="secondary"
-            className="absolute bottom-2 left-2 text-[10px]"
+            className="absolute bottom-2 left-2 text-[11px] md:text-[10px]"
           >
             {group.older.length + 1} versions
           </Badge>
@@ -532,7 +532,7 @@ function FileCard({
           <p className="truncate text-sm font-medium" title={file.name}>
             {file.name}
           </p>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}
           </p>
         </div>
@@ -578,7 +578,7 @@ function FileRow({
       <Icon weight="duotone" className="text-muted-foreground size-5 shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{file.name}</p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           {FILE_KIND_LABEL[fileKind(file)]}
           {group.older.length > 0
             ? ` · ${group.older.length + 1} versions`
@@ -671,7 +671,7 @@ function FilePreviewModal({
                       />
                     );
                   })()}
-                  <p className="text-muted-foreground max-w-52 text-xs">
+                  <p className="text-muted-foreground max-w-52 text-sm leading-relaxed md:text-xs">
                     No inline preview for {FILE_KIND_LABEL[fileKind(file)]}{" "}
                     files — download to open in your design tools.
                   </p>
@@ -707,7 +707,7 @@ function FilePreviewModal({
                 </DialogTitle>
               </DialogHeader>
 
-              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm md:text-xs">
                 <dt className="text-muted-foreground">Type</dt>
                 <dd>{FILE_KIND_LABEL[fileKind(file)]}</dd>
                 <dt className="text-muted-foreground">Size</dt>
@@ -746,7 +746,7 @@ function FilePreviewModal({
 
               {group && group.older.length > 0 ? (
                 <div>
-                  <p className="text-muted-foreground mb-2 text-[10px] font-medium tracking-[0.14em] uppercase">
+                  <p className="text-muted-foreground mb-2 text-xs font-medium tracking-[0.14em] uppercase md:text-[10px]">
                     Version history
                   </p>
                   <ul className="space-y-1.5">
@@ -756,10 +756,10 @@ function FilePreviewModal({
                         className="border-border flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs" title={version.name}>
+                          <p className="truncate text-sm md:text-xs" title={version.name}>
                             {version.name}
                           </p>
-                          <p className="text-muted-foreground text-[10px]">
+                          <p className="text-muted-foreground text-xs md:text-[10px]">
                             v{group.older.length - i} ·{" "}
                             {formatDate(version.created_at)}
                           </p>
@@ -823,7 +823,7 @@ function ActivityTimeline({
             </span>{" "}
             <span className="break-words">{nameFor(entry)}</span>
           </p>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {formatDate(entry.created_at)}
           </p>
         </li>

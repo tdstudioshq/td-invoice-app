@@ -46,7 +46,7 @@ export function QrPreview({
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium">No QR code yet</p>
-            <p className="text-muted-foreground max-w-xs text-xs">
+            <p className="text-muted-foreground max-w-xs text-sm leading-relaxed md:text-xs">
               Enter a URL or text to generate a live preview.
             </p>
           </div>

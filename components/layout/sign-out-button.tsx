@@ -13,7 +13,7 @@ export function SignOutButton() {
     <form action={signOutAction}>
       <button
         type="submit"
-        className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 text-left text-xs transition-colors"
+        className="text-muted-foreground hover:text-foreground flex min-h-11 w-full items-center gap-2 text-left text-sm transition-colors md:min-h-0 md:text-xs"
       >
         <SignOut className="size-4" />
         Sign out

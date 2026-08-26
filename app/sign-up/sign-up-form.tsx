@@ -10,8 +10,10 @@ import { SubmitButton } from "@/components/shared/submit-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// h-12 rather than the primitive's h-11: this is a five-field signup typed
+// with a thumb, and the text is 16px so iOS Safari does not zoom on focus.
 const fieldClass =
-  "h-11 rounded-xl border-white/15 bg-black/35 px-3.5 dark:bg-black/35";
+  "h-12 rounded-xl border-white/15 bg-black/35 px-3.5 text-base md:h-11 md:text-sm dark:bg-black/35";
 
 export function SignUpForm() {
   const [state, formAction] = useActionState(signUpAction, initialActionState);
@@ -21,9 +23,9 @@ export function SignUpForm() {
   if (state.success) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
-        <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
+        <CheckCircleIcon weight="fill" className="size-14 text-emerald-400 md:size-12" />
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Check your email</h2>
+          <h2 className="text-xl font-semibold text-white md:text-lg">Check your email</h2>
           <p className="text-muted-foreground text-sm">
             We sent you a confirmation link. Click it to activate your account —
             then your portal just needs approval from us.
@@ -31,7 +33,7 @@ export function SignUpForm() {
         </div>
         <Link
           href="/"
-          className="text-muted-foreground hover:text-foreground text-xs underline-offset-4 hover:underline"
+          className="text-muted-foreground hover:text-foreground inline-flex min-h-11 items-center text-sm underline-offset-4 hover:underline md:min-h-0 md:text-xs"
         >
           Back to TD Studios
         </Link>
@@ -50,7 +52,7 @@ export function SignUpForm() {
         </p>
       ) : null}
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="full_name" className="text-white">
           Your name
         </Label>
@@ -65,13 +67,13 @@ export function SignUpForm() {
           className={fieldClass}
         />
         {state.fieldErrors?.full_name ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.full_name}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="business_name" className="text-white">
           Business name
         </Label>
@@ -86,13 +88,13 @@ export function SignUpForm() {
           className={fieldClass}
         />
         {state.fieldErrors?.business_name ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.business_name}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="email" className="text-white">
           Email
         </Label>
@@ -107,11 +109,11 @@ export function SignUpForm() {
           className={fieldClass}
         />
         {state.fieldErrors?.email ? (
-          <p className="text-destructive text-xs">{state.fieldErrors.email}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.email}</p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="password" className="text-white">
           Password
         </Label>
@@ -126,13 +128,13 @@ export function SignUpForm() {
           className={fieldClass}
         />
         {state.fieldErrors?.password ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="confirm_password" className="text-white">
           Confirm password
         </Label>
@@ -147,7 +149,7 @@ export function SignUpForm() {
           className={fieldClass}
         />
         {state.fieldErrors?.confirm_password ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.confirm_password}
           </p>
         ) : null}
@@ -155,12 +157,12 @@ export function SignUpForm() {
 
       <SubmitButton
         pendingText="Creating account…"
-        className="h-11 w-full rounded-xl bg-white text-neutral-900 hover:bg-white/90"
+        className="h-12 w-full rounded-xl bg-white text-base text-neutral-900 hover:bg-white/90 md:h-11 md:text-[15px]"
       >
         Create account
       </SubmitButton>
 
-      <p className="text-muted-foreground text-center text-xs">
+      <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
         Already have an account?{" "}
         <Link
           href="/login"

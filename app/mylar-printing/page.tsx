@@ -1,9 +1,9 @@
-import Link from "next/link";
-import { ArrowLeftIcon, ChatCircleTextIcon } from "@phosphor-icons/react/dist/ssr";
+import { ChatCircleTextIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import { MylarPrintingWizard } from "@/components/mylar-printing/mylar-printing-wizard";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 // The root layout's title template appends " · TD Studios", so this renders as
 // "Custom Mylar Printing · TD Studios".
@@ -28,17 +28,17 @@ const TEXT_HREF = "sms:+19297528373";
  */
 export default function MylarPrintingPage() {
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-10 sm:py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       {/* ~896px: wide enough for two upload cards side by side without the
           wizard drifting away from the rest of the site's public pages. */}
-      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-6 sm:gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Custom Mylar Printing
           </h1>
-          <p className="text-muted-foreground max-w-md text-sm">
+          <p className="text-muted-foreground max-w-md text-base leading-relaxed md:text-sm">
             Pick your bag, tell us how many, send your artwork — we&apos;ll come
             back with pricing and a proof.
           </p>
@@ -46,21 +46,15 @@ export default function MylarPrintingPage() {
 
         <MylarPrintingWizard />
 
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-1">
           <a
             href={TEXT_HREF}
-            className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
+            className="text-on-photo text-muted-foreground hover:text-foreground -mx-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none md:text-xs"
           >
-            <ChatCircleTextIcon weight="bold" className="size-3.5" />
+            <ChatCircleTextIcon weight="bold" className="size-4 shrink-0 md:size-3.5" />
             Rather just text us? Tap here.
           </a>
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          <BackToStudiosLink />
         </div>
       </div>
     </main>

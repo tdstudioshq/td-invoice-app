@@ -1,6 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import {
@@ -10,6 +8,7 @@ import {
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { getMafiaTerpzImages } from "@/lib/data";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/mafia-terpz-logo.png";
 
@@ -38,7 +37,7 @@ export default async function MafiaTerpzPage() {
 
   if (!unlocked) {
     return (
-      <main className="on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <main className="public-page on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
         <AnimatedBackground />
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
           <TasteBudzKeypad
@@ -47,13 +46,7 @@ export default async function MafiaTerpzPage() {
             logoClassName="w-full max-w-xs"
             action={enterMafiaTerpzCodeAction}
           />
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          <BackToStudiosLink className="mx-auto" />
         </div>
       </main>
     );
@@ -62,7 +55,7 @@ export default async function MafiaTerpzPage() {
   const images = await getMafiaTerpzImages();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
@@ -80,13 +73,7 @@ export default async function MafiaTerpzPage() {
           emptyHint="Upload images to the MAFIA terpz bucket and they'll appear here automatically."
         />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

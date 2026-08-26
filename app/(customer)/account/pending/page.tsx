@@ -37,7 +37,7 @@ export default async function AccountPendingPage() {
     <>
       <header className="text-on-photo flex flex-col items-center gap-4 text-center">
         <HomeLogoLink />
-        <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-300">
+        <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[13px] font-medium text-amber-300 md:py-1 md:text-xs">
           <ClockIcon weight="bold" className="size-3.5" />
           Awaiting approval
         </span>

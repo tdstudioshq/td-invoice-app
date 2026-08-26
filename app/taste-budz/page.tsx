@@ -1,12 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { hasTasteBudzAccess } from "@/app/taste-budz/access";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { getTasteBudzImages } from "@/lib/data";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 // Self-hosted copy of the bucket logo: social crawlers get a stable
 // same-origin URL (resolved absolute via metadataBase in the root layout).
@@ -37,17 +36,11 @@ export default async function TasteBudzPage() {
 
   if (!unlocked) {
     return (
-      <main className="on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <main className="public-page on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
         <AnimatedBackground />
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
           <TasteBudzKeypad logoUrl={TASTE_BUDZ_LOGO} />
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          <BackToStudiosLink className="mx-auto" />
         </div>
       </main>
     );
@@ -56,7 +49,7 @@ export default async function TasteBudzPage() {
   const images = await getTasteBudzImages();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
@@ -74,13 +67,7 @@ export default async function TasteBudzPage() {
           emptyHint="Upload images to the TASTE BUDZ bucket and they'll appear here automatically."
         />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

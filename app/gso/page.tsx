@@ -1,10 +1,8 @@
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
-
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import { getGsoImages } from "@/lib/data";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "GSO",
@@ -19,12 +17,12 @@ export default async function GsoPage() {
   const images = await getGsoImages();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">GSO</h1>
+          <h1 className="public-title font-bold tracking-tight text-white">GSO</h1>
         </header>
 
         <PortfolioGallery
@@ -33,13 +31,7 @@ export default async function GsoPage() {
           emptyHint="Upload images to the GSO bucket and they'll appear here automatically."
         />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

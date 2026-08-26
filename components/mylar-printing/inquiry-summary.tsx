@@ -10,6 +10,8 @@ import {
   type MylarPrintingDraft,
   type WizardStepId,
 } from "@/lib/mylar-printing/types";
+import { metaLabelClass } from "@/components/mylar-printing/wizard-ui";
+import { cn } from "@/lib/utils";
 
 /**
  * The "Printing Request" recap, shown at the foot of step 5 and again on the
@@ -88,11 +90,11 @@ export function InquirySummary({
   return (
     <section
       aria-labelledby="printing-request-summary"
-      className="rounded-2xl border border-white/12 bg-black/35 p-5 sm:p-6"
+      className="rounded-2xl border border-white/12 bg-black/35 p-4 sm:p-6"
     >
       <h3
         id="printing-request-summary"
-        className="mb-4 text-lg leading-none text-white"
+        className="mb-4 text-xl leading-none text-white md:text-lg"
       >
         Printing Request
       </h3>
@@ -104,11 +106,11 @@ export function InquirySummary({
             className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
           >
             <div className="min-w-0 flex-1">
-              <dt className="text-muted-foreground text-xs tracking-wider uppercase">
+              <dt className={cn("tracking-wider", metaLabelClass)}>
                 {row.label}
               </dt>
               <dd
-                className={`mt-0.5 text-sm text-white ${
+                className={`mt-1 text-base leading-snug text-white md:text-sm ${
                   row.truncate ? "truncate" : "break-words whitespace-pre-wrap"
                 }`}
                 title={row.truncate ? row.value : undefined}
@@ -120,9 +122,9 @@ export function InquirySummary({
               <button
                 type="button"
                 onClick={() => onEdit(row.step)}
-                className="text-muted-foreground hover:text-foreground -mr-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+                className="text-muted-foreground hover:text-foreground -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none md:min-h-0 md:py-1 md:text-xs"
               >
-                <PencilSimpleIcon weight="bold" className="size-3" />
+                <PencilSimpleIcon weight="bold" className="size-3.5 md:size-3" />
                 <span>Edit</span>
                 <span className="sr-only"> {row.label}</span>
               </button>
@@ -141,16 +143,14 @@ export function InquirySummary({
       {draft.designs.length > 0 ? (
         <div className="mt-5 border-t border-white/8 pt-5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h4 className="text-muted-foreground text-xs tracking-wider uppercase">
-              Designs
-            </h4>
+            <h4 className={cn("tracking-wider", metaLabelClass)}>Designs</h4>
             {onEdit ? (
               <button
                 type="button"
                 onClick={() => onEdit("artwork")}
-                className="text-muted-foreground hover:text-foreground -mr-1 inline-flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none"
+                className="text-muted-foreground hover:text-foreground -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 rounded-lg px-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none md:min-h-0 md:py-1 md:text-xs"
               >
-                <PencilSimpleIcon weight="bold" className="size-3" />
+                <PencilSimpleIcon weight="bold" className="size-3.5 md:size-3" />
                 <span>Edit</span>
                 <span className="sr-only"> designs and artwork</span>
               </button>
@@ -161,16 +161,18 @@ export function InquirySummary({
             {draft.designs.map((design, index) => (
               <li
                 key={design.id}
-                className="rounded-xl border border-white/10 bg-black/25 p-3.5"
+                className="rounded-xl border border-white/10 bg-black/25 p-4"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-sm text-white">Design {index + 1}</p>
-                  <p className="text-muted-foreground text-xs tabular-nums">
+                  <p className="text-base text-white md:text-sm">
+                    Design {index + 1}
+                  </p>
+                  <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
                     {design.quantity.toLocaleString()}{" "}
                     {design.quantity === 1 ? "piece" : "pieces"}
                   </p>
                 </div>
-                <dl className="mt-2 space-y-1">
+                <dl className="mt-2 flex flex-col gap-1">
                   <ArtworkLine
                     label="Front"
                     value={artworkLabel(design.frontArtwork)}
@@ -192,7 +194,7 @@ export function InquirySummary({
 /** "Front: design-a-front.ai (2.1 MB)" — one artwork line inside a design. */
 function ArtworkLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 gap-2 text-xs">
+    <div className="flex min-w-0 gap-2 text-sm md:text-xs">
       <dt className="text-muted-foreground shrink-0">{label}:</dt>
       <dd className="truncate text-white/85" title={value}>
         {value}

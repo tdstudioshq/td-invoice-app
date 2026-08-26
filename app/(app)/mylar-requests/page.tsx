@@ -67,28 +67,28 @@ export default async function MylarRequestsPage() {
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                   <div className="col-span-2">
-                    <dt className="text-muted-foreground text-xs">Bag type</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Bag type</dt>
                     <dd className="mt-0.5">{bagTypeLabel(inquiry.bag_type)}</dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground text-xs">Quantity</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Quantity</dt>
                     <dd className="mt-0.5 tabular-nums">
                       {inquiry.quantity.toLocaleString()} pcs
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground text-xs">Designs</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Designs</dt>
                     <dd className="mt-0.5 tabular-nums">
                       {inquiry.designCount}
                       {inquiry.statedDesignCount !== null ? (
-                        <span className="text-muted-foreground ml-1.5 text-xs">
+                        <span className="text-muted-foreground ml-1.5 text-sm md:text-xs">
                           (stated {inquiry.statedDesignCount})
                         </span>
                       ) : null}
                     </dd>
                   </div>
                   <div className="border-glass-border col-span-2 border-t pt-3">
-                    <dt className="text-muted-foreground text-xs">Received</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Received</dt>
                     <dd className="mt-0.5">{formatDate(inquiry.created_at)}</dd>
                   </div>
                 </dl>
@@ -139,7 +139,7 @@ export default async function MylarRequestsPage() {
                       {inquiry.designCount}
                       {inquiry.statedDesignCount !== null ? (
                         <span
-                          className="text-muted-foreground ml-1.5 text-xs"
+                          className="text-muted-foreground ml-1.5 text-sm md:text-xs"
                           title={`Customer stated ${inquiry.statedDesignCount}`}
                         >
                           ({inquiry.statedDesignCount})

@@ -59,12 +59,12 @@ function SignupRow({ signup }: { signup: PendingPortalSignup }) {
         <p className="text-muted-foreground truncate text-sm">
           {signup.email ?? "No email"}
         </p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           {signup.businessName ?? "No business name"} · signed up{" "}
           {formatDate(signup.signedUpAt)}
         </p>
         {signup.matchedClient ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             Will link to {signup.matchedClient.company_name} and open their
             existing files.
           </p>

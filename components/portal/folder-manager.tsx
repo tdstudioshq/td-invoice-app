@@ -50,7 +50,7 @@ export function FolderManager({
           {folders.map((folder) => (
             <li
               key={folder.id}
-              className="bg-muted flex items-center gap-2 px-2.5 py-1 text-xs"
+              className="bg-muted flex items-center gap-2 px-2.5 py-1.5 text-[13px] md:py-1 md:text-xs"
             >
               <span>
                 {CATEGORY_LABEL[folder.category]} / {folder.name}
@@ -129,7 +129,7 @@ function CreateFolderDialog({ clientId }: { clientId: string }) {
               aria-invalid={Boolean(state.fieldErrors?.name)}
             />
             {state.fieldErrors?.name ? (
-              <p className="text-destructive text-xs">
+              <p className="text-destructive text-sm md:text-xs">
                 {state.fieldErrors.name}
               </p>
             ) : null}

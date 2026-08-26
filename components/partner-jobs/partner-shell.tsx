@@ -33,7 +33,7 @@ export function PartnerShell({
   return (
     <div className="flex min-h-svh w-full flex-col">
       <header className="bg-background/80 border-border sticky top-0 z-30 border-b backdrop-blur">
-        <div className="mx-auto flex min-h-16 w-full max-w-5xl items-center gap-3 px-[max(1rem,env(safe-area-inset-left))] pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex min-h-16 w-full max-w-5xl items-center gap-3 pt-[env(safe-area-inset-top)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
           <Link
             href={home || "/"}
             className="flex min-w-0 items-center gap-2.5 select-none"
@@ -47,10 +47,10 @@ export function PartnerShell({
               priority
             />
             <span className="flex min-w-0 flex-col leading-none">
-              <span className="truncate text-sm font-semibold tracking-tight">
+              <span className="truncate text-base font-semibold tracking-tight md:text-sm">
                 {companyName} Orders
               </span>
-              <span className="text-muted-foreground text-[10px] tracking-[0.18em] uppercase">
+              <span className="text-muted-foreground text-[11px] tracking-[0.18em] uppercase md:text-[10px]">
                 Design Jobs
               </span>
             </span>
@@ -59,7 +59,7 @@ export function PartnerShell({
           {signedIn ? (
             <div className="ml-auto flex items-center gap-3">
               {userEmail ? (
-                <span className="text-muted-foreground hidden max-w-48 truncate text-xs sm:block">
+                <span className="text-muted-foreground hidden max-w-48 truncate text-sm sm:block md:text-xs">
                   {userEmail}
                 </span>
               ) : null}
@@ -69,12 +69,12 @@ export function PartnerShell({
         </div>
       </header>
 
-      <main className="min-w-0 flex-1 px-[max(1rem,env(safe-area-inset-left))] py-6 pb-[calc(env(safe-area-inset-bottom)_+_2rem)] md:px-8 md:py-10">
+      <main className="min-w-0 flex-1 py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_2rem)] md:px-8 md:py-10">
         <div className="mx-auto w-full max-w-5xl">{children}</div>
       </main>
 
       <footer className="border-border border-t">
-        <div className="text-muted-foreground mx-auto w-full max-w-5xl px-[max(1rem,env(safe-area-inset-left))] py-5 text-center text-[11px]">
+        <div className="text-muted-foreground mx-auto w-full max-w-5xl py-5 pb-[calc(env(safe-area-inset-bottom)_+_1.25rem)] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] text-center text-xs md:text-[11px]">
           Powered by TD Studios
         </div>
       </footer>

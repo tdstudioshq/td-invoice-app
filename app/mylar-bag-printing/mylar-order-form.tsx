@@ -145,9 +145,9 @@ export function MylarOrderForm() {
   if (status === "success") {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
-        <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
+        <CheckCircleIcon weight="fill" className="size-14 text-emerald-400 md:size-12" />
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Order sent!</h2>
+          <h2 className="text-xl font-semibold text-white md:text-lg">Order sent!</h2>
           <p className="text-muted-foreground text-sm">
             Thanks — I&apos;ll review your bag order and text you back shortly
             with pricing and a proof.
@@ -194,29 +194,31 @@ export function MylarOrderForm() {
                 type="button"
                 onClick={() => selectBagType(type)}
                 aria-pressed={selected}
-                className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-all active:translate-y-px ${
+                className={`flex min-h-16 items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-all active:translate-y-px ${
                   selected
                     ? "border-white/40 bg-white/[0.14] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
                     : "border-white/15 bg-black/40 hover:border-white/25 hover:bg-black/25"
                 }`}
               >
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-sm leading-tight text-white">
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="text-base leading-tight text-white md:text-sm">
                     {type.label}
                   </span>
-                  <span className="text-muted-foreground text-xs leading-tight">
+                  <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                     {type.detail}
                   </span>
                 </span>
                 <span
                   aria-hidden
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${
+                  className={`flex size-6 shrink-0 items-center justify-center rounded-full border-2 md:size-5 md:border ${
                     selected
                       ? "border-white bg-white text-neutral-900"
                       : "border-white/25"
                   }`}
                 >
-                  {selected && <CheckIcon weight="bold" className="size-3" />}
+                  {selected && (
+                    <CheckIcon weight="bold" className="size-3.5 md:size-3" />
+                  )}
                 </span>
               </button>
             );
@@ -252,7 +254,7 @@ export function MylarOrderForm() {
               }
               onBlur={() => setQuantity(String(Math.max(min, amount)))}
               aria-describedby="quantity_hint"
-              className={`h-11 pr-12 text-center ${fieldClass}`}
+              className={`h-12 pr-12 text-center text-lg md:h-11 md:text-base ${fieldClass}`}
             />
             <span
               aria-hidden
@@ -275,7 +277,7 @@ export function MylarOrderForm() {
 
         <p
           id="quantity_hint"
-          className={`text-xs ${belowMinimum ? "text-red-300" : "text-muted-foreground"}`}
+          className={`text-sm leading-relaxed md:text-xs ${belowMinimum ? "text-red-300" : "text-muted-foreground"}`}
         >
           {mode === "pounds" ? (
             <>
@@ -289,7 +291,7 @@ export function MylarOrderForm() {
       </div>
 
       {/* ---------- 3. Artwork ---------- */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="artwork" className="text-white">
           Artwork
         </Label>
@@ -299,9 +301,9 @@ export function MylarOrderForm() {
           type="file"
           multiple
           accept={ACCEPT_ATTRIBUTE}
-          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:text-white ${fieldClass}`}
+          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-white ${fieldClass}`}
         />
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           Print-ready files, logos, QR codes or reference images.{" "}
           {ALLOWED_TYPES_LABEL} files, up to 25 MB each — you can select
           multiple. No artwork yet? Leave this empty and say so in the notes.
@@ -309,7 +311,7 @@ export function MylarOrderForm() {
       </div>
 
       {/* ---------- 4. Notes ---------- */}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="notes" className="text-white">
           Notes
         </Label>
@@ -326,7 +328,7 @@ export function MylarOrderForm() {
       <fieldset className="space-y-3">
         <legend className="text-white">Contact information</legend>
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="name" className="text-white">
               Name
             </Label>
@@ -337,11 +339,11 @@ export function MylarOrderForm() {
               autoComplete="name"
               required
               placeholder="Your full name"
-              className={`h-11 ${fieldClass}`}
+              className={`h-12 md:h-11 ${fieldClass}`}
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="phone" className="text-white">
               Phone number
             </Label>
@@ -352,14 +354,16 @@ export function MylarOrderForm() {
               autoComplete="tel"
               required
               placeholder="(555) 555-5555"
-              className={`h-11 ${fieldClass}`}
+              className={`h-12 md:h-11 ${fieldClass}`}
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="email" className="text-white">
               Email{" "}
-              <span className="text-muted-foreground text-xs">(optional)</span>
+              <span className="text-muted-foreground text-[13px] md:text-[11px]">
+                (optional)
+              </span>
             </Label>
             <Input
               id="email"
@@ -367,21 +371,23 @@ export function MylarOrderForm() {
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
-              className={`h-11 ${fieldClass}`}
+              className={`h-12 md:h-11 ${fieldClass}`}
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="instagram" className="text-white">
               Instagram{" "}
-              <span className="text-muted-foreground text-xs">(optional)</span>
+              <span className="text-muted-foreground text-[13px] md:text-[11px]">
+                (optional)
+              </span>
             </Label>
             <Input
               id="instagram"
               name="instagram"
               type="text"
               placeholder="@yourhandle"
-              className={`h-11 ${fieldClass}`}
+              className={`h-12 md:h-11 ${fieldClass}`}
             />
           </div>
         </div>
@@ -397,7 +403,7 @@ export function MylarOrderForm() {
       {/* Restate the order right above the button — the two choices live far
           enough apart on mobile that they scroll out of view before submit. */}
       <div className="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-black/35 px-4 py-3">
-        <span className="text-muted-foreground text-xs">Your order</span>
+        <span className="text-muted-foreground text-sm md:text-xs">Your order</span>
         <span className="text-right text-sm leading-tight text-white">
           {bagType.label} &middot; {summary}
         </span>
@@ -406,7 +412,7 @@ export function MylarOrderForm() {
       <Button
         type="submit"
         disabled={busy}
-        className="h-11 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90"
+        className="h-12 w-full gap-2 text-base bg-white text-neutral-900 hover:bg-white/90 md:h-11 md:text-[15px]"
       >
         <PaperPlaneTiltIcon weight="bold" className="size-4" />
         {status === "uploading"

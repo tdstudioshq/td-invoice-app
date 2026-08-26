@@ -36,7 +36,7 @@ export function AppShell({
         </div>
         <div className="border-glass-border border-t px-5 py-4">
           {userEmail ? (
-            <p className="text-muted-foreground mb-2 truncate text-[11px]">
+            <p className="text-muted-foreground mb-2 truncate text-xs md:text-[11px]">
               {userEmail}
             </p>
           ) : null}

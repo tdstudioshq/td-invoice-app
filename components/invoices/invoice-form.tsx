@@ -184,12 +184,12 @@ export function InvoiceForm({
                     <option key={client.id} value={client.company_name} />
                   ))}
                 </datalist>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                   Pick an existing client or type a new name — it’ll be saved
                   automatically.
                 </p>
                 {state.fieldErrors?.client_name ? (
-                  <p className="text-destructive text-xs">
+                  <p className="text-destructive text-sm md:text-xs">
                     {state.fieldErrors.client_name}
                   </p>
                 ) : null}
@@ -251,7 +251,7 @@ export function InvoiceForm({
             </CardHeader>
             <CardContent className="space-y-3">
               {state.fieldErrors?.items ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {state.fieldErrors.items}
                 </p>
               ) : null}
@@ -273,7 +273,7 @@ export function InvoiceForm({
                     className="border-border grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-3 first:border-t-0 first:pt-0 sm:grid-cols-[1fr_5rem_7rem_7rem_2rem] sm:items-center sm:gap-2 sm:border-t-0 sm:pt-0"
                   >
                     <div className="col-span-2 sm:col-span-1">
-                      <Label className="mb-1 block text-xs sm:hidden">
+                      <Label className="mb-1 block text-[13px] sm:hidden">
                         Description
                       </Label>
                       <Input
@@ -286,7 +286,7 @@ export function InvoiceForm({
                       />
                     </div>
                     <div>
-                      <Label className="mb-1 block text-xs sm:hidden">Qty</Label>
+                      <Label className="mb-1 block text-[13px] sm:hidden">Qty</Label>
                       <Input
                         aria-label="Quantity"
                         type="number"
@@ -301,7 +301,7 @@ export function InvoiceForm({
                       />
                     </div>
                     <div>
-                      <Label className="mb-1 block text-xs sm:hidden">
+                      <Label className="mb-1 block text-[13px] sm:hidden">
                         Unit price
                       </Label>
                       <Input
@@ -318,7 +318,7 @@ export function InvoiceForm({
                       />
                     </div>
                     <div className="sm:text-right">
-                      <Label className="mb-1 block text-xs sm:hidden">
+                      <Label className="mb-1 block text-[13px] sm:hidden">
                         Amount
                       </Label>
                       <div className="py-1.5 text-sm tabular-nums sm:py-0">

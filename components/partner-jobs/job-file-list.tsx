@@ -67,13 +67,13 @@ export function JobFileList({ files }: { files: DesignJobFile[] }) {
 
             <div className="space-y-1.5 p-2.5">
               <p
-                className="truncate text-xs"
+                className="truncate text-sm md:text-xs"
                 title={file.original_filename}
               >
                 {file.original_filename}
               </p>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-muted-foreground text-[11px] tabular-nums">
+                <span className="text-muted-foreground text-xs tabular-nums md:text-[11px]">
                   {formatPartnerBytes(file.file_size)}
                 </span>
                 <span className="flex shrink-0 items-center gap-0.5">

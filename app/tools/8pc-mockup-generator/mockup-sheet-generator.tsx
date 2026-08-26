@@ -543,7 +543,7 @@ export function MockupSheetGenerator() {
             </div>
           </DndContext>
         </div>
-        <p className="text-muted-foreground text-center text-xs">
+        <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
           {filledCount}/{MAX_SLOTS} slots filled — click an empty slot to add an image, drag the grip
           handle to reorder, or drag directly on a selected image to reposition it.
         </p>
@@ -577,19 +577,19 @@ export function MockupSheetGenerator() {
         >
           <UploadSimpleIcon className="text-muted-foreground size-6" />
           <p className="text-sm font-medium">Drop images or click to browse</p>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {ALLOWED_TYPES_LABEL} · up to 25 MB each · fills the next open slot
           </p>
         </div>
 
         {selectedPlacement ? (
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-card/50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground md:text-xs">
               Slot {selectedPlacement.slotId}
             </p>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-normal">Fit mode</Label>
+              <Label className="text-sm font-normal md:text-xs">Fit mode</Label>
               <div className="flex gap-2">
                 {(["cover", "contain"] as const).map((mode) => (
                   <Button
@@ -608,8 +608,8 @@ export function MockupSheetGenerator() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-normal">Zoom</Label>
-                <span className="text-muted-foreground text-xs">
+                <Label className="text-sm font-normal md:text-xs">Zoom</Label>
+                <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                   {Math.round(selectedPlacement.transform.scale * 100)}%
                 </span>
               </div>
@@ -651,7 +651,7 @@ export function MockupSheetGenerator() {
             </div>
           </div>
         ) : (
-          <div className="text-muted-foreground flex items-center gap-2 rounded-xl border border-border bg-card/50 p-4 text-xs">
+          <div className="text-muted-foreground flex items-center gap-2 rounded-xl border border-border bg-card/50 p-4 text-sm leading-relaxed md:text-xs">
             <ImageSquareIcon className="size-4 shrink-0" />
             Select a filled slot to reposition, zoom, replace, or remove its image.
           </div>
@@ -665,14 +665,14 @@ export function MockupSheetGenerator() {
         )}
 
         <div className="flex flex-col gap-3 rounded-xl border border-border bg-card/50 p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground md:text-xs">
             Export settings
           </p>
 
           <div className="flex items-center justify-between gap-3">
             <Label className="text-sm font-normal">Format</Label>
             <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as MockupExportFormat)}>
-              <SelectTrigger className="h-8 w-[110px]">
+              <SelectTrigger className="h-11 w-[110px] md:h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -688,7 +688,7 @@ export function MockupSheetGenerator() {
           <div className="flex items-center justify-between gap-3">
             <Label className="text-sm font-normal">Resolution</Label>
             <Select value={String(exportDpi)} onValueChange={(v) => setExportDpi(Number(v) as MockupExportDpi)}>
-              <SelectTrigger className="h-8 w-[110px]">
+              <SelectTrigger className="h-11 w-[110px] md:h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -708,7 +708,7 @@ export function MockupSheetGenerator() {
               disabled={exportFormat === "jpg"}
               onValueChange={(v) => setExportBackground(v as "white" | "transparent")}
             >
-              <SelectTrigger className="h-8 w-[130px]">
+              <SelectTrigger className="h-11 w-[130px] md:h-8">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -325,7 +325,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
         <p className="text-sm font-medium text-white">
           Drag &amp; drop designs, or click to browse
         </p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           JPG or PNG · up to 30 MB · max {MAX_BATCH} per batch
         </p>
         <input
@@ -344,7 +344,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground text-xs">Cutline preset</span>
+          <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">Cutline preset</span>
           <Select value={presetId} onValueChange={setPresetId} disabled={running}>
             <SelectTrigger className="w-[230px]">
               <SelectValue />
@@ -422,12 +422,12 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
                       {badge.label}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                     {formatBytes(it.file.size)}
                     {it.status === "uploading" ? ` · ${it.progress}%` : ""}
                   </p>
                   {it.status === "failed" && it.error ? (
-                    <p className="text-destructive text-xs">{it.error}</p>
+                    <p className="text-destructive text-sm md:text-xs">{it.error}</p>
                   ) : null}
                   {(it.status === "uploading" || it.status === "processing") && (
                     <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">

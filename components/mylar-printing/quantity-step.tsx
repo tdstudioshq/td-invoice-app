@@ -5,7 +5,11 @@ import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { StepHeading, fieldClass } from "@/components/mylar-printing/wizard-ui";
+import {
+  StepHeading,
+  fieldClass,
+  helpTextClass,
+} from "@/components/mylar-printing/wizard-ui";
 import { firstError, quantitySchema } from "@/lib/mylar-printing/schema";
 import {
   MAX_QUANTITY,
@@ -47,7 +51,7 @@ export function QuantityStep({
         subtitle={`Minimum order is ${MIN_QUANTITY} pieces.`}
       />
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
         {QUANTITY_PRESETS.map((preset) => (
           <button
             key={preset}
@@ -55,7 +59,7 @@ export function QuantityStep({
             onClick={() => onChange(preset)}
             aria-pressed={value === preset}
             className={cn(
-              "h-12 rounded-xl border text-sm transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none",
+              "h-12 rounded-xl border text-base tabular-nums transition-all active:translate-y-px focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:outline-none md:text-sm",
               value === preset
                 ? "border-white/45 bg-white/[0.14] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
                 : "border-white/15 bg-black/40 text-white/80 hover:border-white/30 hover:bg-black/25",
@@ -66,7 +70,7 @@ export function QuantityStep({
         ))}
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="quantity" className="text-white">
           Quantity
         </Label>
@@ -79,7 +83,7 @@ export function QuantityStep({
             aria-label={`Decrease quantity by ${QUANTITY_STEP} pieces`}
             className="size-12 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
-            <MinusIcon weight="bold" className="size-4" />
+            <MinusIcon weight="bold" className="size-5 md:size-4" />
           </Button>
 
           <div className="relative min-w-0 flex-1">
@@ -96,11 +100,11 @@ export function QuantityStep({
                 onChange(digits === "" ? 0 : Number.parseInt(digits, 10));
               }}
               onBlur={() => onChange(clamp(value || MIN_QUANTITY))}
-              className={cn("h-12 pr-14 text-center text-base", fieldClass)}
+              className={cn("h-12 pr-14 text-center text-lg md:text-base", fieldClass)}
             />
             <span
               aria-hidden
-              className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm"
+              className="text-muted-foreground pointer-events-none absolute inset-y-0 right-3.5 flex items-center text-sm md:text-xs"
             >
               pcs
             </span>
@@ -113,7 +117,7 @@ export function QuantityStep({
             aria-label={`Increase quantity by ${QUANTITY_STEP} pieces`}
             className="size-12 shrink-0 rounded-xl border-white/15 bg-black/35 p-0 text-white hover:bg-black/25"
           >
-            <PlusIcon weight="bold" className="size-4" />
+            <PlusIcon weight="bold" className="size-5 md:size-4" />
           </Button>
         </div>
 
@@ -121,7 +125,9 @@ export function QuantityStep({
         <p
           id="quantity-hint"
           role={error ? "alert" : undefined}
-          className={error ? "text-sm text-red-300" : "text-muted-foreground text-xs"}
+          className={
+            error ? "text-sm leading-relaxed text-red-300" : helpTextClass
+          }
         >
           {error ?? "Type any amount, or use the presets above."}
         </p>

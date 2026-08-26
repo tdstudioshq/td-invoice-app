@@ -208,13 +208,13 @@ export function QrGenerator({
             {showError ? (
               <p
                 id="qr-error"
-                className="text-destructive flex items-center gap-1.5 text-xs"
+                className="text-destructive flex items-center gap-1.5 text-sm md:text-xs"
               >
                 <AlertCircle className="size-3.5 shrink-0" />
                 {validationError}
               </p>
             ) : (
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                 A scheme is added automatically if you omit it.
               </p>
             )}
@@ -237,7 +237,7 @@ export function QrGenerator({
                 className="pl-7"
               />
             </div>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
               Just the username — we&apos;ll point the QR to instagram.com/your
               handle. Takes priority over the URL above when filled.
             </p>
@@ -298,19 +298,19 @@ export function QrGenerator({
                 </Button>
               </div>
               {saveState.fieldErrors?.name ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {saveState.fieldErrors.name}
                 </p>
               ) : null}
               {saveState.fieldErrors?.destination ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {saveState.fieldErrors.destination}
                 </p>
               ) : null}
               {saveState.error ? (
-                <p className="text-destructive text-xs">{saveState.error}</p>
+                <p className="text-destructive text-sm md:text-xs">{saveState.error}</p>
               ) : null}
-              <p className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                 Creates a short /q/… link that redirects here — reprint or
                 repoint it anytime without changing the code.
               </p>

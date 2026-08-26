@@ -14,7 +14,7 @@ export default async function CustomerLayout({
   await requireCustomer();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-8">
         {children}

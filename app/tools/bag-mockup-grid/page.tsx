@@ -1,10 +1,11 @@
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
-
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import { AnimatedBackground } from "@/app/login/animated-background";
 
 import { BagMockupGrid } from "./bag-mockup-grid";
+import {
+  BackToStudiosLink,
+  PublicPageLink,
+} from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "Bag Mockup Grid",
@@ -19,13 +20,13 @@ export const metadata = {
 // server-side and streams it straight back. Nothing is persisted.
 export default function BagMockupGridPage() {
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="text-on-photo relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">Bag Mockup Grid</h1>
-          <p className="text-muted-foreground max-w-lg text-sm">
+          <h1 className="public-title font-bold tracking-tight text-white">Bag Mockup Grid</h1>
+          <p className="text-muted-foreground max-w-lg text-base leading-relaxed md:text-sm">
             Drag and drop any number of designs — each one becomes a finished bag mockup, laid
             out in a 4-column grid you can reorder and export as one image.
           </p>
@@ -33,20 +34,11 @@ export default function BagMockupGridPage() {
 
         <BagMockupGrid />
 
-        <div className="flex flex-col items-center gap-2">
-          <Link
-            href="/tools/mockup-generator"
-            className="text-on-photo text-muted-foreground hover:text-foreground text-xs transition-colors"
-          >
+        <div className="flex flex-col items-center gap-1">
+          <PublicPageLink href="/tools/mockup-generator" showArrow={false}>
             Just one bag? Mylar Bag Mockup Generator →
-          </Link>
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          </PublicPageLink>
+          <BackToStudiosLink />
         </div>
       </div>
     </main>

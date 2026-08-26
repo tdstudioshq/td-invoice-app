@@ -279,7 +279,7 @@ export function MockupGenerator() {
         <span className="text-sm font-medium text-foreground">
           Drop 4×5 artwork or click to browse
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm leading-relaxed text-muted-foreground md:text-xs">
           1200×1500 JPG/PNG · up to {MAX_BATCH} at once · rendered in your
           browser, never uploaded
         </span>
@@ -310,7 +310,7 @@ export function MockupGenerator() {
           {/* Options */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2.5 rounded-xl border border-border bg-card/50 p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground md:text-xs">
                 Finish
               </p>
               {(
@@ -346,7 +346,7 @@ export function MockupGenerator() {
                     )
                   }
                 >
-                  <SelectTrigger id="mockup-bg" className="h-8 w-[130px]">
+                  <SelectTrigger id="mockup-bg" className="h-11 w-[130px] md:h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -366,7 +366,7 @@ export function MockupGenerator() {
                   value={String(dpi)}
                   onValueChange={(v) => setDpi(Number(v) as ExportDpi)}
                 >
-                  <SelectTrigger id="mockup-dpi" className="h-8 w-[130px]">
+                  <SelectTrigger id="mockup-dpi" className="h-11 w-[130px] md:h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -424,7 +424,7 @@ export function MockupGenerator() {
             >
               <Thumb item={it} options={options} />
               <p
-                className="mt-1 truncate text-center text-[10px] text-muted-foreground"
+                className="mt-1 truncate text-center text-[11px] text-muted-foreground"
                 title={it.name}
               >
                 {it.name}
@@ -446,7 +446,7 @@ export function MockupGenerator() {
       )}
 
       {items.length === 0 && !decoding && (
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground md:text-xs">
           <ImageSquareIcon className="size-4" />
           The die line, tear notches, and seal margin match the TD Studios 4×5
           bag template exactly.

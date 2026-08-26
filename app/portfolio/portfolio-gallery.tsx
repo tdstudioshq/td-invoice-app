@@ -26,17 +26,19 @@ export function PortfolioGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-black/35 px-6 py-20 text-center">
+      <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-black/35 px-5 py-16 text-center sm:px-6 sm:py-20">
         <ImageIcon weight="duotone" className="size-10 text-white/55" />
-        <p className="text-sm font-medium text-white/80">{emptyTitle}</p>
-        <p className="max-w-sm text-sm text-white/70">{emptyHint}</p>
+        <p className="text-lg font-medium text-white/80 md:text-base">{emptyTitle}</p>
+        <p className="max-w-sm text-base leading-relaxed text-white/70 md:text-sm">
+          {emptyHint}
+        </p>
       </div>
     );
   }
 
   return (
     <>
-      <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
+      <div className="columns-1 gap-3 xs:columns-2 xs:gap-4 sm:columns-3 lg:columns-4">
         {images.map((image, index) => (
           <PortfolioImageCard
             key={image.id}

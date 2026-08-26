@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
-  ArrowLeftIcon,
   ChatCircleTextIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { OrderForm } from "@/app/how-to-order/order-form";
 import { HomeLogoLink } from "@/components/layout/home-logo";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "How to Order",
@@ -41,12 +40,12 @@ const TEXT_HREF = "sms:+19297528373";
 
 export default function HowToOrderPage() {
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             How to Order
           </h1>
         </header>
@@ -55,17 +54,17 @@ export default function HowToOrderPage() {
           {ORDER_STEPS.map(({ title, detail }, i) => (
             <li
               key={title}
-              className="flex items-start gap-4 rounded-2xl border border-white/15 bg-black/35 p-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md"
+              className="flex items-start gap-4 rounded-2xl border border-white/15 bg-black/35 p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:p-5"
             >
               <span
                 aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] text-lg leading-none text-white"
+                className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/[0.08] text-lg leading-none text-white md:size-9"
               >
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1">
-                <h2 className="text-base leading-tight text-white">{title}</h2>
-                <p className="text-muted-foreground text-sm leading-snug">
+                <h2 className="text-lg leading-tight text-white md:text-base">{title}</h2>
+                <p className="text-muted-foreground text-base leading-relaxed md:text-sm">
                   {detail}
                 </p>
               </div>
@@ -81,19 +80,13 @@ export default function HowToOrderPage() {
             leave an empty tab behind. */}
         <a
           href={TEXT_HREF}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-black/35 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-black/35 min-h-12 px-5 py-3.5 text-base font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] md:text-sm backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
         >
           <ChatCircleTextIcon weight="bold" className="size-4" />
           Text Me to Order
         </a>
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

@@ -338,7 +338,7 @@ export function AdminMultiUpload({
         <p className="text-sm font-medium">
           Drag &amp; drop files, or click to browse
         </p>
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           {ALLOWED_TYPES_LABEL} · up to {formatBytes(MAX_UPLOAD_BYTES)} each ·
           max {MAX_BATCH_FILES} per batch
         </p>
@@ -448,12 +448,12 @@ export function AdminMultiUpload({
                       {badge.label}
                     </Badge>
                   </div>
-                  <p className="text-muted-foreground text-xs">
+                  <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
                     {formatBytes(it.file.size)}
                     {it.status === "uploading" ? ` · ${it.progress}%` : ""}
                   </p>
                   {it.status === "failed" && it.error ? (
-                    <p className="text-destructive text-xs">{it.error}</p>
+                    <p className="text-destructive text-sm md:text-xs">{it.error}</p>
                   ) : null}
                   {busy ? (
                     <div className="bg-muted h-1 w-full overflow-hidden">
@@ -493,7 +493,7 @@ export function AdminMultiUpload({
             : `Upload${queuedCount ? ` ${queuedCount} file${queuedCount > 1 ? "s" : ""}` : ""}`}
         </Button>
         {doneCount > 0 && !running ? (
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {doneCount} uploaded
           </p>
         ) : null}

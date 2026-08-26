@@ -49,7 +49,7 @@ export function SettingsForm({
               aria-invalid={Boolean(state.fieldErrors?.company_name)}
             />
             {state.fieldErrors?.company_name ? (
-              <p className="text-destructive text-xs">
+              <p className="text-destructive text-sm md:text-xs">
                 {state.fieldErrors.company_name}
               </p>
             ) : null}
@@ -66,7 +66,7 @@ export function SettingsForm({
                 aria-invalid={Boolean(state.fieldErrors?.email)}
               />
               {state.fieldErrors?.email ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {state.fieldErrors.email}
                 </p>
               ) : null}
@@ -104,7 +104,7 @@ export function SettingsForm({
               aria-invalid={Boolean(state.fieldErrors?.tax_rate)}
             />
             {state.fieldErrors?.tax_rate ? (
-              <p className="text-destructive text-xs">
+              <p className="text-destructive text-sm md:text-xs">
                 {state.fieldErrors.tax_rate}
               </p>
             ) : null}

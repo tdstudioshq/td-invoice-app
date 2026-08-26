@@ -3,7 +3,12 @@
 import { PlusIcon, TrashIcon, CheckCircleIcon } from "@phosphor-icons/react";
 
 import { ArtworkUploader } from "@/components/mylar-printing/artwork-uploader";
-import { StepHeading, fieldClass } from "@/components/mylar-printing/wizard-ui";
+import {
+  StepHeading,
+  fieldClass,
+  helpTextClass,
+  metaLabelClass,
+} from "@/components/mylar-printing/wizard-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,7 +105,7 @@ export function ArtworkStep({
           className="rounded-2xl border border-white/12 bg-black/35 p-4 sm:p-5"
           aria-live="polite"
         >
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
             <Figure label="Order Quantity" value={orderQuantity} />
             <Figure label="Allocated" value={allocated} />
             <Figure
@@ -114,7 +119,7 @@ export function ArtworkStep({
 
           <p
             className={cn(
-              "mt-4 flex items-start gap-2 text-sm",
+              "mt-4 flex items-start gap-2 text-sm leading-relaxed",
               balanced ? "text-emerald-300" : "text-amber-300",
             )}
             role={problem && showAllErrors ? "alert" : undefined}
@@ -145,12 +150,12 @@ export function ArtworkStep({
           aria-live="polite"
         >
           <p
-            className="text-sm text-amber-300"
+            className="text-sm leading-relaxed text-amber-300"
             role={showAllErrors ? "alert" : undefined}
           >
             {problem}
           </p>
-          <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+          <p className={cn("mt-2", helpTextClass)}>
             Your order is {orderQuantity.toLocaleString()}{" "}
             {orderQuantity === 1 ? "bag" : "bags"}. Set the quantity below to
             match it, or go back and change your order quantity.
@@ -183,24 +188,24 @@ export function ArtworkStep({
           type="button"
           variant="outline"
           onClick={onAddDesign}
-          className="h-12 gap-2 border-white/15 bg-black/35 text-white hover:bg-black/25"
+          className="h-12 gap-2 border-white/15 bg-black/35 text-base text-white hover:bg-black/25 md:text-sm"
         >
-          <PlusIcon weight="bold" className="size-4" />
+          <PlusIcon weight="bold" className="size-5 md:size-4" />
           Add another design
         </Button>
       ) : null}
 
-      <p className="text-muted-foreground text-xs">
+      <p className={helpTextClass}>
         {ARTWORK_TYPES_LABEL} · up to {formatArtworkBytes(MAX_ARTWORK_BYTES)} per
         file. Print-ready files are best, but we can work from what you have.
       </p>
 
-      <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-sm text-white transition-colors hover:bg-black/25 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70">
+      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-base leading-snug text-white transition-colors hover:bg-black/25 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70 md:min-h-0 md:text-sm">
         <input
           type="checkbox"
           checked={comingLater}
           onChange={(event) => onComingLaterChange(event.target.checked)}
-          className="border-input accent-foreground size-4"
+          className="border-input accent-foreground size-5 shrink-0 md:size-4"
         />
         I&apos;ll send my artwork later
       </label>
@@ -220,12 +225,10 @@ function Figure({
 }) {
   return (
     <div className="min-w-0">
-      <p className="text-muted-foreground text-[11px] tracking-[0.14em] uppercase">
-        {label}
-      </p>
+      <p className={cn("leading-tight", metaLabelClass)}>{label}</p>
       <p
         className={cn(
-          "mt-1 text-xl tabular-nums",
+          "mt-1 text-2xl leading-none tabular-nums md:text-xl",
           tone === "over"
             ? "text-red-300"
             : tone === "warn"
@@ -281,7 +284,7 @@ function DesignCard({
       className="rounded-2xl border border-white/12 bg-black/25 p-4 sm:p-5"
     >
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-base tracking-[0.14em] text-white uppercase">
+        <h3 className="text-lg tracking-[0.14em] text-white uppercase md:text-base">
           Design {designNumber}
         </h3>
         <span className="text-muted-foreground text-sm tabular-nums">
@@ -291,7 +294,7 @@ function DesignCard({
       </header>
 
       {showQuantity ? (
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 flex flex-col gap-2">
           <Label htmlFor={quantityId} className="text-white">
             Quantity
           </Label>
@@ -310,7 +313,7 @@ function DesignCard({
                 digits === "" ? 0 : Number.parseInt(digits, 10),
               );
             }}
-            className={cn("h-12 max-w-40 text-center text-base", fieldClass)}
+            className={cn("h-12 max-w-40 text-center text-lg md:text-base", fieldClass)}
           />
         </div>
       ) : null}
@@ -352,7 +355,7 @@ function DesignCard({
           onClick={onRemove}
           className="mt-4 gap-1.5 border-white/15 bg-black/35 text-white hover:bg-black/25"
         >
-          <TrashIcon weight="bold" className="size-3.5" />
+          <TrashIcon weight="bold" className="size-4 md:size-3.5" />
           Remove design
           <span className="sr-only"> {designNumber}</span>
         </Button>

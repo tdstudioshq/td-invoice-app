@@ -147,7 +147,7 @@ function Field({
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
       />
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
+      {error ? <p className="text-destructive text-sm md:text-xs">{error}</p> : null}
     </div>
   );
 }

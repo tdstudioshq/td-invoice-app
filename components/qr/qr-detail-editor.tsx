@@ -76,7 +76,7 @@ export function QrDetailEditor({
 
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs">Public link</span>
+            <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">Public link</span>
             <Badge variant={code.is_active ? "secondary" : "outline"}>
               {code.is_active ? "Active" : "Inactive"}
             </Badge>
@@ -135,7 +135,7 @@ export function QrDetailEditor({
             aria-invalid={Boolean(state.fieldErrors?.name)}
           />
           {state.fieldErrors?.name ? (
-            <p className="text-destructive text-xs">{state.fieldErrors.name}</p>
+            <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.name}</p>
           ) : null}
         </div>
 
@@ -149,11 +149,11 @@ export function QrDetailEditor({
             aria-invalid={Boolean(state.fieldErrors?.destination)}
           />
           {state.fieldErrors?.destination ? (
-            <p className="text-destructive text-xs">
+            <p className="text-destructive text-sm md:text-xs">
               {state.fieldErrors.destination}
             </p>
           ) : (
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
               Repoint the code anywhere — the printed QR keeps working.
             </p>
           )}
@@ -165,7 +165,7 @@ export function QrDetailEditor({
         </div>
 
         {state.error ? (
-          <p className="text-destructive text-xs">{state.error}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.error}</p>
         ) : null}
 
         <Button type="submit" disabled={pending}>

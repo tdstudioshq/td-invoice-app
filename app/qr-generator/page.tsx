@@ -1,9 +1,8 @@
 import { HomeLogoLink } from "@/components/layout/home-logo";
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { QrGenerator } from "@/components/qr/qr-generator";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "QR Code Generator",
@@ -16,25 +15,19 @@ export const metadata = {
 // account-only "save as dynamic QR" feature disabled (allowSave={false}).
 export default function PublicQrGeneratorPage() {
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             QR Code Generator
           </h1>
         </header>
 
         <QrGenerator allowSave={false} source="public" />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

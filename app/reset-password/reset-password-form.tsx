@@ -150,7 +150,7 @@ export function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="password">New password</Label>
         <Input
           id="password"
@@ -162,7 +162,7 @@ export function ResetPasswordForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="confirm">Confirm password</Label>
         <Input
           id="confirm"
@@ -174,7 +174,7 @@ export function ResetPasswordForm() {
           onChange={(e) => setConfirm(e.target.value)}
         />
       </div>
-      {error ? <p className="text-destructive text-xs">{error}</p> : null}
+      {error ? <p className="text-destructive text-sm md:text-xs">{error}</p> : null}
       <Button
         type="submit"
         className="w-full"

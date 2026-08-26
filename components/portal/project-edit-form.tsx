@@ -50,7 +50,7 @@ export function ProjectEditForm({ project }: { project: ClientProject }) {
           aria-invalid={Boolean(state.fieldErrors?.name)}
         />
         {state.fieldErrors?.name ? (
-          <p className="text-destructive text-xs">{state.fieldErrors.name}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.name}</p>
         ) : null}
       </div>
       <div className="space-y-2">
@@ -72,7 +72,7 @@ export function ProjectEditForm({ project }: { project: ClientProject }) {
             defaultValue={project.due_date ?? ""}
           />
           {state.fieldErrors?.due_date ? (
-            <p className="text-destructive text-xs">
+            <p className="text-destructive text-sm md:text-xs">
               {state.fieldErrors.due_date}
             </p>
           ) : null}
@@ -94,7 +94,7 @@ export function ProjectEditForm({ project }: { project: ClientProject }) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             Draft and Archived projects are hidden from the client&apos;s
             portal.
           </p>

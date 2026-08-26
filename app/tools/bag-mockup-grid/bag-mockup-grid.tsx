@@ -162,7 +162,7 @@ function BagCell({
       >
         <XIcon weight="bold" className="size-3.5" />
       </button>
-      <div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-md bg-black/55 py-1 text-[10px] text-white/85 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+      <div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-md bg-black/55 py-1 text-[11px] text-white/85 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
         <ArrowsClockwiseIcon className="size-3" />
         Click to replace
       </div>
@@ -182,7 +182,7 @@ function AddTile({ onClick, prominent }: { onClick: () => void; prominent: boole
       )}
     >
       <PlusIcon className="text-muted-foreground size-6" />
-      <span className="text-muted-foreground text-xs">
+      <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
         {prominent ? "Drop images or click to browse" : "Add"}
       </span>
     </button>
@@ -377,7 +377,7 @@ export function BagMockupGrid() {
             <PlusIcon className="size-4" />
             Add images
           </Button>
-          <span className="text-muted-foreground text-xs">
+          <span className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {images.length}/{MAX_IMAGES}
           </span>
           {images.length > 0 && (
@@ -390,7 +390,7 @@ export function BagMockupGrid() {
 
         <div className="flex items-center gap-2">
           <Select value={exportFormat} onValueChange={(v) => setExportFormat(v as BagGridExportFormat)}>
-            <SelectTrigger className="h-9 w-[90px]">
+            <SelectTrigger className="h-11 w-[90px] md:h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -402,7 +402,7 @@ export function BagMockupGrid() {
             </SelectContent>
           </Select>
           <Select value={String(exportDpi)} onValueChange={(v) => setExportDpi(Number(v) as BagGridExportDpi)}>
-            <SelectTrigger className="h-9 w-[110px]">
+            <SelectTrigger className="h-11 w-[110px] md:h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

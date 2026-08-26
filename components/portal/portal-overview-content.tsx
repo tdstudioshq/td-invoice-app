@@ -85,7 +85,7 @@ export function PortalOverviewContent({
             {hrefs.projectsIndex && projects.length > 0 ? (
               <Link
                 href={hrefs.projectsIndex}
-                className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+                className="text-muted-foreground hover:text-foreground -mx-1 inline-flex min-h-11 items-center rounded-lg px-1 text-sm transition-colors md:min-h-0 md:text-xs"
               >
                 View all
               </Link>

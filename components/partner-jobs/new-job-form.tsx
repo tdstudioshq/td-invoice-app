@@ -463,7 +463,7 @@ export function NewJobForm({
               className="h-11"
             />
             {errors.jobName ? (
-              <p className="text-destructive text-xs">{errors.jobName}</p>
+              <p className="text-destructive text-sm md:text-xs">{errors.jobName}</p>
             ) : null}
           </div>
         </CardContent>
@@ -480,7 +480,7 @@ export function NewJobForm({
               className="border-glass-border space-y-3 rounded-[8px] border p-3 sm:p-4"
             >
               <div className="flex items-center justify-between gap-3">
-                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                <p className="text-muted-foreground text-[13px] tracking-wide uppercase md:text-xs">
                   Item {index + 1}
                 </p>
                 {items.length > 1 ? (
@@ -488,7 +488,7 @@ export function NewJobForm({
                     type="button"
                     onClick={() => removeItem(row.key)}
                     disabled={busy}
-                    className="text-muted-foreground hover:text-destructive inline-flex min-h-9 items-center gap-1.5 text-xs transition-colors disabled:opacity-50"
+                    className="text-muted-foreground hover:text-destructive inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
                   >
                     <TrashIcon className="size-4" />
                     Remove
@@ -565,7 +565,7 @@ export function NewJobForm({
               </div>
 
               {errors[`item-${index}`] ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {errors[`item-${index}`]}
                 </p>
               ) : null}
@@ -573,7 +573,7 @@ export function NewJobForm({
           ))}
 
           {errors.items ? (
-            <p className="text-destructive text-xs">{errors.items}</p>
+            <p className="text-destructive text-sm md:text-xs">{errors.items}</p>
           ) : null}
 
           <Button
@@ -615,7 +615,7 @@ export function NewJobForm({
                           className="size-full object-cover"
                         />
                       ) : (
-                        <span className="text-metal-platinum text-[10px] tracking-[0.1em]">
+                        <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
                           {partnerExtensionOf(file.original_filename).toUpperCase() || "FILE"}
                         </span>
                       )}
@@ -627,7 +627,7 @@ export function NewJobForm({
                       >
                         {file.original_filename}
                       </p>
-                      <p className="text-muted-foreground text-xs tabular-nums">
+                      <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
                         {removed
                           ? "Will be deleted when you save"
                           : formatPartnerBytes(file.file_size)}
@@ -641,7 +641,7 @@ export function NewJobForm({
                         )
                       }
                       disabled={busy}
-                      className="text-muted-foreground hover:text-foreground inline-flex min-h-9 shrink-0 items-center gap-1.5 px-1 text-xs transition-colors disabled:opacity-50"
+                      className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 items-center gap-1.5 px-1 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
                     >
                       {removed ? (
                         "Undo"
@@ -678,7 +678,7 @@ export function NewJobForm({
             <PaperclipIcon className="size-4" />
             Attach files
           </Button>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
             {PARTNER_TYPES_LABEL} · up to {MAX_JOB_FILES} files
             {files.length > 0 ? ` · ${formatPartnerBytes(totalBytes)} total` : ""}
           </p>
@@ -698,14 +698,14 @@ export function NewJobForm({
                         className="size-full object-cover"
                       />
                     ) : (
-                      <span className="text-metal-platinum text-[10px] tracking-[0.1em]">
+                      <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
                         {partnerExtensionOf(row.file.name).toUpperCase() || "FILE"}
                       </span>
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{row.file.name}</p>
-                    <p className="text-muted-foreground text-xs tabular-nums">
+                    <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
                       {formatPartnerBytes(row.file.size)}
                       {row.progress !== null ? ` · ${row.progress}%` : ""}
                     </p>
@@ -753,7 +753,7 @@ export function NewJobForm({
             aria-invalid={Boolean(errors.notes)}
           />
           {errors.notes ? (
-            <p className="text-destructive text-xs">{errors.notes}</p>
+            <p className="text-destructive text-sm md:text-xs">{errors.notes}</p>
           ) : null}
         </CardContent>
       </Card>

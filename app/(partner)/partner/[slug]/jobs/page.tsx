@@ -95,14 +95,14 @@ export default async function PartnerJobsPage({
                 </div>
                 <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                   <div>
-                    <dt className="text-muted-foreground text-xs">Products</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Products</dt>
                     <dd className="mt-0.5 tabular-nums">
                       {job.item_count}
                       {job.item_count === 1 ? " item" : " items"}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted-foreground text-xs">Submitted</dt>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Submitted</dt>
                     <dd className="mt-0.5">{formatDate(job.created_at)}</dd>
                   </div>
                 </dl>

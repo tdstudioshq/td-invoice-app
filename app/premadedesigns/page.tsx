@@ -1,7 +1,5 @@
 import { HomeLogoLink } from "@/components/layout/home-logo";
-import Link from "next/link";
 import {
-  ArrowLeftIcon,
   LockKeyOpenIcon,
   LockSimpleIcon,
 } from "@phosphor-icons/react/dist/ssr";
@@ -21,6 +19,7 @@ import {
   PREMADE_DESIGNS_PAGE_SIZE,
   signPremadeDesignUrls,
 } from "@/lib/premade-designs";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "Premade Designs",
@@ -48,18 +47,18 @@ export default async function PremadeDesignsPage() {
 
   if (!unlocked) {
     return (
-      <main className="on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <main className="public-page on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
         <AnimatedBackground />
         <div className="relative z-10 flex w-full max-w-sm flex-col items-center gap-8">
           <div className="text-on-photo flex flex-col items-center gap-3 text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.18em] text-white/75 uppercase backdrop-blur-md">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-xs font-semibold tracking-[0.18em] text-white/75 uppercase backdrop-blur-md md:text-[0.65rem]">
               <LockSimpleIcon weight="fill" className="size-3.5" />
               Private collection
             </span>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
+            <h1 className="public-title font-bold tracking-tight text-white">
               Premade Designs
             </h1>
-            <p className="max-w-xs text-sm leading-relaxed text-white/70">
+            <p className="max-w-xs text-base leading-relaxed text-white/70 md:text-sm">
               Enter the four-digit access code to browse the full design vault.
             </p>
           </div>
@@ -74,7 +73,7 @@ export default async function PremadeDesignsPage() {
             />
           </div>
 
-          <BackHomeLink />
+          <BackToStudiosLink className="mx-auto" />
         </div>
       </main>
     );
@@ -98,22 +97,22 @@ export default async function PremadeDesignsPage() {
   }));
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-[0.65rem] font-semibold tracking-[0.18em] text-white/75 uppercase backdrop-blur-md">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-xs font-semibold tracking-[0.18em] text-white/75 uppercase backdrop-blur-md md:text-[0.65rem]">
             <LockKeyOpenIcon weight="fill" className="size-3.5" />
             Gallery unlocked
           </span>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Premade Designs
           </h1>
-          <p className="text-muted-foreground max-w-md text-sm">
+          <p className="text-muted-foreground max-w-md text-base leading-relaxed md:text-sm">
             ADD YOUR LOGO &amp; QR CODE &amp; RECEIVE YOUR FILE VIA GOOGLE DRIVE
           </p>
-          <p className="text-xs text-white/60">
+          <p className="text-sm text-white/60 md:text-xs">
             {designs.length.toLocaleString()} designs
             {collections.length > 1
               ? ` across ${collections.length.toLocaleString()} collections`
@@ -127,7 +126,7 @@ export default async function PremadeDesignsPage() {
         >
           <h2
             id="pricing-heading"
-            className="text-center text-xs tracking-[0.2em] text-white/70"
+            className="text-center text-sm tracking-[0.2em] text-white/70 md:text-xs"
           >
             PRICING
           </h2>
@@ -135,15 +134,15 @@ export default async function PremadeDesignsPage() {
             {PRICING_TIERS.map(({ label, price }) => (
               <div
                 key={label}
-                className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/15 bg-black/35 px-2 py-4 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:px-4"
+                className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/15 bg-black/35 px-2 py-4 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:px-4 sm:py-5"
               >
-                <span className="text-muted-foreground text-[0.7rem] leading-tight sm:text-sm">
+                <span className="text-muted-foreground text-sm leading-tight">
                   {label}
                 </span>
                 <span className="text-2xl leading-none text-white sm:text-4xl">
                   {price}
                 </span>
-                <span className="text-muted-foreground text-[0.65rem] leading-none sm:text-xs">
+                <span className="text-muted-foreground text-[13px] leading-none md:text-xs">
                   each
                 </span>
               </div>
@@ -152,7 +151,7 @@ export default async function PremadeDesignsPage() {
         </section>
 
         {designs.length === 0 ? (
-          <p className="text-muted-foreground text-center text-sm">
+          <p className="text-muted-foreground text-center text-base md:text-sm">
             No designs available yet. Check back soon.
           </p>
         ) : (
@@ -160,11 +159,11 @@ export default async function PremadeDesignsPage() {
         )}
 
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <BackHomeLink />
+          <BackToStudiosLink className="mx-auto" />
           <form action={lockPremadeDesignsAction}>
             <button
               type="submit"
-              className="text-on-photo inline-flex items-center gap-1.5 text-xs text-white/60 transition-colors hover:text-white"
+              className="text-on-photo -mx-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-white/60 transition-colors hover:text-white md:text-xs"
             >
               <LockSimpleIcon weight="bold" className="size-3.5" />
               Lock gallery
@@ -173,17 +172,5 @@ export default async function PremadeDesignsPage() {
         </div>
       </div>
     </main>
-  );
-}
-
-function BackHomeLink() {
-  return (
-    <Link
-      href="/"
-      className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-    >
-      <ArrowLeftIcon weight="bold" className="size-3.5" />
-      Back to TD Studios
-    </Link>
   );
 }

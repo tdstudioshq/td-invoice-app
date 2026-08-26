@@ -89,9 +89,9 @@ export function OrderForm() {
   if (status === "success") {
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-black/40 p-8 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12)] backdrop-blur-md">
-        <CheckCircleIcon weight="fill" className="size-12 text-emerald-400" />
+        <CheckCircleIcon weight="fill" className="size-14 text-emerald-400 md:size-12" />
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Order sent!</h2>
+          <h2 className="text-xl font-semibold text-white md:text-lg">Order sent!</h2>
           <p className="text-muted-foreground text-sm">
             Thanks — I&apos;ll review your order and text you back shortly.
           </p>
@@ -119,7 +119,7 @@ export function OrderForm() {
       {/* Subject line for the email Formspree sends. */}
       <input type="hidden" name="_subject" value="New Order Request" />
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="notes" className="text-white">
           Additional notes
         </Label>
@@ -132,7 +132,7 @@ export function OrderForm() {
         />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="assets" className="text-white">
           Upload your files
         </Label>
@@ -142,16 +142,16 @@ export function OrderForm() {
           type="file"
           multiple
           accept={ACCEPT_ATTRIBUTE}
-          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-sm file:text-white ${fieldClass}`}
+          className={`h-auto py-2.5 file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:text-sm file:text-white ${fieldClass}`}
         />
-        <p className="text-muted-foreground text-xs">
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
           Screenshots, logos, QR codes and any other assets. {ALLOWED_TYPES_LABEL}{" "}
           files, up to 25 MB each — you can select multiple.
         </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="name" className="text-white">
             Name
           </Label>
@@ -162,11 +162,11 @@ export function OrderForm() {
             autoComplete="name"
             required
             placeholder="Your full name"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="instagram" className="text-white">
             Instagram name
           </Label>
@@ -175,7 +175,7 @@ export function OrderForm() {
             name="instagram"
             type="text"
             placeholder="@yourhandle"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
 
@@ -190,7 +190,7 @@ export function OrderForm() {
             autoComplete="tel"
             required
             placeholder="(555) 555-5555"
-            className={`h-11 ${fieldClass}`}
+            className={`h-12 md:h-11 ${fieldClass}`}
           />
         </div>
       </div>
@@ -205,7 +205,7 @@ export function OrderForm() {
       <Button
         type="submit"
         disabled={status === "uploading" || status === "submitting"}
-        className="h-11 w-full gap-2 bg-white text-neutral-900 hover:bg-white/90"
+        className="h-12 w-full gap-2 text-base bg-white text-neutral-900 hover:bg-white/90 md:h-11 md:text-[15px]"
       >
         <PaperPlaneTiltIcon weight="bold" className="size-4" />
         {status === "uploading"

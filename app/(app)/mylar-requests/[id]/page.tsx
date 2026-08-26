@@ -39,7 +39,7 @@ function Detail({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">{label}</dt>
       <dd className="mt-0.5 text-sm break-words">{children}</dd>
     </div>
   );
@@ -87,7 +87,7 @@ function ArtworkSlot({
   if (!file) {
     return (
       <div className="border-glass-border rounded-[8px] border border-dashed p-4">
-        <p className="text-muted-foreground text-xs">{label}</p>
+        <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">{label}</p>
         <p className="mt-1 text-sm">
           {comingLater ? "Sending later" : "Not provided"}
         </p>
@@ -106,7 +106,7 @@ function ArtworkSlot({
 
   return (
     <div className="border-glass-border rounded-[8px] border p-4">
-      <p className="text-muted-foreground text-xs">{label}</p>
+      <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">{label}</p>
 
       {canThumbnail ? (
         <a
@@ -131,7 +131,7 @@ function ArtworkSlot({
       <p className="mt-2 truncate text-sm font-medium" title={file.file_name}>
         {file.file_name}
       </p>
-      <p className="text-muted-foreground mt-0.5 text-xs">
+      <p className="text-muted-foreground mt-0.5 text-sm md:text-xs">
         {formatArtworkBytes(file.file_size)}
         {file.mime_type ? ` · ${file.mime_type}` : null}
       </p>
@@ -242,7 +242,7 @@ export default async function MylarRequestDetailPage(
                       old rows. Surfacing both beats silently showing one. */}
                   {inquiry.designs.length > 0 &&
                   inquiry.designs.length !== inquiry.design_count ? (
-                    <span className="text-muted-foreground ml-2 text-xs">
+                    <span className="text-muted-foreground ml-2 text-sm md:text-xs">
                       (customer stated {inquiry.design_count})
                     </span>
                   ) : null}

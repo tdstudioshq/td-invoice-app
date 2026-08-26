@@ -5,7 +5,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { StepHeading, fieldClass } from "@/components/mylar-printing/wizard-ui";
+import {
+  StepHeading,
+  fieldClass,
+  helpTextClass,
+} from "@/components/mylar-printing/wizard-ui";
 import {
   brandNameSchema,
   contactPhoneError,
@@ -140,8 +144,8 @@ export function CustomerDetailsStep({
         />
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <div className="space-y-1.5">
+      <div className="grid gap-5 sm:grid-cols-2 sm:gap-x-4">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="customerName" className="text-white">
             Name
           </Label>
@@ -158,16 +162,18 @@ export function CustomerDetailsStep({
             className={cn("h-12", fieldClass)}
           />
           {nameError ? (
-            <p id="customerName-error" role="alert" className="text-sm text-red-300">
+            <p id="customerName-error" role="alert" className="text-sm leading-relaxed text-red-300">
               {nameError}
             </p>
           ) : null}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="brandName" className="text-white">
             Brand or company{" "}
-            <span className="text-muted-foreground text-xs">(optional)</span>
+            <span className="text-muted-foreground text-[13px] md:text-[11px]">
+              (optional)
+            </span>
           </Label>
           <Input
             id="brandName"
@@ -182,13 +188,13 @@ export function CustomerDetailsStep({
             className={cn("h-12", fieldClass)}
           />
           {brandError ? (
-            <p id="brandName-error" role="alert" className="text-sm text-red-300">
+            <p id="brandName-error" role="alert" className="text-sm leading-relaxed text-red-300">
               {brandError}
             </p>
           ) : null}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="customerEmail" className="text-white">
             Email
           </Label>
@@ -207,16 +213,16 @@ export function CustomerDetailsStep({
             className={cn("h-12", fieldClass)}
           />
           {emailError ? (
-            <p id="customerEmail-error" role="alert" className="text-sm text-red-300">
+            <p id="customerEmail-error" role="alert" className="text-sm leading-relaxed text-red-300">
               {emailError}
             </p>
           ) : null}
         </div>
 
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="customerPhone" className="text-white">
             Phone number{" "}
-            <span className="text-muted-foreground text-xs">
+            <span className="text-muted-foreground text-[13px] md:text-[11px]">
               {phoneRequired ? "(required)" : "(optional)"}
             </span>
           </Label>
@@ -236,7 +242,7 @@ export function CustomerDetailsStep({
             className={cn("h-12", fieldClass)}
           />
           {phoneError ? (
-            <p id="customerPhone-error" role="alert" className="text-sm text-red-300">
+            <p id="customerPhone-error" role="alert" className="text-sm leading-relaxed text-red-300">
               {phoneError}
             </p>
           ) : null}
@@ -252,8 +258,8 @@ export function CustomerDetailsStep({
         Selecting Text or Call marks the phone field required above; that is the
         only thing this answer changes in the app. Nothing is sent to anybody.
       */}
-      <fieldset className="space-y-2.5">
-        <legend className="text-sm leading-none font-medium text-white">
+      <fieldset className="flex flex-col gap-2.5">
+        <legend className="mb-2.5 text-base leading-none font-medium text-white md:mb-0 md:text-sm">
           How should we reach you?
         </legend>
         <div
@@ -271,7 +277,7 @@ export function CustomerDetailsStep({
               <label
                 key={option.id}
                 className={cn(
-                  "flex cursor-pointer items-center justify-center rounded-xl border px-2 py-3 text-sm transition-all active:translate-y-px",
+                  "flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-2 py-3 text-base transition-all active:translate-y-px md:min-h-0 md:text-sm",
                   "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70",
                   checked
                     ? "border-white/45 bg-white/[0.14] text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]"
@@ -292,11 +298,11 @@ export function CustomerDetailsStep({
           })}
         </div>
         {contactMethodError ? (
-          <p id="contactMethod-error" role="alert" className="text-sm text-red-300">
+          <p id="contactMethod-error" role="alert" className="text-sm leading-relaxed text-red-300">
             {contactMethodError}
           </p>
         ) : (
-          <p id="contactMethod-hint" className="text-muted-foreground text-xs">
+          <p id="contactMethod-hint" className={helpTextClass}>
             {contactMethod
               ? CONTACT_METHODS.find((o) => o.id === contactMethod)?.detail
               : "We'll use this to get back to you about your quote."}
@@ -304,10 +310,12 @@ export function CustomerDetailsStep({
         )}
       </fieldset>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="neededBy" className="text-white">
           Need it by{" "}
-          <span className="text-muted-foreground text-xs">(optional)</span>
+          <span className="text-muted-foreground text-[13px] md:text-[11px]">
+              (optional)
+            </span>
         </Label>
         {/*
           Native date input: it gives every platform its own familiar picker,
@@ -329,21 +337,23 @@ export function CustomerDetailsStep({
           className={cn("h-12 w-full sm:max-w-64", fieldClass)}
         />
         {neededByError ? (
-          <p id="neededBy-error" role="alert" className="text-sm text-red-300">
+          <p id="neededBy-error" role="alert" className="text-sm leading-relaxed text-red-300">
             {neededByError}
           </p>
         ) : (
-          <p id="neededBy-hint" className="text-muted-foreground text-xs">
+          <p id="neededBy-hint" className={helpTextClass}>
             If you&apos;re working to a deadline, tell us and we&apos;ll say
             what&apos;s doable.
           </p>
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="notes" className="text-white">
           Additional notes{" "}
-          <span className="text-muted-foreground text-xs">(optional)</span>
+          <span className="text-muted-foreground text-[13px] md:text-[11px]">
+              (optional)
+            </span>
         </Label>
         <Textarea
           id="notes"
@@ -355,10 +365,10 @@ export function CustomerDetailsStep({
           aria-describedby={notesError ? "notes-error" : undefined}
           onChange={(event) => onChange({ notes: event.target.value })}
           onBlur={() => touch("notes")}
-          className={cn("min-h-32 py-2.5", fieldClass)}
+          className={cn("min-h-36 py-3 md:min-h-32 md:py-2.5", fieldClass)}
         />
         {notesError ? (
-          <p id="notes-error" role="alert" className="text-sm text-red-300">
+          <p id="notes-error" role="alert" className="text-sm leading-relaxed text-red-300">
             {notesError}
           </p>
         ) : null}

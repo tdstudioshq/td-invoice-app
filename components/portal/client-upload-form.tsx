@@ -36,7 +36,7 @@ export function ClientUploadForm() {
         <Label htmlFor="client-file">Upload a file</Label>
         <Input id="client-file" name="file" type="file" required />
         {state.fieldErrors?.file ? (
-          <p className="text-destructive text-xs">{state.fieldErrors.file}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.file}</p>
         ) : null}
       </div>
       <SubmitButton pendingText="Uploading…">

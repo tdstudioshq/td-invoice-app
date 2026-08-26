@@ -510,7 +510,7 @@ export function HomeCard({
               <button
                 type="button"
                 onClick={() => setMode("bio")}
-                className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
+                className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm transition-colors md:min-h-0 md:text-xs"
               >
                 <ArrowLeftIcon weight="bold" className="size-3.5" />
                 Back

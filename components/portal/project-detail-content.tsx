@@ -39,7 +39,7 @@ export function ProjectDetailContent({
         <div className="flex flex-wrap items-center gap-3">
           <ProjectStatusBadge status={project.status} />
           {project.due_date ? (
-            <span className="text-muted-foreground flex items-center gap-1 text-xs">
+            <span className="text-muted-foreground flex items-center gap-1 text-sm md:text-xs">
               <CalendarDays className="size-3.5" />
               Due {formatDate(project.due_date)}
             </span>

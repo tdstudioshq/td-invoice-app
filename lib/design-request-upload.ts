@@ -86,4 +86,4 @@ export const FORMSPREE_ENDPOINT = "https://formspree.io/f/movkvrpz";
 
 /** Shared input styling for the dark glass forms. */
 export const formFieldClass =
-  "rounded-xl border-white/15 bg-white/[0.05] px-3.5 text-white placeholder:text-white/40 dark:bg-white/[0.05]";
+  "rounded-xl border-white/15 bg-white/[0.05] px-3.5 text-base text-white placeholder:text-white/40 md:text-sm dark:bg-white/[0.05]";

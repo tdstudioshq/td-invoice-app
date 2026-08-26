@@ -79,7 +79,7 @@ export function RecordPaymentDialog({
                 aria-invalid={Boolean(state.fieldErrors?.amount)}
               />
               {state.fieldErrors?.amount ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {state.fieldErrors.amount}
                 </p>
               ) : null}

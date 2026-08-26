@@ -1,12 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { enterDesignsCodeAction, hasDesignsAccess } from "@/app/designs/access";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { getGsoImages } from "@/lib/data";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/logo.png";
 
@@ -35,7 +34,7 @@ export default async function DesignsPage() {
 
   if (!unlocked) {
     return (
-      <main className="on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-4 py-12">
+      <main className="public-page on-glass relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
         <AnimatedBackground />
         <div className="relative z-10 flex w-full max-w-sm flex-col gap-8">
           <TasteBudzKeypad
@@ -44,13 +43,7 @@ export default async function DesignsPage() {
             logoClassName="size-28 rounded-full"
             action={enterDesignsCodeAction}
           />
-          <Link
-            href="/"
-            className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-          >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
-            Back to TD Studios
-          </Link>
+          <BackToStudiosLink className="mx-auto" />
         </div>
       </main>
     );
@@ -59,12 +52,12 @@ export default async function DesignsPage() {
   const images = await getGsoImages();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <img src={LOGO} alt="TD Studios" className="size-24 rounded-full" />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Designs
           </h1>
         </header>
@@ -75,13 +68,7 @@ export default async function DesignsPage() {
           emptyHint="Upload images to the GSO bucket and they'll appear here automatically."
         />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

@@ -30,7 +30,7 @@ export function ProjectList({
               <div className="flex flex-wrap items-center gap-2">
                 <ProjectStatusBadge status={project.status} />
               </div>
-              <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm md:text-xs">
                 {project.due_date ? (
                   <span className="flex items-center gap-1">
                     <CalendarDays className="size-3.5" />

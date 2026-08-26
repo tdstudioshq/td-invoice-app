@@ -42,11 +42,11 @@ export function JobItemTable({ items }: { items: DesignJobItem[] }) {
             </p>
             <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
               <div>
-                <dt className="text-muted-foreground text-xs">Finish</dt>
+                <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Finish</dt>
                 <dd className="mt-0.5">{productFinishLabel(item.finish)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground text-xs">Quantity</dt>
+                <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Quantity</dt>
                 <dd className="mt-0.5 tabular-nums">
                   {item.quantity.toLocaleString()}
                 </dd>

@@ -26,6 +26,10 @@ import type {
   MylarArtworkFile,
   MylarArtworkSide,
 } from "@/lib/mylar-printing/types";
+import {
+  helpTextClass,
+  metaLabelClass,
+} from "@/components/mylar-printing/wizard-ui";
 import { cn } from "@/lib/utils";
 
 type UploadStatus = "idle" | "uploading" | "uploaded" | "failed";
@@ -211,9 +215,7 @@ export function ArtworkUploader({
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
-      <p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
-        {label}
-      </p>
+      <p className={metaLabelClass}>{label}</p>
 
       <input
         ref={inputRef}
@@ -253,11 +255,11 @@ export function ArtworkUploader({
                 : "border-white/20 bg-black/35 hover:border-white/35 hover:bg-black/25",
           )}
         >
-          <UploadSimpleIcon weight="bold" className="size-6 text-white/70" />
-          <span className="text-sm text-white">Upload {label} Artwork</span>
-          <span className="text-muted-foreground text-xs">
-            Drag &amp; drop or click to browse
+          <UploadSimpleIcon weight="bold" className="size-7 text-white/70 md:size-6" />
+          <span className="text-base text-white md:text-sm">
+            Upload {label} Artwork
           </span>
+          <span className={helpTextClass}>Drag &amp; drop or click to browse</span>
         </button>
       ) : (
         <div
@@ -282,7 +284,7 @@ export function ArtworkUploader({
               <span className="flex size-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-white/10 bg-black/35">
                 <FileIcon weight="bold" className="size-5 text-white/70" />
                 {extension ? (
-                  <span className="text-[11px] tracking-wider text-white/75 uppercase">
+                  <span className="text-xs tracking-wider text-white/75 uppercase md:text-[11px]">
                     {extension}
                   </span>
                 ) : null}
@@ -291,10 +293,13 @@ export function ArtworkUploader({
 
             <div className="min-w-0 flex-1 space-y-1">
               {/* Print filenames run long — truncate rather than overflow. */}
-              <p className="truncate text-sm text-white" title={displayName}>
+              <p
+                className="truncate text-base text-white md:text-sm"
+                title={displayName}
+              >
                 {displayName}
               </p>
-              <p className="text-muted-foreground text-xs">
+              <p className={helpTextClass}>
                 {status === "uploading"
                   ? `Uploading… ${progress}%`
                   : status === "failed"
@@ -324,7 +329,7 @@ export function ArtworkUploader({
               aria-valuemax={100}
               aria-valuenow={progress}
               aria-label={`${slotLabel} artwork upload progress`}
-              className="h-1 w-full overflow-hidden rounded-full bg-white/10"
+              className="h-1.5 w-full overflow-hidden rounded-full bg-white/10"
             >
               <div
                 className="h-full rounded-full bg-white transition-[width] duration-200"
@@ -334,7 +339,7 @@ export function ArtworkUploader({
           ) : null}
 
           {error ? (
-            <p className="text-xs text-red-300" role="alert">
+            <p className="text-sm leading-relaxed text-red-300 md:text-xs" role="alert">
               {error}
             </p>
           ) : null}

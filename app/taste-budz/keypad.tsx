@@ -117,7 +117,10 @@ export function TasteBudzKeypad({
         </div>
 
         <p
-          className={cn("h-4 text-xs", error ? "text-red-300" : "text-white/70")}
+          className={cn(
+            "min-h-5 text-center text-sm leading-snug md:text-xs",
+            error ? "text-red-300" : "text-white/70",
+          )}
           role={error ? "alert" : undefined}
         >
           {pending ? "Checking…" : (error ?? hint)}
@@ -137,7 +140,7 @@ function KeypadButton({
     <button
       type="button"
       className={cn(
-        "flex size-16 items-center justify-center rounded-full border border-white/15 bg-black/35 text-xl font-semibold text-white backdrop-blur-md transition-all",
+        "flex size-16 items-center justify-center rounded-full border border-white/15 bg-black/35 text-2xl font-semibold text-white backdrop-blur-md transition-all",
         "hover:border-white/30 hover:bg-black/25 active:scale-95 disabled:pointer-events-none disabled:opacity-60",
         className,
       )}

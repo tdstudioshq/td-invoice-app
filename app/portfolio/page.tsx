@@ -1,10 +1,11 @@
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import Link from "next/link";
-import { ArrowLeftIcon, PaintBrushIcon } from "@phosphor-icons/react/dist/ssr";
+import { PaintBrushIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { getPortfolioImages } from "@/lib/data";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "Portfolio",
@@ -20,17 +21,17 @@ export default async function PortfolioPage() {
   const images = await getPortfolioImages();
 
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Portfolio
           </h1>
           <Link
             href="/custom-design-request"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-5 py-2.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 min-h-12 px-5 py-2.5 text-base font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] md:text-sm backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
           >
             <PaintBrushIcon weight="bold" className="size-4" />
             Request Custom Work
@@ -39,13 +40,7 @@ export default async function PortfolioPage() {
 
         <PortfolioGallery images={images} />
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );

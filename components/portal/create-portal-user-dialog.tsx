@@ -103,7 +103,7 @@ export function CreatePortalUserDialog({
                 {copied ? <Check /> : <Copy />}
               </Button>
             </div>
-            <p className="text-muted-foreground text-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
               The client can change it anytime via “Forgot password” on the login
               page.
             </p>
@@ -129,7 +129,7 @@ export function CreatePortalUserDialog({
                 aria-invalid={Boolean(state.fieldErrors?.email)}
               />
               {state.fieldErrors?.email ? (
-                <p className="text-destructive text-xs">
+                <p className="text-destructive text-sm md:text-xs">
                   {state.fieldErrors.email}
                 </p>
               ) : null}

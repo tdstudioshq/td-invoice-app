@@ -119,7 +119,7 @@ function QrCodeListItem({
             type="button"
             onClick={copy}
             title="Copy short link"
-            className="text-muted-foreground hover:text-foreground mt-1 flex max-w-full items-center gap-1.5 text-xs transition-colors"
+            className="text-muted-foreground hover:text-foreground mt-1 flex min-h-11 max-w-full items-center gap-1.5 text-sm transition-colors md:min-h-0 md:text-xs"
           >
             <span className="truncate">{`/q/${code.slug}`}</span>
             {copied ? (
@@ -129,11 +129,11 @@ function QrCodeListItem({
             )}
           </button>
           {code.destination_url ? (
-            <p className="text-muted-foreground/70 mt-1 truncate text-xs">
+            <p className="text-muted-foreground/70 mt-1 truncate text-sm md:text-xs">
               → {code.destination_url}
             </p>
           ) : null}
-          <p className="text-muted-foreground mt-2 text-xs">
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed md:text-xs">
             <span className="text-foreground font-medium">
               {scanCount.toLocaleString()}
             </span>{" "}

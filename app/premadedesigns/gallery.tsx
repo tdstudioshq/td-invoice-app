@@ -264,19 +264,19 @@ export function DesignsGallery({
           <button
             type="button"
             onClick={backToCollections}
-            className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/80 transition hover:border-white/30 hover:bg-white/[0.12] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="mb-3 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-white/80 transition hover:border-white/30 hover:bg-white/[0.12] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:min-h-0 md:py-1.5 md:text-xs"
           >
-            <ArrowLeftIcon weight="bold" className="size-3.5" />
+            <ArrowLeftIcon weight="bold" className="size-4 md:size-3.5" />
             All collections
           </button>
         ) : null}
 
         {activeCollection ? (
           <h2 className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-lg font-semibold text-white">
+            <span className="text-xl font-semibold text-white md:text-lg">
               {activeCollection.label}
             </span>
-            <span className="text-xs text-white/50">
+            <span className="text-sm text-white/50 md:text-xs">
               {activeCollection.count.toLocaleString()} designs
             </span>
           </h2>
@@ -296,21 +296,21 @@ export function DesignsGallery({
                 ? "Search collections…"
                 : `Search in ${activeCollection?.label ?? "this collection"}…`
             }
-            className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.07] pr-10 pl-10 text-sm text-white outline-none transition placeholder:text-white/40 focus:border-white/30 focus:bg-white/[0.1] focus:ring-2 focus:ring-white/10"
+            className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.07] pr-11 pl-10 text-base text-white outline-none transition placeholder:text-white/40 focus:border-white/30 focus:bg-white/[0.1] focus:ring-2 focus:ring-white/10 md:h-11 md:text-sm"
           />
           {query ? (
             <button
               type="button"
               onClick={() => updateQuery("")}
               aria-label="Clear search"
-              className="absolute top-1/2 right-2.5 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white"
+              className="absolute top-1/2 right-1.5 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-white/50 transition hover:bg-white/10 hover:text-white md:size-7"
             >
               <XIcon className="size-4" />
             </button>
           ) : null}
         </label>
 
-        <div className="mt-3 flex items-center justify-between gap-3 px-1 text-xs text-white/55">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1 text-[13px] text-white/55 md:text-xs">
           <span aria-live="polite">
             Showing {firstVisible.toLocaleString()}–{lastVisible.toLocaleString()} of{" "}
             {totalItems.toLocaleString()} {noun}
@@ -383,7 +383,7 @@ export function DesignsGallery({
             <CaretLeftIcon weight="bold" className="size-4" />
             Previous
           </PageButton>
-          <span className="min-w-24 text-center text-xs tabular-nums text-white/60">
+          <span className="min-w-24 text-center text-sm tabular-nums text-white/60 md:text-xs">
             {safePage} / {totalPages}
           </span>
           <PageButton
@@ -456,7 +456,7 @@ function CollectionCard({
           onContextMenu={(event) => event.preventDefault()}
           aria-hidden
         />
-        <span className="absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-[0.65rem] font-medium text-white/85 backdrop-blur-md">
+        <span className="absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-xs font-medium text-white/85 backdrop-blur-md md:text-[0.65rem]">
           <FolderIcon weight="fill" className="size-3" />
           {collection.count.toLocaleString()}
         </span>
@@ -465,7 +465,7 @@ function CollectionCard({
         <p className="truncate text-sm font-medium text-white/90">
           {collection.label}
         </p>
-        <p className="truncate text-[0.68rem] tracking-wide text-white/45 uppercase">
+        <p className="truncate text-xs tracking-wide text-white/45 uppercase md:text-[0.68rem]">
           {collection.count.toLocaleString()} designs
         </p>
       </div>
@@ -527,7 +527,7 @@ function DesignCard({
         <p className="truncate text-sm font-medium text-white/90">
           {design.title}
         </p>
-        <p className="truncate text-[0.68rem] tracking-wide text-white/45 uppercase">
+        <p className="truncate text-xs tracking-wide text-white/45 uppercase md:text-[0.68rem]">
           {design.folderLabel}
         </p>
       </div>
@@ -606,7 +606,7 @@ function DesignLightbox({
             <p className="truncate text-sm font-medium text-white">
               {current.title}
             </p>
-            <p className="text-xs text-white/55">
+            <p className="text-[13px] text-white/55 md:text-xs">
               {index + 1} / {designs.length} · {current.folderLabel}
             </p>
           </div>
@@ -615,7 +615,7 @@ function DesignLightbox({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-4 right-4 inline-flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15"
+            className="absolute top-4 right-4 inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15 md:size-10"
           >
             <XIcon weight="bold" className="size-5" />
           </button>
@@ -680,7 +680,7 @@ function PageButton({
     <button
       type="button"
       className={cn(
-        "inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black/35 px-4 text-xs font-medium text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35",
+        "inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/15 bg-black/35 px-4 text-sm font-medium text-white backdrop-blur-md transition hover:border-white/30 hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35 md:h-10 md:text-xs",
         className,
       )}
       {...props}

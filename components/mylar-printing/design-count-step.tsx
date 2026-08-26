@@ -4,7 +4,12 @@ import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OptionCard, StepHeading, fieldClass } from "@/components/mylar-printing/wizard-ui";
+import {
+  OptionCard,
+  StepHeading,
+  fieldClass,
+  helpTextClass,
+} from "@/components/mylar-printing/wizard-ui";
 import { designCountSchema, firstError } from "@/lib/mylar-printing/schema";
 import {
   DESIGN_COUNT_CHOICES,
@@ -63,7 +68,7 @@ export function DesignCountStep({
       <div
         role="radiogroup"
         aria-label="Number of designs"
-        className="grid gap-3 sm:grid-cols-2"
+        className="grid gap-3 sm:grid-cols-2 sm:gap-4"
       >
         {DESIGN_COUNT_CHOICES.map((count) => (
           <OptionCard
@@ -87,7 +92,7 @@ export function DesignCountStep({
       </div>
 
       {isCustom ? (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="designCount" className="text-white">
             Number of designs
           </Label>
@@ -112,13 +117,13 @@ export function DesignCountStep({
                 ),
               )
             }
-            className={cn("h-12 max-w-40 text-center text-base", fieldClass)}
+            className={cn("h-12 max-w-40 text-center text-lg md:text-base", fieldClass)}
           />
           <p
             id="designCount-hint"
             role={error ? "alert" : undefined}
             className={
-              error ? "text-sm text-red-300" : "text-muted-foreground text-xs"
+              error ? "text-sm leading-relaxed text-red-300" : helpTextClass
             }
           >
             {error ?? `Enter ${DESIGN_COUNT_CUSTOM_MIN} or more.`}

@@ -12,7 +12,7 @@ export const metadata = { title: "Reset password" };
 
 export default function ResetPasswordPage() {
   return (
-    <main className="flex min-h-svh items-center justify-center px-4 py-12">
+    <main className="public-page flex min-h-svh items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
         <div className="flex justify-center">
           <Brand />

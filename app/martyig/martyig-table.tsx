@@ -127,7 +127,7 @@ export function MartyigTable() {
               type="button"
               onClick={() => onSort("name")}
               className={cn(
-                "px-3 py-1.5 text-xs transition-colors",
+                "min-h-11 px-3.5 text-sm transition-colors md:min-h-0 md:py-1.5 md:text-xs",
                 sort === "name"
                   ? "bg-glass-highlight/25 text-metal-platinum"
                   : "text-muted-foreground hover:text-foreground",
@@ -139,7 +139,7 @@ export function MartyigTable() {
               type="button"
               onClick={() => onSort("username")}
               className={cn(
-                "px-3 py-1.5 text-xs transition-colors",
+                "min-h-11 px-3.5 text-sm transition-colors md:min-h-0 md:py-1.5 md:text-xs",
                 sort === "username"
                   ? "bg-glass-highlight/25 text-metal-platinum"
                   : "text-muted-foreground hover:text-foreground",
@@ -151,7 +151,7 @@ export function MartyigTable() {
         </div>
       </div>
 
-      <p className="text-muted-foreground text-xs">
+      <p className="text-muted-foreground text-sm md:text-xs">
         {filtered.length.toLocaleString()}{" "}
         {filtered.length === 1 ? "lead" : "leads"}
         {query.trim() || namedOnly ? " matched" : ""}
@@ -189,7 +189,7 @@ export function MartyigTable() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <span
-                          className="flex size-9 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white/90"
+                          className="flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white/90 md:size-9 md:text-[11px]"
                           style={{
                             backgroundColor: `hsl(${hue} 45% 32%)`,
                           }}
@@ -198,14 +198,14 @@ export function MartyigTable() {
                           {initialsFor(lead)}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-sm text-foreground">
+                          <p className="truncate text-base text-foreground md:text-sm">
                             {lead.name || (
                               <span className="text-muted-foreground italic">
                                 No name
                               </span>
                             )}
                           </p>
-                          <p className="text-muted-foreground truncate text-xs sm:hidden">
+                          <p className="text-muted-foreground truncate text-sm sm:hidden">
                             @{lead.username}
                           </p>
                         </div>
@@ -227,17 +227,17 @@ export function MartyigTable() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="size-8"
+                          className="size-10 md:size-8"
                           aria-label={`Copy @${lead.username}`}
                           onClick={() => copyUsername(lead.username)}
                         >
-                          <Copy className="size-3.5" />
+                          <Copy className="size-4 md:size-3.5" />
                         </Button>
                         <Button
                           asChild
                           variant="ghost"
                           size="icon"
-                          className="size-8"
+                          className="size-10 md:size-8"
                         >
                           <a
                             href={`https://instagram.com/${lead.username}`}
@@ -245,7 +245,7 @@ export function MartyigTable() {
                             rel="noopener noreferrer"
                             aria-label={`Open @${lead.username} on Instagram`}
                           >
-                            <ArrowUpRight className="size-3.5" />
+                            <ArrowUpRight className="size-4 md:size-3.5" />
                           </a>
                         </Button>
                       </div>
@@ -261,7 +261,7 @@ export function MartyigTable() {
       {/* Pagination */}
       {pageCount > 1 ? (
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground text-sm md:text-xs">
             Page {current + 1} of {pageCount}
           </p>
           <div className="flex items-center gap-2">

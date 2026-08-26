@@ -20,12 +20,12 @@ export function StatCard({
     <Card className="relative min-h-32">
       <CardContent className="relative pt-6">
         <div className="flex items-start justify-between">
-          <span className="text-muted-foreground text-xs tracking-wide uppercase">
+          <span className="text-muted-foreground text-[13px] tracking-wide uppercase md:text-xs">
             {label}
           </span>
           <span
             className={cn(
-              "flex size-8 items-center justify-center rounded-[6px] border",
+              "flex size-9 items-center justify-center rounded-[6px] border md:size-8",
               accent === "warning"
                 ? "border-red-300/20 bg-red-400/10 text-red-300"
                 : "border-glass-border bg-glass-highlight/15 text-metal-platinum",
@@ -36,14 +36,14 @@ export function StatCard({
         </div>
         <p
           className={cn(
-            "mt-4 text-2xl font-semibold tracking-tight tabular-nums",
+            "mt-4 text-3xl font-semibold tracking-tight tabular-nums md:text-2xl",
             accent === "warning" ? "text-red-300" : "text-metal-platinum",
           )}
         >
           {value}
         </p>
         {hint ? (
-          <p className="text-muted-foreground mt-1 text-xs">{hint}</p>
+          <p className="text-muted-foreground mt-1 text-sm md:text-xs">{hint}</p>
         ) : null}
       </CardContent>
     </Card>

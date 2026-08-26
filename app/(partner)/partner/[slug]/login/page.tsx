@@ -66,7 +66,7 @@ export default async function PartnerLoginPage({
         extraFields={{ slug, next }}
       />
 
-      <p className="text-muted-foreground mt-10 text-center text-xs">
+      <p className="text-muted-foreground mt-10 text-center text-sm md:text-xs">
         Don&apos;t have the code? Text TD Studios.
       </p>
     </div>

@@ -37,7 +37,7 @@ export function ChangePasswordForm({ mustChange }: { mustChange: boolean }) {
           You must set a new password before using the portal.
         </p>
       ) : null}
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="password">New password</Label>
         <Input
           id="password"
@@ -48,12 +48,12 @@ export function ChangePasswordForm({ mustChange }: { mustChange: boolean }) {
           minLength={8}
         />
         {state.fieldErrors?.password ? (
-          <p className="text-destructive text-xs">
+          <p className="text-destructive text-sm md:text-xs">
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="confirm">Confirm password</Label>
         <Input
           id="confirm"
@@ -64,7 +64,7 @@ export function ChangePasswordForm({ mustChange }: { mustChange: boolean }) {
           minLength={8}
         />
         {state.fieldErrors?.confirm ? (
-          <p className="text-destructive text-xs">{state.fieldErrors.confirm}</p>
+          <p className="text-destructive text-sm md:text-xs">{state.fieldErrors.confirm}</p>
         ) : null}
       </div>
       <SubmitButton pendingText="Updating…">Update password</SubmitButton>

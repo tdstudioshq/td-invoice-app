@@ -620,7 +620,7 @@ export function MylarPrintingWizard() {
 
   if (result) {
     return (
-      <div className={`${panelClass} p-6 sm:p-8`}>
+      <div className={`${panelClass} p-5 sm:p-8`}>
         <InquirySuccess
           referenceNumber={result.referenceNumber}
           draft={result.draft}
@@ -633,10 +633,13 @@ export function MylarPrintingWizard() {
   const offset = reduceMotion ? 0 : 24;
 
   return (
-    <div ref={containerRef} className={`${panelClass} scroll-mt-6 p-5 sm:p-8`}>
+    <div
+      ref={containerRef}
+      className={`${panelClass} scroll-mt-6 p-4 xs:p-5 sm:p-8`}
+    >
       <WizardProgress stepIndex={step} onBack={() => goTo(step - 1)} />
 
-      <div className="mt-7">
+      <div className="mt-6 sm:mt-7">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={WIZARD_STEPS[step].id}
@@ -707,7 +710,7 @@ export function MylarPrintingWizard() {
         </AnimatePresence>
       </div>
 
-      <div className="mt-8 flex flex-col gap-3">
+      <div className="mt-7 flex flex-col gap-3 sm:mt-8">
         {isLastStep ? (
           <>
             <Button
@@ -716,10 +719,10 @@ export function MylarPrintingWizard() {
               disabled={submitting}
               className={primaryButtonClass}
             >
-              <PaperPlaneTiltIcon weight="bold" className="size-4" />
+              <PaperPlaneTiltIcon weight="bold" className="size-5 md:size-4" />
               {submitting ? "Sending…" : "Submit Printing Request"}
             </Button>
-            <p className="text-muted-foreground text-center text-xs leading-relaxed">
+            <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
               This is a printing quote request. Your order is not confirmed
               until TD Studios reviews your artwork and order details.
             </p>
@@ -739,7 +742,7 @@ export function MylarPrintingWizard() {
             {continueBlockedReason ? (
               <p
                 aria-live="polite"
-                className="text-muted-foreground text-center text-xs leading-relaxed"
+                className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs"
               >
                 {continueBlockedReason}
               </p>

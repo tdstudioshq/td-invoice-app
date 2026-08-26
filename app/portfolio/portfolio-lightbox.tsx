@@ -99,7 +99,7 @@ export function PortfolioLightbox({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14]"
+            className="absolute right-4 top-4 inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14] md:size-10"
           >
             <XIcon weight="bold" className="size-5" />
           </button>

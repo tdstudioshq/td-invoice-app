@@ -73,17 +73,17 @@ export default async function PartnerJobDetailPage({
           <CardContent>
             <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-3">
               <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs">Submitted by</dt>
+                <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Submitted by</dt>
                 <dd className="mt-0.5 text-sm break-words">{submittedBy}</dd>
               </div>
               <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs">Submitted</dt>
+                <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Submitted</dt>
                 <dd className="mt-0.5 text-sm">
                   {formatDateTime(job.created_at)}
                 </dd>
               </div>
               <div className="min-w-0">
-                <dt className="text-muted-foreground text-xs">Status</dt>
+                <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Status</dt>
                 <dd className="mt-1">
                   <JobStatusBadge status={job.status} />
                 </dd>

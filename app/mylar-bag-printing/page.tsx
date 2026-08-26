@@ -1,12 +1,11 @@
-import Link from "next/link";
 import {
-  ArrowLeftIcon,
   ChatCircleTextIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { MylarOrderForm } from "@/app/mylar-bag-printing/mylar-order-form";
 import { HomeLogoLink } from "@/components/layout/home-logo";
+import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
   title: "Mylar Bag Printing",
@@ -25,15 +24,15 @@ const TEXT_HREF = "sms:+19297528373";
  */
 export default function MylarBagPrintingPage() {
   return (
-    <main className="on-glass relative flex min-h-svh flex-col items-center overflow-hidden px-4 py-12">
+    <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-2xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="public-title font-bold tracking-tight text-white">
             Mylar Bag Printing
           </h1>
-          <p className="text-muted-foreground max-w-md text-sm">
+          <p className="text-muted-foreground max-w-md text-base leading-relaxed md:text-sm">
             Pick your bag style and quantity, send over your artwork, and
             I&apos;ll get back to you with pricing and a proof.
           </p>
@@ -46,19 +45,13 @@ export default function MylarBagPrintingPage() {
             leave an empty tab behind. */}
         <a
           href={TEXT_HREF}
-          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-black/35 px-5 py-3.5 text-sm font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
+          className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-black/35 min-h-12 px-5 py-3.5 text-base font-medium text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] md:text-sm backdrop-blur-md transition-all hover:border-white/25 hover:bg-black/25 active:translate-y-px"
         >
           <ChatCircleTextIcon weight="bold" className="size-4" />
           Text Me Instead
         </a>
 
-        <Link
-          href="/"
-          className="text-on-photo text-muted-foreground hover:text-foreground mx-auto inline-flex items-center gap-1.5 text-xs transition-colors"
-        >
-          <ArrowLeftIcon weight="bold" className="size-3.5" />
-          Back to TD Studios
-        </Link>
+        <BackToStudiosLink className="mx-auto" />
       </div>
     </main>
   );
