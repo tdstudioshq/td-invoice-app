@@ -2,6 +2,7 @@
 import { DownloadSimpleIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
 import { formatPartnerBytes, partnerExtensionOf } from "@/lib/partner-jobs/uploads";
 import { previewKind } from "@/lib/portal";
 import type { DesignJobFile } from "@/lib/types/database";
@@ -25,9 +26,17 @@ import type { DesignJobFile } from "@/lib/types/database";
  * app's delivery path (see the /premadedesigns note in CLAUDE.md).
  *
  * Shared by the partner and admin detail pages — the route decides which client
- * to authorize with, so the same markup is correct for both.
+ * to authorize with, so the same markup is correct for both. "Download all"
+ * therefore lands on both, which is intended: it zips whatever the caller was
+ * already allowed to fetch one at a time.
  */
-export function JobFileList({ files }: { files: DesignJobFile[] }) {
+export function JobFileList({
+  files,
+  jobNumber,
+}: {
+  files: DesignJobFile[];
+  jobNumber: string;
+}) {
   if (files.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
@@ -37,7 +46,15 @@ export function JobFileList({ files }: { files: DesignJobFile[] }) {
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="space-y-3">
+      {/* One file is not a bundle — the per-tile download already does that. */}
+      {files.length > 1 ? (
+        <div className="flex justify-end">
+          <DownloadAllFilesButton files={files} jobNumber={jobNumber} />
+        </div>
+      ) : null}
+
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {files.map((file) => {
         const kind = previewKind(file.mime_type);
         const isImage = kind === "image";
@@ -100,6 +117,7 @@ export function JobFileList({ files }: { files: DesignJobFile[] }) {
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }

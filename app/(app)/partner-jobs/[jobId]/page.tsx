@@ -116,7 +116,7 @@ export default async function PartnerJobDetailPage(
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <JobFileList files={job.files} />
+            <JobFileList files={job.files} jobNumber={job.job_number} />
           </CardContent>
         </Card>
 
