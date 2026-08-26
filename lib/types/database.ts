@@ -62,7 +62,8 @@ export type PartnerProductType =
   | "two_in_one_bag"
   | "pound_bag"
   | "jar_100ml"
-  | "jar_150ml";
+  | "jar_150ml"
+  | "jar_250ml";
 export type PartnerProductFinish = "matte" | "spot_gloss";
 export type DesignJobStatus = "new" | "in_progress" | "completed";
 

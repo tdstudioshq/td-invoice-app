@@ -22,6 +22,7 @@ export const PARTNER_PRODUCT_TYPES = [
   "pound_bag",
   "jar_100ml",
   "jar_150ml",
+  "jar_250ml",
 ] as const satisfies readonly PartnerProductType[];
 
 export const PARTNER_PRODUCT_TYPE_LABEL: Record<PartnerProductType, string> = {
@@ -31,6 +32,7 @@ export const PARTNER_PRODUCT_TYPE_LABEL: Record<PartnerProductType, string> = {
   pound_bag: "Pound Bag",
   jar_100ml: "100ml Jar",
   jar_150ml: "150ml Jar",
+  jar_250ml: "250ml Jar",
 };
 
 export const PARTNER_PRODUCT_FINISHES = [
