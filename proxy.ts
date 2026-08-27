@@ -38,6 +38,9 @@ const PUBLIC_PATHS = new Set<string>([
   "/mylar-bag-printing",
   "/mylar-printing",
   "/portfolio",
+  // Public client proof gallery (White Ash Farms). Artwork is served from a
+  // public Storage bucket and the page is noindex, so no session is needed.
+  "/whiteash",
   "/taste-budz",
   "/gso",
   "/designs",
