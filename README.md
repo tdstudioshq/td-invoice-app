@@ -104,7 +104,7 @@ Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 | `/design-requests`           | Custom design requests                           |
 | `/design-requests/[id]`      | One request: details, reference files, status    |
 | `/partner-jobs`              | Print-partner design jobs (all companies)        |
-| `/partner-jobs/[jobId]`      | One job: products, files, notes, status          |
+| `/partner-jobs/[jobId]`      | One job: each product with its notes + artwork   |
 | `/client-portals`            | Manage client portal logins & files              |
 | `/client-portals/[clientId]` | One client's portal access, projects, and files  |
 | `/settings`                  | Company settings                                 |
@@ -138,7 +138,7 @@ seeing that prefix.
 | `zazaorders.tdstudiosny.com/login`       | `/partner/zaza/login`       | Portal sign-in               |
 | `zazaorders.tdstudiosny.com/jobs`        | `/partner/zaza/jobs`        | Submitted jobs, newest first |
 | `zazaorders.tdstudiosny.com/jobs/new`    | `/partner/zaza/jobs/new`    | File a new design job        |
-| `zazaorders.tdstudiosny.com/jobs/[id]`   | `/partner/zaza/jobs/[id]`   | One job: products, files, status |
+| `zazaorders.tdstudiosny.com/jobs/[id]`   | `/partner/zaza/jobs/[id]`   | One job: products, artwork, status |
 
 Locally (and before the subdomain is attached) the same portal is at
 `/zaza-orders/…` on the main host, or directly at `/partner/zaza/…`. See
@@ -163,6 +163,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/portfolio`                    | Portfolio gallery                               |
 | `/premadedesigns`               | Premade designs gallery (keypad-gated)          |
 | `/gso`                          | GSO gallery                                     |
+| `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
 | `/how-to-order`                 | Ordering instructions                           |
 | `/mylar`                        | Static single-file mylar shop (`public/mylar/`) |
@@ -491,10 +492,15 @@ rep used to send design jobs through. V1 serves one company, **Zaza**, at
 
 ### What a rep can do
 
-Sign in, file a design job (a job name, one or more products with a finish and a
-quantity, reference files, and notes), and watch its status — **New → In Progress
-→ Completed**. That's the whole surface: no messaging, quoting, invoicing,
+Sign in, file a design job (a job name, then one or more products — each with a
+finish, a quantity, its own notes and its own artwork), edit or delete it, and
+watch its status — **New → In Progress → Completed**. Artwork and notes attach to
+a *product*, not to the job, so the studio never has to work out which file goes
+with which item. That's the whole surface: no messaging, quoting, invoicing,
 approvals or revisions.
+
+Status is the one field a rep cannot touch: a database trigger forces it back on
+any rep-side write, so it changes only from the admin side.
 
 ### What TD Studios can do
 
