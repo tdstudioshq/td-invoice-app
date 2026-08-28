@@ -4,7 +4,7 @@ import { ArrowLeft, Mail } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
-import { JobItemTable } from "@/components/partner-jobs/job-item-table";
+import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import { PartnerJobStatusForm } from "@/components/partner-jobs/admin-status-form";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,8 @@ export default async function PartnerJobDetailPage(
 
   const job = await getAdminPartnerJob(jobId);
   if (!job) notFound();
+
+  const jobLevelFiles = job.files.filter((file) => !file.item_id);
 
   return (
     <>
@@ -102,28 +104,41 @@ export default async function PartnerJobDetailPage(
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <JobItemTable items={job.items} />
+            <JobProductList
+              items={job.items}
+              files={job.files}
+              jobNumber={job.job_number}
+            />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              Files
-              <span className="text-muted-foreground ml-2 font-normal">
-                {job.files.length}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <JobFileList files={job.files} jobNumber={job.job_number} />
-          </CardContent>
-        </Card>
+        {/*
+          Only files that belong to the JOB rather than to one of its products —
+          in practice, jobs filed before artwork moved onto the products. The
+          per-product files are rendered inside their product above, so listing
+          the whole set here again would show every file twice. Hidden entirely
+          when there are none, which is every job filed since.
+        */}
+        {jobLevelFiles.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Job files
+                <span className="text-muted-foreground ml-2 font-normal">
+                  {jobLevelFiles.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobFileList files={jobLevelFiles} jobNumber={job.job_number} />
+            </CardContent>
+          </Card>
+        ) : null}
 
         {job.notes ? (
           <Card>
             <CardHeader>
-              <CardTitle>Notes</CardTitle>
+              <CardTitle>Job notes</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm whitespace-pre-wrap">{job.notes}</p>

@@ -114,6 +114,10 @@ export async function getPartnerJob(
         .from("design_job_items")
         .select("*")
         .eq("job_id", jobId)
+        // item_number, not created_at: an edit can add a product to a filed
+        // job, and "Item 2" has to keep meaning the same product to the rep,
+        // to the studio, and to the notes that reference it.
+        .order("item_number", { ascending: true })
         .order("created_at", { ascending: true }),
       supabase
         .from("design_job_files")
@@ -233,6 +237,9 @@ export async function getAdminPartnerJob(
           .from("design_job_items")
           .select("*")
           .eq("job_id", jobId)
+          // Same ordering as the partner view — a rep and the studio must read
+          // the identical list.
+          .order("item_number", { ascending: true })
           .order("created_at", { ascending: true }),
         supabase
           .from("design_job_files")

@@ -34,11 +34,13 @@ import { Textarea } from "@/components/ui/textarea";
 import type { DesignJobFile, DesignJobItem } from "@/lib/types/database";
 import { previewKind } from "@/lib/portal";
 import {
+  itemNotesSchema,
   jobNameSchema,
   notesSchema,
   quantitySchema,
 } from "@/lib/partner-jobs/schema";
 import {
+  MAX_ITEM_NOTES_LENGTH,
   MAX_JOB_FILES,
   MAX_JOB_ITEMS,
   MAX_JOB_NAME_LENGTH,
@@ -71,6 +73,19 @@ import {
  * files are on screen. Splitting them would have meant maintaining the same
  * multi-item editor and upload pipeline twice.
  *
+ * ARTWORK AND NOTES HANG OFF A PRODUCT, NOT OFF THE JOB.
+ * A rep files one job for an 8th bag, a pound bag and a 100ml jar, and the
+ * artwork and the instructions differ per product. A single pile of files at the
+ * bottom made the studio guess which file was for which — the guessing this
+ * portal exists to stop. So each product card owns its own notes box and its own
+ * attach control, and every uploaded object carries the product's id.
+ *
+ * Product ids are minted HERE, in the browser, because a file is attached to a
+ * product before either row exists — the same reason a mylar design's id is
+ * minted client-side. In edit mode the id IS the stored row's id, which is what
+ * lets the server reconcile the item set rather than replace it (replacing would
+ * cascade every per-product file away on a rename).
+ *
  * NOT a `useActionState` form, for one reason that shapes everything else: file
  * bytes cannot go through a Server Action (Next caps those bodies at ~4 MB), so
  * submitting is a sequence — validate, upload each file straight to Storage with
@@ -84,13 +99,6 @@ import {
  * Everything checked here is checked again on the server, and again by the
  * table's constraints. This layer exists for speed of feedback, not for safety.
  */
-
-interface ItemRow {
-  key: string;
-  productType: PartnerProductType | "";
-  finish: PartnerProductFinish | "";
-  quantity: string;
-}
 
 interface FileRow {
   key: string;
@@ -106,6 +114,21 @@ interface FileRow {
   previewUrl: string | null;
 }
 
+interface ItemRow {
+  /**
+   * Doubles as the React key and as the `design_job_items` primary key the
+   * server is asked to write. A fresh uuid for a new product; the stored row's
+   * id when editing, so its artwork stays attached.
+   */
+  id: string;
+  productType: PartnerProductType | "";
+  finish: PartnerProductFinish | "";
+  quantity: string;
+  notes: string;
+  /** Files picked for THIS product and not yet uploaded. */
+  files: FileRow[];
+}
+
 function newKey(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -113,7 +136,14 @@ function newKey(): string {
 }
 
 function emptyItem(): ItemRow {
-  return { key: newKey(), productType: "", finish: "", quantity: "" };
+  return {
+    id: newKey(),
+    productType: "",
+    finish: "",
+    quantity: "",
+    notes: "",
+    files: [],
+  };
 }
 
 export interface EditableJob {
@@ -122,6 +152,79 @@ export interface EditableJob {
   notes: string | null;
   items: DesignJobItem[];
   files: DesignJobFile[];
+}
+
+/**
+ * A stored file's row, with its remove/undo toggle. Same markup wherever a saved
+ * file appears — under a product, or in the legacy job-wide section.
+ *
+ * Top-level rather than nested in the form: a component declared inside another
+ * component is a new type on every render, so React would unmount and remount
+ * every file row on each keystroke — discarding the thumbnail it had already
+ * fetched through the authorized redirect.
+ */
+function StoredFileRow({
+  file,
+  removed,
+  busy,
+  onToggle,
+}: {
+  file: DesignJobFile;
+  removed: boolean;
+  busy: boolean;
+  onToggle: () => void;
+}) {
+  const isImage = previewKind(file.mime_type) === "image";
+  return (
+    <li
+      data-removed={removed}
+      className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5 data-[removed=true]:opacity-45"
+    >
+      <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
+        {isImage ? (
+          <img
+            src={`/api/partner-job-files/${file.id}?inline=1`}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
+        ) : (
+          <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
+            {partnerExtensionOf(file.original_filename).toUpperCase() || "FILE"}
+          </span>
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p
+          data-removed={removed}
+          className="truncate text-sm data-[removed=true]:line-through"
+        >
+          {file.original_filename}
+        </p>
+        <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
+          {removed
+            ? "Will be deleted when you save"
+            : formatPartnerBytes(file.file_size)}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={busy}
+        className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 items-center gap-1.5 px-1 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
+      >
+        {removed ? (
+          "Undo"
+        ) : (
+          <>
+            <TrashIcon className="size-4" />
+            Remove
+          </>
+        )}
+      </button>
+    </li>
+  );
 }
 
 export function NewJobForm({
@@ -134,7 +237,7 @@ export function NewJobForm({
 }) {
   const editing = Boolean(job);
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputs = useRef(new Map<string, HTMLInputElement | null>());
 
   const [jobName, setJobName] = useState(job?.jobName ?? "");
   const [notes, setNotes] = useState(job?.notes ?? "");
@@ -143,10 +246,12 @@ export function NewJobForm({
   const [items, setItems] = useState<ItemRow[]>(() =>
     job && job.items.length > 0
       ? job.items.map((item) => ({
-          key: newKey(),
+          id: item.id,
           productType: item.product_type,
           finish: item.finish,
           quantity: String(item.quantity),
+          notes: item.notes ?? "",
+          files: [],
         }))
       : [emptyItem()],
   );
@@ -154,7 +259,6 @@ export function NewJobForm({
    *  mistaken click is undone by simply not saving. */
   const [removedFileIds, setRemovedFileIds] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
-  const [files, setFiles] = useState<FileRow[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [phase, setPhase] = useState<"idle" | "uploading" | "saving">("idle");
 
@@ -166,26 +270,57 @@ export function NewJobForm({
 
   const busy = phase !== "idle";
 
-  const updateItem = useCallback(
-    (key: string, patch: Partial<ItemRow>) => {
-      setItems((rows) =>
-        rows.map((row) => (row.key === key ? { ...row, ...patch } : row)),
-      );
-    },
-    [],
+  /**
+   * Files already stored against this job, split by which product owns them.
+   *
+   * A null `item_id` is not a gap to fill in: it is every file filed before
+   * per-product artwork existed, and it means "the job as a whole". Those keep
+   * their own section rather than being guessed onto a product.
+   */
+  const storedByItem = useMemo(() => {
+    const map = new Map<string, DesignJobFile[]>();
+    for (const file of job?.files ?? []) {
+      if (!file.item_id) continue;
+      const list = map.get(file.item_id);
+      if (list) list.push(file);
+      else map.set(file.item_id, [file]);
+    }
+    return map;
+  }, [job]);
+
+  const jobLevelFiles = useMemo(
+    () => (job?.files ?? []).filter((file) => !file.item_id),
+    [job],
   );
+
+  /** Pending files across every product, in the order they will be uploaded. */
+  const pendingFiles = useMemo(
+    () => items.flatMap((item) => item.files.map((row) => ({ itemId: item.id, row }))),
+    [items],
+  );
+
+  const totalBytes = useMemo(
+    () => pendingFiles.reduce((sum, entry) => sum + entry.row.file.size, 0),
+    [pendingFiles],
+  );
+
+  /** Stored files that will survive the save, plus everything newly picked. */
+  const fileCount = useMemo(() => {
+    const stored = (job?.files ?? []).filter(
+      (file) => !removedFileIds.includes(file.id),
+    ).length;
+    return stored + pendingFiles.length;
+  }, [job, removedFileIds, pendingFiles]);
+
+  const updateItem = useCallback((id: string, patch: Partial<ItemRow>) => {
+    setItems((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, ...patch } : row)),
+    );
+  }, []);
 
   const addItem = useCallback(() => {
     setItems((rows) =>
       rows.length >= MAX_JOB_ITEMS ? rows : [...rows, emptyItem()],
-    );
-  }, []);
-
-  const removeItem = useCallback((key: string) => {
-    // Never leave zero rows — a job with no product is not a job, and an empty
-    // list gives the rep nothing to type into.
-    setItems((rows) =>
-      rows.length <= 1 ? rows : rows.filter((row) => row.key !== key),
     );
   }, []);
 
@@ -194,12 +329,13 @@ export function NewJobForm({
    *
    * `uploadedRef` is only ever non-empty between a failed submit and the retry
    * that follows it, and the retry finds its pending files by index
-   * (`files.slice(uploaded.length)`) — which is only correct while the uploaded
-   * files are still a PREFIX of the list. Editing the list breaks that, so any
-   * edit resets the pair and the next submit uploads everything again. The
-   * stranded objects are handed to the discard action on the way out; if that
-   * fails they are logged, never surfaced — the rep's draft is already correct
-   * either way.
+   * (`pending.slice(uploaded.length)`) — which is only correct while the
+   * uploaded files are still a PREFIX of the flattened list. Editing that list
+   * — picking, removing, or dropping a whole product — breaks the assumption,
+   * so any such edit resets the pair and the next submit uploads everything
+   * again. The stranded objects are handed to the discard action on the way
+   * out; if that fails they are logged, never surfaced — the rep's draft is
+   * already correct either way.
    */
   const resetUploads = useCallback(() => {
     const jobId = jobIdRef.current;
@@ -218,8 +354,36 @@ export function NewJobForm({
     }
   }, []);
 
+  const removeItem = useCallback(
+    (id: string) => {
+      // Never leave zero rows — a job with no product is not a job, and an empty
+      // list gives the rep nothing to type into.
+      setItems((rows) => {
+        if (rows.length <= 1) return rows;
+        const going = rows.find((row) => row.id === id);
+        for (const file of going?.files ?? []) {
+          if (file.previewUrl) {
+            URL.revokeObjectURL(file.previewUrl);
+            objectUrls.current.delete(file.previewUrl);
+          }
+        }
+        return rows.filter((row) => row.id !== id);
+      });
+      // Its pending files went with it, so the flattened upload list changed.
+      resetUploads();
+      // Any of its STORED files are about to be cascaded away by the server; the
+      // removal list is about explicit per-file removals only, so drop them from
+      // it rather than asking for the same delete twice.
+      const storedIds = new Set((storedByItem.get(id) ?? []).map((f) => f.id));
+      if (storedIds.size > 0) {
+        setRemovedFileIds((ids) => ids.filter((fileId) => !storedIds.has(fileId)));
+      }
+    },
+    [resetUploads, storedByItem],
+  );
+
   const onPickFiles = useCallback(
-    (picked: FileList | null) => {
+    (itemId: string, picked: FileList | null) => {
       if (!picked || picked.length === 0) return;
       const accepted: FileRow[] = [];
       const rejected: string[] = [];
@@ -242,32 +406,60 @@ export function NewJobForm({
         accepted.push({ key: newKey(), file, progress: null, previewUrl });
       }
 
-      setFiles((rows) => {
-        const room = MAX_JOB_FILES - rows.length;
+      // The cap is job-wide, so the room left depends on every other product
+      // too — computed inside the updater against current state rather than
+      // from a value captured when the picker opened.
+      setItems((rows) => {
+        const used =
+          rows.reduce((sum, row) => sum + row.files.length, 0) +
+          (job?.files ?? []).filter((f) => !removedFileIds.includes(f.id)).length;
+        const room = MAX_JOB_FILES - used;
         if (accepted.length > room) {
           rejected.push(`Only ${MAX_JOB_FILES} files can be attached to a job.`);
         }
-        return [...rows, ...accepted.slice(0, Math.max(room, 0))];
+        const taking = accepted.slice(0, Math.max(room, 0));
+        // Anything that did not fit never reaches the DOM, so release its
+        // preview here or it pins the file for the life of the tab.
+        for (const spare of accepted.slice(taking.length)) {
+          if (spare.previewUrl) {
+            URL.revokeObjectURL(spare.previewUrl);
+            objectUrls.current.delete(spare.previewUrl);
+          }
+        }
+        if (taking.length === 0) return rows;
+        return rows.map((row) =>
+          row.id === itemId ? { ...row, files: [...row.files, ...taking] } : row,
+        );
       });
       for (const message of rejected) toast.error(message);
 
       // Let the same file be picked again after a removal.
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      const input = fileInputs.current.get(itemId);
+      if (input) input.value = "";
       if (accepted.length > 0) resetUploads();
     },
-    [resetUploads],
+    [job, removedFileIds, resetUploads],
   );
 
+  const toggleRemoved = useCallback((fileId: string) => {
+    setRemovedFileIds((ids) =>
+      ids.includes(fileId) ? ids.filter((id) => id !== fileId) : [...ids, fileId],
+    );
+  }, []);
+
   const removeFile = useCallback(
-    (key: string) => {
-      setFiles((rows) => {
-        const going = rows.find((row) => row.key === key);
-        if (going?.previewUrl) {
-          URL.revokeObjectURL(going.previewUrl);
-          objectUrls.current.delete(going.previewUrl);
-        }
-        return rows.filter((row) => row.key !== key);
-      });
+    (itemId: string, key: string) => {
+      setItems((rows) =>
+        rows.map((row) => {
+          if (row.id !== itemId) return row;
+          const going = row.files.find((file) => file.key === key);
+          if (going?.previewUrl) {
+            URL.revokeObjectURL(going.previewUrl);
+            objectUrls.current.delete(going.previewUrl);
+          }
+          return { ...row, files: row.files.filter((file) => file.key !== key) };
+        }),
+      );
       resetUploads();
     },
     [resetUploads],
@@ -285,11 +477,6 @@ export function NewJobForm({
     };
   }, []);
 
-  const totalBytes = useMemo(
-    () => files.reduce((sum, row) => sum + row.file.size, 0),
-    [files],
-  );
-
   /** Validate the whole form. Returns the parsed items, or null with errors set. */
   function validate() {
     const next: Record<string, string> = {};
@@ -297,16 +484,24 @@ export function NewJobForm({
     const name = jobNameSchema.safeParse(jobName);
     if (!name.success) next.jobName = name.error.issues[0].message;
 
+    // Only reachable on a job that already had job-wide notes; new jobs put
+    // their notes on the products.
     const parsedNotes = notesSchema.safeParse(notes);
     if (!parsedNotes.success) next.notes = parsedNotes.error.issues[0].message;
 
     const parsedItems: {
+      id: string;
       productType: PartnerProductType;
       finish: PartnerProductFinish;
       quantity: number;
+      notes: string;
     }[] = [];
 
     items.forEach((row, index) => {
+      const itemNotes = itemNotesSchema.safeParse(row.notes);
+      if (!itemNotes.success) {
+        next[`item-notes-${index}`] = itemNotes.error.issues[0].message;
+      }
       if (!row.productType) {
         next[`item-${index}`] = "Choose a product.";
         return;
@@ -320,10 +515,13 @@ export function NewJobForm({
         next[`item-${index}`] = quantity.error.issues[0].message;
         return;
       }
+      if (!itemNotes.success) return;
       parsedItems.push({
+        id: row.id,
         productType: row.productType,
         finish: row.finish,
         quantity: quantity.data,
+        notes: itemNotes.data,
       });
     });
 
@@ -343,27 +541,35 @@ export function NewJobForm({
     }
 
     // Only the files that have not already been sent (a retry after a failed
-    // save re-uses what landed the first time).
-    const pending = files
-      .slice(uploadedRef.current.length)
-      .map((row) => row.file);
+    // save re-uses what landed the first time). `pendingFiles` is the flattened
+    // list in product order, and the uploaded ones are always a prefix of it.
+    const alreadySent = uploadedRef.current.length;
+    const outstanding = pendingFiles.slice(alreadySent);
 
     let uploaded = uploadedRef.current;
     // An edit uploads into the job's EXISTING prefix, so the id is known up
     // front rather than minted by the first ticket.
     let jobId = editing ? job!.id : jobIdRef.current;
 
-    if (pending.length > 0) {
+    if (outstanding.length > 0) {
       setPhase("uploading");
-      const offset = uploadedRef.current.length;
       const result = await uploadJobFiles({
         jobId,
-        files: pending,
+        files: outstanding.map((entry) => entry.row.file),
         alreadyUploaded: uploaded,
         onProgress: (index, percent) => {
-          setFiles((rows) =>
-            rows.map((row, i) =>
-              i === offset + index ? { ...row, progress: percent } : row,
+          const target = outstanding[index];
+          if (!target) return;
+          setItems((rows) =>
+            rows.map((row) =>
+              row.id === target.itemId
+                ? {
+                    ...row,
+                    files: row.files.map((file) =>
+                      file.key === target.row.key ? { ...file, progress: percent } : file,
+                    ),
+                  }
+                : row,
             ),
           );
         },
@@ -383,6 +589,14 @@ export function NewJobForm({
       }
     }
 
+    // Re-attach each uploaded object to the product it was picked for. The
+    // uploader returns keys in the order it was given them, which is
+    // `pendingFiles` order — so the two line up by index.
+    const filesWithOwner = uploaded.map((file, index) => ({
+      ...file,
+      itemId: pendingFiles[index]?.itemId ?? null,
+    }));
+
     setPhase("saving");
     const result = editing
       ? await updatePartnerJobAction({
@@ -390,7 +604,7 @@ export function NewJobForm({
           jobName: jobName.trim(),
           notes: notes.trim(),
           items: parsedItems,
-          addFiles: uploaded,
+          addFiles: filesWithOwner,
           removeFileIds: removedFileIds,
         })
       : await submitPartnerJobAction({
@@ -398,7 +612,7 @@ export function NewJobForm({
           jobName: jobName.trim(),
           notes: notes.trim(),
           items: parsedItems,
-          files: uploaded,
+          files: filesWithOwner,
         });
 
     if ("error" in result) {
@@ -415,7 +629,12 @@ export function NewJobForm({
       // stay uploaded and a retry simply re-attaches them.
       if (!editing) {
         resetUploads();
-        setFiles((rows) => rows.map((row) => ({ ...row, progress: null })));
+        setItems((rows) =>
+          rows.map((row) => ({
+            ...row,
+            files: row.files.map((file) => ({ ...file, progress: null })),
+          })),
+        );
       }
       return;
     }
@@ -472,291 +691,306 @@ export function NewJobForm({
       <Card>
         <CardHeader>
           <CardTitle>Products</CardTitle>
+          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+            Attach the artwork and notes for each product to that product, so we
+            never have to guess which file belongs where.
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {items.map((row, index) => (
-            <div
-              key={row.key}
-              className="border-glass-border space-y-3 rounded-[8px] border p-3 sm:p-4"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-muted-foreground text-[13px] tracking-wide uppercase md:text-xs">
-                  Item {index + 1}
-                </p>
-                {items.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removeItem(row.key)}
-                    disabled={busy}
-                    className="text-muted-foreground hover:text-destructive inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
-                  >
-                    <TrashIcon className="size-4" />
-                    Remove
-                  </button>
+          {items.map((row, index) => {
+            // Files marked for removal stay on screen, struck through, so the
+            // toggle below can undo them.
+            const stored = storedByItem.get(row.id) ?? [];
+            return (
+              <div
+                key={row.id}
+                className="border-glass-border space-y-4 rounded-[8px] border p-3 sm:p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-muted-foreground text-[13px] tracking-wide uppercase md:text-xs">
+                    Item {index + 1}
+                  </p>
+                  {items.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(row.id)}
+                      disabled={busy}
+                      className="text-muted-foreground hover:text-destructive inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
+                    >
+                      <TrashIcon className="size-4" />
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`product-${row.id}`}>Product type</Label>
+                    <Select
+                      value={row.productType}
+                      onValueChange={(value) =>
+                        updateItem(row.id, {
+                          productType: value as PartnerProductType,
+                        })
+                      }
+                      disabled={busy}
+                    >
+                      <SelectTrigger id={`product-${row.id}`} className="h-11 w-full">
+                        <SelectValue placeholder="Choose a product" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PARTNER_PRODUCT_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {PARTNER_PRODUCT_TYPE_LABEL[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`finish-${row.id}`}>Finish</Label>
+                    <Select
+                      value={row.finish}
+                      onValueChange={(value) =>
+                        updateItem(row.id, {
+                          finish: value as PartnerProductFinish,
+                        })
+                      }
+                      disabled={busy}
+                    >
+                      <SelectTrigger id={`finish-${row.id}`} className="h-11 w-full">
+                        <SelectValue placeholder="Choose a finish" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PARTNER_PRODUCT_FINISHES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {PARTNER_PRODUCT_FINISH_LABEL[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5 sm:w-32">
+                    <Label htmlFor={`qty-${row.id}`}>Quantity</Label>
+                    <Input
+                      id={`qty-${row.id}`}
+                      value={row.quantity}
+                      onChange={(event) =>
+                        updateItem(row.id, {
+                          quantity: event.target.value.replace(/[^\d]/g, ""),
+                        })
+                      }
+                      inputMode="numeric"
+                      placeholder="1000"
+                      autoComplete="off"
+                      disabled={busy}
+                      className="h-11 tabular-nums"
+                    />
+                  </div>
+                </div>
+
+                {errors[`item-${index}`] ? (
+                  <p className="text-destructive text-sm md:text-xs">
+                    {errors[`item-${index}`]}
+                  </p>
                 ) : null}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                <div className="space-y-1.5">
-                  <Label htmlFor={`product-${row.key}`}>Product type</Label>
-                  <Select
-                    value={row.productType}
-                    onValueChange={(value) =>
-                      updateItem(row.key, {
-                        productType: value as PartnerProductType,
-                      })
-                    }
-                    disabled={busy}
-                  >
-                    <SelectTrigger id={`product-${row.key}`} className="h-11 w-full">
-                      <SelectValue placeholder="Choose a product" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PARTNER_PRODUCT_TYPES.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {PARTNER_PRODUCT_TYPE_LABEL[value]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor={`finish-${row.key}`}>Finish</Label>
-                  <Select
-                    value={row.finish}
-                    onValueChange={(value) =>
-                      updateItem(row.key, {
-                        finish: value as PartnerProductFinish,
-                      })
-                    }
+                  <Label htmlFor={`item-notes-${row.id}`}>Notes for this product</Label>
+                  <Textarea
+                    id={`item-notes-${row.id}`}
+                    value={row.notes}
+                    onChange={(event) => updateItem(row.id, { notes: event.target.value })}
+                    maxLength={MAX_ITEM_NOTES_LENGTH}
+                    rows={3}
+                    placeholder="Colours, finish details, anything specific to this product."
                     disabled={busy}
-                  >
-                    <SelectTrigger id={`finish-${row.key}`} className="h-11 w-full">
-                      <SelectValue placeholder="Choose a finish" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PARTNER_PRODUCT_FINISHES.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {PARTNER_PRODUCT_FINISH_LABEL[value]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1.5 sm:w-32">
-                  <Label htmlFor={`qty-${row.key}`}>Quantity</Label>
-                  <Input
-                    id={`qty-${row.key}`}
-                    value={row.quantity}
-                    onChange={(event) =>
-                      updateItem(row.key, {
-                        quantity: event.target.value.replace(/[^\d]/g, ""),
-                      })
-                    }
-                    inputMode="numeric"
-                    placeholder="1000"
-                    autoComplete="off"
-                    disabled={busy}
-                    className="h-11 tabular-nums"
+                    aria-invalid={Boolean(errors[`item-notes-${index}`])}
                   />
+                  {errors[`item-notes-${index}`] ? (
+                    <p className="text-destructive text-sm md:text-xs">
+                      {errors[`item-notes-${index}`]}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="space-y-2.5">
+                  <Label htmlFor={`files-${row.id}`}>Artwork for this product</Label>
+
+                  {stored.length > 0 ? (
+                    <ul className="space-y-2">
+                      {stored.map((file) => (
+                        <StoredFileRow
+                          key={file.id}
+                          file={file}
+                          removed={removedFileIds.includes(file.id)}
+                          busy={busy}
+                          onToggle={() => toggleRemoved(file.id)}
+                        />
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  <input
+                    ref={(node) => {
+                      fileInputs.current.set(row.id, node);
+                    }}
+                    type="file"
+                    multiple
+                    accept={PARTNER_ACCEPT_ATTRIBUTE}
+                    onChange={(event) => onPickFiles(row.id, event.target.files)}
+                    disabled={busy}
+                    className="sr-only"
+                    id={`files-${row.id}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputs.current.get(row.id)?.click()}
+                    disabled={busy || fileCount >= MAX_JOB_FILES}
+                    className="w-full sm:w-auto"
+                  >
+                    <PaperclipIcon className="size-4" />
+                    Attach files
+                  </Button>
+
+                  {row.files.length > 0 ? (
+                    <ul className="space-y-2">
+                      {row.files.map((file) => (
+                        <li
+                          key={file.key}
+                          className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5"
+                        >
+                          <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
+                            {file.previewUrl ? (
+                              <img
+                                src={file.previewUrl}
+                                alt=""
+                                className="size-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
+                                {partnerExtensionOf(file.file.name).toUpperCase() || "FILE"}
+                              </span>
+                            )}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm">{file.file.name}</p>
+                            <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
+                              {formatPartnerBytes(file.file.size)}
+                              {file.progress !== null ? ` · ${file.progress}%` : ""}
+                            </p>
+                            {file.progress !== null ? (
+                              <div className="bg-glass-highlight/20 mt-1.5 h-1 w-full overflow-hidden rounded-full">
+                                <div
+                                  className="bg-metal-platinum h-full transition-[width] duration-200"
+                                  style={{ width: `${file.progress}%` }}
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(row.id, file.key)}
+                            disabled={busy}
+                            aria-label={`Remove ${file.file.name}`}
+                            className="text-muted-foreground hover:text-destructive inline-flex size-9 shrink-0 items-center justify-center transition-colors disabled:opacity-50"
+                          >
+                            <XIcon className="size-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
               </div>
-
-              {errors[`item-${index}`] ? (
-                <p className="text-destructive text-sm md:text-xs">
-                  {errors[`item-${index}`]}
-                </p>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
 
           {errors.items ? (
             <p className="text-destructive text-sm md:text-xs">{errors.items}</p>
           ) : null}
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addItem}
-            disabled={busy || items.length >= MAX_JOB_ITEMS}
-            className="w-full sm:w-auto"
-          >
-            <PlusIcon className="size-4" weight="bold" />
-            Add item
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addItem}
+              disabled={busy || items.length >= MAX_JOB_ITEMS}
+              className="w-full sm:w-auto"
+            >
+              <PlusIcon className="size-4" weight="bold" />
+              Add item
+            </Button>
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+              {PARTNER_TYPES_LABEL} · {fileCount}/{MAX_JOB_FILES} files
+              {totalBytes > 0 ? ` · ${formatPartnerBytes(totalBytes)} to upload` : ""}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Files</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {editing && job!.files.length > 0 ? (
+      {/*
+        Both sections below exist ONLY for jobs filed before artwork and notes
+        moved onto the products. They are shown when there is something there to
+        preserve, and never on a new job — which is the whole point of the
+        change: no catch-all box at the bottom for a rep to default into.
+      */}
+      {editing && jobLevelFiles.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Job files</CardTitle>
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+              Attached before this job listed artwork per product. Remove them
+              here, or add them again under the product they belong to.
+            </p>
+          </CardHeader>
+          <CardContent>
             <ul className="space-y-2">
-              {job!.files.map((file) => {
-                const removed = removedFileIds.includes(file.id);
-                const isImage = previewKind(file.mime_type) === "image";
-                return (
-                  <li
-                    key={file.id}
-                    data-removed={removed}
-                    className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5 data-[removed=true]:opacity-45"
-                  >
-                    <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
-                      {isImage ? (
-                        <img
-                          src={`/api/partner-job-files/${file.id}?inline=1`}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
-                          {partnerExtensionOf(file.original_filename).toUpperCase() || "FILE"}
-                        </span>
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p
-                        data-removed={removed}
-                        className="truncate text-sm data-[removed=true]:line-through"
-                      >
-                        {file.original_filename}
-                      </p>
-                      <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
-                        {removed
-                          ? "Will be deleted when you save"
-                          : formatPartnerBytes(file.file_size)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRemovedFileIds((ids) =>
-                          removed ? ids.filter((id) => id !== file.id) : [...ids, file.id],
-                        )
-                      }
-                      disabled={busy}
-                      className="text-muted-foreground hover:text-foreground inline-flex min-h-11 shrink-0 items-center gap-1.5 px-1 text-sm transition-colors disabled:opacity-50 md:min-h-9 md:text-xs"
-                    >
-                      {removed ? (
-                        "Undo"
-                      ) : (
-                        <>
-                          <TrashIcon className="size-4" />
-                          Remove
-                        </>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept={PARTNER_ACCEPT_ATTRIBUTE}
-            onChange={(event) => onPickFiles(event.target.files)}
-            disabled={busy}
-            className="sr-only"
-            id="job-files"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={busy || files.length >= MAX_JOB_FILES}
-            className="w-full sm:w-auto"
-          >
-            <PaperclipIcon className="size-4" />
-            Attach files
-          </Button>
-          <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-            {PARTNER_TYPES_LABEL} · up to {MAX_JOB_FILES} files
-            {files.length > 0 ? ` · ${formatPartnerBytes(totalBytes)} total` : ""}
-          </p>
-
-          {files.length > 0 ? (
-            <ul className="space-y-2">
-              {files.map((row) => (
-                <li
-                  key={row.key}
-                  className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5"
-                >
-                  <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
-                    {row.previewUrl ? (
-                      <img
-                        src={row.previewUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-metal-platinum text-[11px] tracking-[0.1em] md:text-[10px]">
-                        {partnerExtensionOf(row.file.name).toUpperCase() || "FILE"}
-                      </span>
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">{row.file.name}</p>
-                    <p className="text-muted-foreground text-sm tabular-nums md:text-xs">
-                      {formatPartnerBytes(row.file.size)}
-                      {row.progress !== null ? ` · ${row.progress}%` : ""}
-                    </p>
-                    {row.progress !== null ? (
-                      <div className="bg-glass-highlight/20 mt-1.5 h-1 w-full overflow-hidden rounded-full">
-                        <div
-                          className="bg-metal-platinum h-full transition-[width] duration-200"
-                          style={{ width: `${row.progress}%` }}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(row.key)}
-                    disabled={busy}
-                    aria-label={`Remove ${row.file.name}`}
-                    className="text-muted-foreground hover:text-destructive inline-flex size-9 shrink-0 items-center justify-center transition-colors disabled:opacity-50"
-                  >
-                    <XIcon className="size-4" />
-                  </button>
-                </li>
+              {jobLevelFiles.map((file) => (
+                <StoredFileRow
+                  key={file.id}
+                  file={file}
+                  removed={removedFileIds.includes(file.id)}
+                  busy={busy}
+                  onToggle={() => toggleRemoved(file.id)}
+                />
               ))}
             </ul>
-          ) : null}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Notes</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1.5">
-          <Label htmlFor="job-notes" className="sr-only">
-            Notes
-          </Label>
-          <Textarea
-            id="job-notes"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            maxLength={MAX_JOB_NOTES_LENGTH}
-            rows={4}
-            placeholder="Anything we should know — colours, deadlines, reference links."
-            disabled={busy}
-            aria-invalid={Boolean(errors.notes)}
-          />
-          {errors.notes ? (
-            <p className="text-destructive text-sm md:text-xs">{errors.notes}</p>
-          ) : null}
-        </CardContent>
-      </Card>
+      {editing && (job!.notes ?? "").trim() !== "" ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Job notes</CardTitle>
+            <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+              Notes for the job as a whole. New notes belong on the product they
+              describe.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <Label htmlFor="job-notes" className="sr-only">
+              Job notes
+            </Label>
+            <Textarea
+              id="job-notes"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              maxLength={MAX_JOB_NOTES_LENGTH}
+              rows={4}
+              disabled={busy}
+              aria-invalid={Boolean(errors.notes)}
+            />
+            {errors.notes ? (
+              <p className="text-destructive text-sm md:text-xs">{errors.notes}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {editing ? (

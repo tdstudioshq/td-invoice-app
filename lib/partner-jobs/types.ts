@@ -80,9 +80,22 @@ export function designJobStatusLabel(value: string): string {
  * the final word (see the migration).
  */
 export const MAX_JOB_ITEMS = 25;
+/**
+ * Across the WHOLE job, not per product. A job's files are downloaded as one
+ * zip and live in one bucket prefix, so the total is the number that matters;
+ * a per-product cap would only add an error message without bounding anything
+ * the job-wide one does not already bound.
+ */
 export const MAX_JOB_FILES = 20;
 export const MAX_JOB_NAME_LENGTH = 160;
 export const MAX_JOB_NOTES_LENGTH = 4000;
+/**
+ * Per-product notes are an instruction about one product ("darker green, matte
+ * on the lid"), not the job's brief — shorter than MAX_JOB_NOTES_LENGTH on
+ * purpose. Mirrors the `check` on design_job_items.notes in migration
+ * 20260827000000; widen the two together.
+ */
+export const MAX_ITEM_NOTES_LENGTH = 2000;
 export const MAX_ITEM_QUANTITY = 10_000_000;
 
 export type { DesignJobStatus, PartnerProductFinish, PartnerProductType };

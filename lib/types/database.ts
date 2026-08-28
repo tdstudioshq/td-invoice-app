@@ -909,14 +909,24 @@ export interface Database {
           product_type: PartnerProductType;
           finish: PartnerProductFinish;
           quantity: number;
+          // Per-product instructions and the rep's own ordering, both added by
+          // 20260827000000. `item_number` is stored rather than derived so
+          // "Item 2" keeps meaning the same product across an edit.
+          notes: string | null;
+          item_number: number;
           created_at: string;
         };
         Insert: {
+          // Minted in the BROWSER, like a mylar design's: it is the id a file's
+          // `item_id` was attached under, so it has to be known before the row
+          // exists. See the 20260827000000 migration.
           id?: string;
           job_id: string;
           product_type: PartnerProductType;
           finish: PartnerProductFinish;
           quantity: number;
+          notes?: string | null;
+          item_number?: number;
           created_at?: string;
         };
         Update: Partial<
@@ -928,6 +938,11 @@ export interface Database {
         Row: {
           id: string;
           job_id: string;
+          // Which product on the job this file is artwork for. NULL means it
+          // belongs to the job as a whole — every file filed before
+          // 20260827000000 is in that state, and it is a real answer rather
+          // than an unfinished backfill.
+          item_id: string | null;
           storage_path: string;
           original_filename: string;
           mime_type: string | null;
@@ -938,6 +953,7 @@ export interface Database {
         Insert: {
           id?: string;
           job_id: string;
+          item_id?: string | null;
           storage_path: string;
           original_filename: string;
           mime_type?: string | null;

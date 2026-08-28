@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  MAX_ITEM_NOTES_LENGTH,
   MAX_ITEM_QUANTITY,
   MAX_JOB_FILES,
   MAX_JOB_ITEMS,
@@ -52,10 +53,28 @@ export const quantitySchema = z
   .min(1, "Quantity must be at least 1.")
   .max(MAX_ITEM_QUANTITY, "That quantity is too large — call it in instead.");
 
+export const itemNotesSchema = z
+  .string()
+  .max(
+    MAX_ITEM_NOTES_LENGTH,
+    "Notes for this product are too long — trim them down a little.",
+  );
+
 export const jobItemSchema = z.object({
+  /**
+   * Minted in the BROWSER, exactly as a mylar design's id is, and for the same
+   * reason: a file is attached to a product before either row exists, so the
+   * two halves of the submission have to agree on the id up front.
+   *
+   * Accepting it is safe because it is only ever a claim about the caller's own
+   * job: `update_design_job` refuses an id that already belongs to a different
+   * job, and RLS keeps another company's rows invisible either way.
+   */
+  id: z.string().uuid(),
   productType: z.enum(PRODUCT_TYPE_IDS, { message: "Choose a product." }),
   finish: z.enum(FINISH_IDS, { message: "Choose a finish." }),
   quantity: quantitySchema,
+  notes: itemNotesSchema.default(""),
 });
 
 export type JobItemInput = z.infer<typeof jobItemSchema>;
@@ -68,6 +87,16 @@ export type JobItemInput = z.infer<typeof jobItemSchema>;
 export const jobFileSchema = z.object({
   path: z.string().min(1).max(500),
   name: z.string().min(1).max(MAX_PARTNER_FILENAME_LENGTH),
+  /**
+   * The product this file is artwork for. Null is a legitimate value meaning
+   * "the job as a whole" — that is what every file filed before migration
+   * 20260827000000 is, and what the edit form leaves those files as.
+   *
+   * Not trusted: the RPC refuses an id that is not on the job being written,
+   * so a forged one fails the transaction rather than filing artwork against
+   * somebody else's product.
+   */
+  itemId: z.string().uuid().nullable().default(null),
 });
 
 export type JobFileInput = z.infer<typeof jobFileSchema>;

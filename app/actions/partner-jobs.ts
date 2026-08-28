@@ -190,8 +190,18 @@ export async function submitPartnerJobAction(
   const jobId = submission.jobId ?? randomUUID();
   const supabase = await createClient();
 
+  // A file may only name a product that is actually in this submission. The
+  // RPC re-checks this inside the transaction (it is the authoritative rule);
+  // checking here first is what turns a rolled-back transaction into a
+  // sentence the rep can act on.
+  const itemIds = new Set(submission.items.map((item) => item.id));
+  if (submission.files.some((file) => file.itemId && !itemIds.has(file.itemId))) {
+    return { error: "A file is attached to a product that's no longer on this job. Reload and try again." };
+  }
+
   // --- Files: verify each object against Storage before any of it is claimed.
   const verified: {
+    item_id: string | null;
     storage_path: string;
     original_filename: string;
     mime_type: string;
@@ -228,6 +238,7 @@ export async function submitPartnerJobAction(
     }
 
     verified.push({
+      item_id: file.itemId,
       storage_path: file.path,
       original_filename: file.name,
       mime_type: info.contentType || resolvePartnerContentType(file.name, null),
@@ -240,10 +251,16 @@ export async function submitPartnerJobAction(
     p_job_id: jobId,
     p_job_name: submission.jobName,
     p_notes: submission.notes || null,
-    p_items: submission.items.map((item) => ({
+    // `item_number` is the rep's own ordering, stored rather than derived, so
+    // "Item 2" keeps meaning the same product once a later edit adds or removes
+    // one (the same reasoning as a mylar design's `design_number`).
+    p_items: submission.items.map((item, index) => ({
+      id: item.id,
       product_type: item.productType,
       finish: item.finish,
       quantity: item.quantity,
+      notes: item.notes || null,
+      item_number: index + 1,
     })),
     p_files: verified,
   });
@@ -387,15 +404,24 @@ export async function updatePartnerJobAction(
   const edit = parsed.data;
   const supabase = await createClient();
 
-  // --- The files currently on this job. RLS scopes the read, so this doubles as
+  // --- What is on this job right now. RLS scopes both reads, so they double as
   // proof that the caller may touch this job at all.
-  const { data: existing, error: existingError } = await supabase
-    .from("design_job_files")
-    .select("id, storage_path")
-    .eq("job_id", edit.jobId);
-  if (existingError) {
-    console.error("updatePartnerJobAction files", existingError.message);
-    return { error: "Couldn't load this job's files. Try again." };
+  const [
+    { data: existing, error: existingError },
+    { data: existingItems, error: itemsError },
+  ] = await Promise.all([
+    supabase
+      .from("design_job_files")
+      .select("id, storage_path, item_id")
+      .eq("job_id", edit.jobId),
+    supabase.from("design_job_items").select("id").eq("job_id", edit.jobId),
+  ]);
+  if (existingError || itemsError) {
+    console.error(
+      "updatePartnerJobAction load",
+      existingError?.message ?? itemsError?.message,
+    );
+    return { error: "Couldn't load this job. Try again." };
   }
   const current = existing ?? [];
 
@@ -408,7 +434,37 @@ export async function updatePartnerJobAction(
     removePaths.push(path);
   }
 
-  const remaining = current.length - removePaths.length + edit.addFiles.length;
+  // A file may only name a product that survives this edit — one being removed
+  // is not somewhere to put artwork. The RPC enforces the same rule inside the
+  // transaction; this is here to say so in a sentence.
+  const keptItemIds = new Set(edit.items.map((item) => item.id));
+  if (edit.addFiles.some((file) => file.itemId && !keptItemIds.has(file.itemId))) {
+    return { error: "A file is attached to a product that's no longer on this job. Reload and try again." };
+  }
+
+  // --- Products the rep removed take their artwork with them: the file ROWS go
+  // by the `on delete cascade` on design_job_files.item_id, but the storage
+  // OBJECTS never do. Their keys are collected here, while the rows are still
+  // readable, and deleted after the RPC — the same before/after split as
+  // deletePartnerJobAction. Missing this is how a private bucket fills with
+  // bytes nothing references.
+  const droppedItemIds = (existingItems ?? [])
+    .map((item) => item.id)
+    .filter((id) => !keptItemIds.has(id));
+  const cascadePaths = droppedItemIds.length
+    ? current
+        .filter((f) => f.item_id && droppedItemIds.includes(f.item_id))
+        .map((f) => f.storage_path)
+        // A file explicitly removed AND owned by a dropped product must not be
+        // listed twice.
+        .filter((path) => !removePaths.includes(path))
+    : [];
+
+  const remaining =
+    current.length -
+    removePaths.length -
+    cascadePaths.length +
+    edit.addFiles.length;
   if (remaining > MAX_JOB_FILES) {
     return { error: `A job can hold at most ${MAX_JOB_FILES} files.` };
   }
@@ -417,6 +473,7 @@ export async function updatePartnerJobAction(
   // original submission does.
   const verified: {
     job_id: string;
+    item_id: string | null;
     storage_path: string;
     original_filename: string;
     mime_type: string;
@@ -440,6 +497,7 @@ export async function updatePartnerJobAction(
     if (size > MAX_PARTNER_UPLOAD_BYTES) return { error: `“${file.name}” is too large.` };
     verified.push({
       job_id: edit.jobId,
+      item_id: file.itemId,
       storage_path: file.path,
       original_filename: file.name,
       mime_type: info.contentType || resolvePartnerContentType(file.name, null),
@@ -452,10 +510,15 @@ export async function updatePartnerJobAction(
     p_job_id: edit.jobId,
     p_job_name: edit.jobName,
     p_notes: edit.notes || null,
-    p_items: edit.items.map((item) => ({
+    // Item ids ride along so the RPC can reconcile the set instead of replacing
+    // it — replacing would cascade every per-product file away on a rename.
+    p_items: edit.items.map((item, index) => ({
+      id: item.id,
       product_type: item.productType,
       finish: item.finish,
       quantity: item.quantity,
+      notes: item.notes || null,
+      item_number: index + 1,
     })),
   });
   if (error) {
@@ -483,10 +546,17 @@ export async function updatePartnerJobAction(
       console.error("updatePartnerJobAction remove files", delError.message);
       return { error: "Your changes saved, but a file couldn't be removed. Try again." };
     }
-    // Drop the bytes too — a row-only delete would leave the object stranded in
-    // a private bucket with nothing referencing it. RLS on storage.objects pins
-    // this to the caller's own company prefix.
-    const { error: objError } = await supabase.storage.from(BUCKET).remove(removePaths);
+  }
+  // Drop the bytes too — a row-only delete would leave the object stranded in a
+  // private bucket with nothing referencing it. RLS on storage.objects pins this
+  // to the caller's own company prefix.
+  //
+  // Two sources, one call: files the rep removed by hand, and files whose
+  // product they removed (those ROWS are already gone, taken by the cascade
+  // inside the RPC above — only their objects are left).
+  const orphanedPaths = [...removePaths, ...cascadePaths];
+  if (orphanedPaths.length > 0) {
+    const { error: objError } = await supabase.storage.from(BUCKET).remove(orphanedPaths);
     if (objError) console.error("updatePartnerJobAction storage remove", objError.message);
   }
 
