@@ -1,5 +1,6 @@
 import type {
   DesignJobStatus,
+  PartnerJobEventType,
   PartnerProductFinish,
   PartnerProductType,
 } from "@/lib/types/database";
@@ -75,6 +76,86 @@ export function designJobStatusLabel(value: string): string {
 }
 
 /**
+ * "Done" has TWO sources, and the OR of them is the answer.
+ *
+ * `partner_done_at` is the rep's checkbox — their own "we're finished with this
+ * on our end" — and `status` is the studio's workflow field, which a rep cannot
+ * write (a trigger forces it back; see migration 20260826000000). Keeping them
+ * as separate columns is what stops the two sides overwriting each other, but a
+ * job the STUDIO has completed is finished whichever way you look at it, so both
+ * land in the same place.
+ *
+ * The consequence to remember at the UI: a completed job is done even with the
+ * box un-ticked, which is why the checkbox is rendered ticked-and-disabled there
+ * rather than offering to un-do something clearing the column would not un-do.
+ */
+export function isJobDone(job: {
+  status: DesignJobStatus;
+  partner_done_at: string | null;
+}): boolean {
+  return job.partner_done_at !== null || job.status === "completed";
+}
+
+/** A job the rep ticked is done regardless of where the studio has it. */
+export function isJobDoneLocked(job: { status: DesignJobStatus }): boolean {
+  return job.status === "completed";
+}
+
+/**
+ * The jobs list is tabbed by status, with Done pulled out in front of it.
+ *
+ * A PARTITION, not a set of filters: `partnerJobTab()` returns exactly one tab
+ * per job, so the three counts always sum to the "All" count and a job is never
+ * in two places. That is why Done wins over the job's status — a job the rep
+ * ticked while the studio still has it `in_progress` belongs under Done, which
+ * is the whole point of ticking it.
+ */
+export const PARTNER_JOB_TABS = [
+  { id: "all", label: "All" },
+  { id: "new", label: "New" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "done", label: "Done" },
+] as const;
+
+export type PartnerJobTab = (typeof PARTNER_JOB_TABS)[number]["id"];
+
+/** Coerce a `?tab=` search param to a real tab; anything unknown means All. */
+export function parsePartnerJobTab(value: string | undefined): PartnerJobTab {
+  return PARTNER_JOB_TABS.some((tab) => tab.id === value)
+    ? (value as PartnerJobTab)
+    : "all";
+}
+
+/** The ONE tab a job belongs to. */
+export function partnerJobTab(job: {
+  status: DesignJobStatus;
+  partner_done_at: string | null;
+}): Exclude<PartnerJobTab, "all"> {
+  if (isJobDone(job)) return "done";
+  return job.status === "in_progress" ? "in_progress" : "new";
+}
+
+export function filterPartnerJobsByTab<
+  T extends { status: DesignJobStatus; partner_done_at: string | null },
+>(jobs: T[], tab: PartnerJobTab): T[] {
+  return tab === "all" ? jobs : jobs.filter((job) => partnerJobTab(job) === tab);
+}
+
+/** Counts for the tab chips. Derived from the same partition, so they agree. */
+export function countPartnerJobsByTab(
+  jobs: { status: DesignJobStatus; partner_done_at: string | null }[],
+): Record<PartnerJobTab, number> {
+  const counts: Record<PartnerJobTab, number> = {
+    all: jobs.length,
+    new: 0,
+    in_progress: 0,
+    done: 0,
+  };
+  for (const job of jobs) counts[partnerJobTab(job)] += 1;
+  return counts;
+}
+
+/**
  * Form bounds. These are the numbers the browser enforces for UX; the server
  * action re-checks all of them with zod, and the table's check constraints are
  * the final word (see the migration).
@@ -98,4 +179,178 @@ export const MAX_JOB_NOTES_LENGTH = 4000;
 export const MAX_ITEM_NOTES_LENGTH = 2000;
 export const MAX_ITEM_QUANTITY = 10_000_000;
 
-export type { DesignJobStatus, PartnerProductFinish, PartnerProductType };
+export type {
+  DesignJobStatus,
+  PartnerJobEventType,
+  PartnerProductFinish,
+  PartnerProductType,
+};
+
+// ---------------------------------------------------------------------------
+// Jobs grid — previews, view mode, search and sort
+// ---------------------------------------------------------------------------
+
+/**
+ * How many images a card's slideshow may cycle through.
+ *
+ * A hard cap, applied server-side in summarizeJobFiles(), because it bounds
+ * REQUESTS and not just pixels: a 20-file job would otherwise become 20 thumb
+ * requests the moment its card scrolled into view. Four is enough to read as a
+ * slideshow and keeps a fully-scrolled 200-job page under a thousand images
+ * even in the worst case.
+ */
+export const PREVIEWS_PER_JOB = 4;
+
+/** Milliseconds a slideshow holds on each image. Slow on purpose — a grid of
+ *  these should read as ambient, not as something demanding attention. */
+export const PREVIEW_SLIDE_MS = 3800;
+
+export const PARTNER_JOB_VIEWS = ["grid", "list"] as const;
+export type PartnerJobView = (typeof PARTNER_JOB_VIEWS)[number];
+
+/**
+ * The chosen view rides in a COOKIE rather than localStorage, so the server
+ * component renders the right one on the first paint. localStorage would mean
+ * shipping grid markup, hydrating, reading storage and swapping to list — a
+ * visible flash on every navigation for anyone who prefers the list.
+ *
+ * Not httpOnly: it is written by the toggle with document.cookie and carries no
+ * security meaning whatsoever, so a forged value can only change how the
+ * forger's own page looks.
+ */
+export const PARTNER_JOB_VIEW_COOKIE = "zaza_jobs_view";
+
+export function parsePartnerJobView(
+  value: string | undefined,
+): PartnerJobView {
+  return (PARTNER_JOB_VIEWS as readonly string[]).includes(value ?? "")
+    ? (value as PartnerJobView)
+    : "grid";
+}
+
+export const PARTNER_JOB_SORTS = [
+  { id: "recent", label: "Recently updated" },
+  { id: "newest", label: "Newest" },
+  { id: "name", label: "Name (A–Z)" },
+] as const;
+
+export type PartnerJobSort = (typeof PARTNER_JOB_SORTS)[number]["id"];
+
+/**
+ * Default is "recently updated", not "newest".
+ *
+ * These two only diverge because migration 20260829000000 made `updated_at`
+ * honest — a trigger on design_job_files bumps it, so adding artwork counts as
+ * activity. Without that, "recently updated" would silently mean "recently
+ * renamed" and the default would be a lie.
+ */
+export const DEFAULT_PARTNER_JOB_SORT: PartnerJobSort = "recent";
+
+export function parsePartnerJobSort(value: string | undefined): PartnerJobSort {
+  return PARTNER_JOB_SORTS.some((sort) => sort.id === value)
+    ? (value as PartnerJobSort)
+    : DEFAULT_PARTNER_JOB_SORT;
+}
+
+interface SortableJob {
+  job_name: string;
+  job_number: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Pure, and total — never mutates its input, so it is safe to call in render. */
+export function sortPartnerJobs<T extends SortableJob>(
+  jobs: T[],
+  sort: PartnerJobSort,
+): T[] {
+  const copy = [...jobs];
+  switch (sort) {
+    case "newest":
+      return copy.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    case "name":
+      return copy.sort((a, b) =>
+        a.job_name.localeCompare(b.job_name, undefined, { sensitivity: "base" }),
+      );
+    case "recent":
+    default:
+      return copy.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+  }
+}
+
+/**
+ * Search over the two things a rep actually remembers about a job: what they
+ * called it, and its ZA-#### number. Deliberately not a fuzzy matcher — a
+ * substring match on ≤200 rows is instant and never surprises anyone by
+ * "helpfully" matching something they did not type.
+ */
+export function searchPartnerJobs<
+  T extends { job_name: string; job_number: string },
+>(jobs: T[], query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return jobs;
+  return jobs.filter(
+    (job) =>
+      job.job_name.toLowerCase().includes(q) ||
+      job.job_number.toLowerCase().includes(q),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Activity events (migration 20260829000000)
+// ---------------------------------------------------------------------------
+
+/**
+ * Every event type the log accepts. Mirrors the `check` constraint on
+ * partner_job_events.event_type and `PartnerJobEventType` in
+ * lib/types/database.ts — widen all three together.
+ */
+export const PARTNER_JOB_EVENT_TYPES = [
+  "job.created",
+  "job.updated",
+  "job.status_changed",
+  "job.done_changed",
+  "file.added",
+  "file.removed",
+  "job.deleted",
+] as const satisfies readonly PartnerJobEventType[];
+
+/** Short label for a timeline row. The detail sits in the event's metadata. */
+export const PARTNER_JOB_EVENT_LABEL: Record<PartnerJobEventType, string> = {
+  "job.created": "Job submitted",
+  "job.updated": "Job details changed",
+  "job.status_changed": "Status changed",
+  "job.done_changed": "Marked done",
+  "file.added": "Artwork added",
+  "file.removed": "Artwork removed",
+  "job.deleted": "Job deleted",
+};
+
+export function partnerJobEventLabel(value: string): string {
+  return PARTNER_JOB_EVENT_LABEL[value as PartnerJobEventType] ?? value;
+}
+
+/**
+ * Which events are worth telling a human about, as opposed to merely worth
+ * recording.
+ *
+ * `job.done_changed` is deliberately absent: a rep ticking their own checkbox is
+ * their own bookkeeping, and emailing the studio every time someone tidies their
+ * list is exactly the noise this set exists to prevent. It is still logged, so
+ * it shows on the timeline and can be un-muted later by removing it from here.
+ *
+ * A per-company `muted_events` array subtracts from this set; nothing adds to
+ * it, so a company can only ever be told less than this.
+ */
+export const NOTIFIABLE_PARTNER_JOB_EVENTS = [
+  "job.created",
+  "job.updated",
+  "job.status_changed",
+  "file.added",
+  "file.removed",
+  "job.deleted",
+] as const satisfies readonly PartnerJobEventType[];
+
+export function isNotifiableEvent(type: PartnerJobEventType): boolean {
+  return (NOTIFIABLE_PARTNER_JOB_EVENTS as readonly string[]).includes(type);
+}

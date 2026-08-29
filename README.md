@@ -570,8 +570,9 @@ change its password in Supabase and update the env var.
 | See their own company's jobs | ✅ | ✅ (all companies) |
 | See another company's jobs | ❌ RLS | ✅ |
 | File a job | ✅ (own company only) | — |
-| Change job status | ❌ **no UPDATE policy exists** | ✅ |
-| Delete a job | ❌ no DELETE policy exists | — |
+| Edit / delete their own job | ✅ (`20260826000000`) | — |
+| Change job **status** | ❌ **a trigger forces it back** | ✅ |
+| Mark a job **done** | ✅ writes `partner_done_at`, never `status` | read-only |
 | Download job files | ✅ own company only | ✅ |
 | Join / move company | ❌ no INSERT or UPDATE policy on `partner_users` | via service role |
 
@@ -592,6 +593,71 @@ Job numbers (`ZA-1001`, `ZA-1002`, …) come from a per-company counter incremen
 inside a `BEFORE INSERT` trigger; the `update … returning` row lock serializes
 concurrent submissions, and `job_number` is `UNIQUE` as a second line of defence.
 
+### The jobs dashboard
+
+The rep's job list is a **Google-Drive-style grid** by default, with a **List**
+toggle beside it. Each card shows the job's artwork, its name and `ZA-` number,
+the file count, when it last changed, its status, and the done checkbox. A job
+with several images crossfades through up to four of them, slowly; a job with
+none gets a placeholder.
+
+Above the cards: **All / New / In Progress / Done** tabs (a `?tab=` search param,
+so a tab is linkable), a **search** box matching job name or number, and a
+**sort** — recently updated (default), newest, or name.
+
+**Previews cost about 60 KB, not 4 MB.** Card images come from
+`/api/partner-job-files/[fileId]?thumb=1`, which mints a signed URL with
+Supabase Storage's image transform and 302s to a 640px WebP — an ~80x reduction
+on the largest file in the bucket, with no thumbnail generation step and nothing
+to backfill. The grid also caps previews at four per job (server-side), mounts
+only the first image until a card is scrolled into view, runs slideshow timers
+only for visible cards, and lets the browser cache the redirect for 30 minutes.
+The list view loads no images at all.
+
+**Status vs. done are two different fields, on purpose.** `status`
+(new / in progress / completed) is the studio's, and `protect_design_job_columns()`
+forces it back on any rep-side write — reps *do* have an UPDATE policy now, so
+that immutability is a trigger rather than a missing policy. The rep's own
+answer is `partner_done_at`, written by the checkbox beside each job. Keeping
+them apart is what stops the studio moving a job to "in progress" from silently
+un-ticking the rep's box. Their jobs list is tabbed **All / New / In Progress /
+Done** off a `?tab=` search param; a job the studio marked completed counts as
+done too, and its checkbox renders ticked and disabled.
+
+### Activity events and notifications
+
+Meaningful activity in a partner portal is recorded and announced:
+
+```
+server action  →  recordPartnerJobEvent()  →  partner_job_events
+                                           →  dispatchPartnerNotification()
+                                           →  a channel (email today, SMS later)
+```
+
+Event types are `job.created`, `job.updated`, `job.status_changed`,
+`job.done_changed`, `file.added`, `file.removed` and `job.deleted`. **One event
+per user action**, not per row touched — an edit that adds two files and renames
+the job is a single event whose metadata says so. `job.done_changed` is logged
+but never emailed. Both job detail pages render the log as an **Activity** card.
+
+Notification email reuses the existing Resend setup — `RESEND_API_KEY`,
+`RESEND_FROM_EMAIL` and `ADMIN_EMAILS`. **No new environment variables.** With
+Resend unset, events are still logged; only the announcement is skipped.
+
+`partner_notification_settings` (optional, one row per company, **service role
+only**) narrows that: `email_enabled`, `sms_enabled`, `email_recipients`
+(`null` = use `ADMIN_EMAILS`; `[]` = nobody), `sms_recipients`, and
+`muted_events` — an opt-out list, so a new event type notifies by default. The
+table may legitimately hold zero rows. Reps cannot read or write it, so a
+company can never change who is told about its own activity.
+
+**Adding SMS** is one file plus one line: write
+`lib/notifications/channels/sms.ts` exporting a `NotificationChannel`
+(`id`, `isConfigured()`, `send()`), then add `sms: smsChannel` to the registry in
+`lib/notifications/channels/index.ts`. Every existing event starts flowing to it
+for any company with `sms_enabled = true`. No migration, no action changes, no
+message-shape changes — `renderNotificationSms()` is already the rendering.
+
 ### Testing checklist
 
 - Signed out, `zazaorders.tdstudiosny.com/jobs` → the portal login, not the main site's
@@ -600,6 +666,14 @@ concurrent submissions, and `job_number` is `UNIQUE` as a second line of defence
 - A rep of another company cannot open that job's URL (404) or its files
 - A customer or client-portal user signing in at the partner login is refused
 - `/partner-jobs` lists it; changing the status there shows up on the rep's page
+- The jobs page opens as a **grid**; toggling to **List** survives a reload (cookie)
+- A job with several images crossfades; one with a single image is static; one with none shows a placeholder
+- Search by name and by `ZA-` number; each sort re-orders the cards
+- A rep ticks a job off → it moves to the **Done** tab and the tab counts still sum to All
+- Un-ticking it returns it to its status tab; `/partner-jobs/[jobId]` shows "Partner marked done"
+- A job the studio set to **Completed** shows a ticked, disabled checkbox the rep cannot clear
+- Filing, editing or deleting a job adds a row to the job's **Activity** card and emails `ADMIN_EMAILS`
+- Ticking a job done appears in Activity but sends **no** email (by design)
 - `tdstudiosny.com` and `www.tdstudiosny.com` behave exactly as before
 
 ## Email (Resend)

@@ -67,6 +67,20 @@ export type PartnerProductType =
 export type PartnerProductFinish = "matte" | "spot_gloss";
 export type DesignJobStatus = "new" | "in_progress" | "completed";
 
+// Normalized partner-portal activity (migration 20260829000000). Same text +
+// check reasoning again. Namespaced `subject.verb` so a reader can tell at a
+// glance what a row is about, and so a future `job.*` addition sorts beside its
+// siblings. Widen the check constraint and PARTNER_JOB_EVENT_TYPES in
+// lib/partner-jobs/types.ts together.
+export type PartnerJobEventType =
+  | "job.created"
+  | "job.updated"
+  | "job.status_changed"
+  | "job.done_changed"
+  | "file.added"
+  | "file.removed"
+  | "job.deleted";
+
 export type CustomDesignType = "Bag design" | "Jar design" | "Other";
 export type CustomDesignRequestStatus =
   | "new"
@@ -882,6 +896,11 @@ export interface Database {
           job_name: string;
           status: DesignJobStatus;
           notes: string | null;
+          // When the PARTNER REP ticked this job off (20260828000000). The
+          // rep's own answer, deliberately separate from `status`, which stays
+          // the studio's — a rep cannot write `status` at all. NULL = not
+          // ticked. See isJobDone() in lib/partner-jobs/types.ts.
+          partner_done_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -894,6 +913,7 @@ export interface Database {
           job_name: string;
           status?: DesignJobStatus;
           notes?: string | null;
+          partner_done_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -966,6 +986,76 @@ export interface Database {
         >;
         Relationships: [];
       };
+      // Normalized activity log for the partner portal (20260829000000).
+      // Written ONLY through log_partner_job_event() or the service role — reps
+      // have a SELECT policy and nothing else, so the record of what they did is
+      // not theirs to amend. `job_id` is ON DELETE SET NULL and the job's number
+      // and name are copied in beside it, so a "job deleted" event survives the
+      // job and the feed renders with no join.
+      partner_job_events: {
+        Row: {
+          id: string;
+          company_id: string;
+          job_id: string | null;
+          job_number: string | null;
+          job_name: string | null;
+          event_type: PartnerJobEventType;
+          actor_user_id: string | null;
+          actor_label: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        // Present for completeness only — nothing inserts through PostgREST.
+        Insert: {
+          id?: string;
+          company_id: string;
+          job_id?: string | null;
+          job_number?: string | null;
+          job_name?: string | null;
+          event_type: PartnerJobEventType;
+          actor_user_id?: string | null;
+          actor_label?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_job_events"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      // Per-company notification config (20260829000000). RLS on with NO
+      // policies plus an explicit revoke — service-role only, because a company
+      // must not be able to change who is told about its own activity.
+      // May hold zero rows: dispatch falls back to email-on / SMS-off /
+      // nothing muted / recipients = ADMIN_EMAILS.
+      partner_notification_settings: {
+        Row: {
+          company_id: string;
+          email_enabled: boolean;
+          sms_enabled: boolean;
+          /** null = fall back to ADMIN_EMAILS; [] means nobody, deliberately. */
+          email_recipients: string[] | null;
+          sms_recipients: string[] | null;
+          /** OPT-OUT list, so a new event type notifies by default. */
+          muted_events: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          company_id: string;
+          email_enabled?: boolean;
+          sms_enabled?: boolean;
+          email_recipients?: string[] | null;
+          sms_recipients?: string[] | null;
+          muted_events?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["partner_notification_settings"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: {
       qr_code_scan_counts: {
@@ -1000,6 +1090,22 @@ export interface Database {
       // portal_client_id()/is_portal_user() above.
       partner_company_id: {
         Args: Record<string, never>;
+        Returns: string | null;
+      };
+      // The only write path into partner_job_events (20260829000000). Company,
+      // actor and the job's identity are DERIVED inside the function, never
+      // accepted — the caller supplies the type and the metadata and nothing
+      // else that could be forged. p_actor_label is honored only for the
+      // service role, which has no auth.uid() to read a name from.
+      log_partner_job_event: {
+        Args: {
+          p_job_id: string | null;
+          p_event_type: PartnerJobEventType;
+          p_metadata?: Json;
+          p_job_number?: string | null;
+          p_job_name?: string | null;
+          p_actor_label?: string | null;
+        };
         Returns: string | null;
       };
       is_partner_user: {
@@ -1169,7 +1275,36 @@ export type DesignJobFile =
   Database["public"]["Tables"]["design_job_files"]["Row"];
 
 /** A dashboard row: the job plus how many products it holds. */
-export type DesignJobListItem = DesignJob & { item_count: number };
+/**
+ * One previewable image on a job, as the grid needs it.
+ *
+ * Just an id and a name — never a URL. Bytes are reached through
+ * /api/partner-job-files/[id]?thumb=1, which is where authorization and the
+ * Storage transform both live, so a list payload can never become a way to
+ * hand out image URLs.
+ */
+export interface DesignJobPreview {
+  id: string;
+  name: string;
+}
+
+/**
+ * A row on the jobs list / card on the jobs grid.
+ *
+ * `file_count` is every file on the job; `previews` is only the previewable
+ * raster subset, capped server-side (see PREVIEWS_PER_JOB) so a job with 20
+ * files never becomes 20 image requests.
+ */
+export type DesignJobListItem = DesignJob & {
+  item_count: number;
+  file_count: number;
+  previews: DesignJobPreview[];
+};
+
+export type PartnerJobEvent =
+  Database["public"]["Tables"]["partner_job_events"]["Row"];
+export type PartnerNotificationSettings =
+  Database["public"]["Tables"]["partner_notification_settings"]["Row"];
 
 /** One job with everything the detail pages render. */
 export type DesignJobWithDetail = DesignJob & {

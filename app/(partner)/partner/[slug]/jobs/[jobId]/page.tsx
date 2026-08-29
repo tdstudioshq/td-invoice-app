@@ -4,6 +4,8 @@ import { ArrowLeftIcon, PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr"
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { JobDoneCheckbox } from "@/components/partner-jobs/job-done-checkbox";
+import { JobActivity } from "@/components/partner-jobs/job-activity";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
@@ -14,7 +16,11 @@ import {
   partnerHref,
   requirePartnerSession,
 } from "@/lib/partner-jobs/context";
-import { getPartnerJob, getPartnerTeamNames } from "@/lib/partner-jobs/queries";
+import {
+  getPartnerJob,
+  getPartnerJobEvents,
+  getPartnerTeamNames,
+} from "@/lib/partner-jobs/queries";
 
 export const metadata = { title: "Job" };
 
@@ -24,6 +30,10 @@ export const metadata = { title: "Job" };
  * Edit opens the same form that filed it. Status is the one thing that does NOT
  * move from here: it is the studio's field, and a database trigger forces it
  * back on any rep-side write, so hiding the control is not what enforces it.
+ *
+ * The Done checkbox is the rep's OWN answer and writes a different column
+ * (`partner_done_at`), which is exactly why the two can sit side by side without
+ * either one overwriting the other. See isJobDone().
  */
 export default async function PartnerJobDetailPage({
   params,
@@ -39,6 +49,7 @@ export default async function PartnerJobDetailPage({
 
   const jobLevelFiles = job.files.filter((file) => !file.item_id);
 
+  const events = await getPartnerJobEvents(jobId);
   const teamNames = await getPartnerTeamNames();
   const submittedBy =
     (job.submitted_by ? teamNames.get(job.submitted_by) : null) ??
@@ -57,6 +68,7 @@ export default async function PartnerJobDetailPage({
 
       <PageHeader title={job.job_number} description={job.job_name}>
         <div className="flex items-center gap-3">
+          <JobDoneCheckbox job={job} labelled />
           <JobStatusBadge status={job.status} className="h-7" />
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href={partnerHref(basePath, `/jobs/${job.id}/edit`)}>
@@ -90,6 +102,22 @@ export default async function PartnerJobDetailPage({
                   <JobStatusBadge status={job.status} />
                 </dd>
               </div>
+              {/*
+                Only once ticked, and read-only here — the control itself lives
+                in the header. Repeating the date rather than the checkbox keeps
+                one place to click and gives the summary something the badge
+                above does not already say.
+              */}
+              {job.partner_done_at ? (
+                <div className="min-w-0">
+                  <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+                    Ticked off
+                  </dt>
+                  <dd className="mt-0.5 text-sm">
+                    {formatDateTime(job.partner_done_at)}
+                  </dd>
+                </div>
+              ) : null}
             </dl>
           </CardContent>
         </Card>
@@ -145,6 +173,21 @@ export default async function PartnerJobDetailPage({
             </CardContent>
           </Card>
         ) : null}
+
+        {/*
+          The rep's own record of what has happened to this job — read under
+          their session, so `partner_job_events_partner_select` scopes it to
+          their company. They can read it and nothing else: there is no insert,
+          update or delete policy, so the log is not theirs to amend.
+        */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <JobActivity events={events} />
+          </CardContent>
+        </Card>
       </div>
     </>
   );

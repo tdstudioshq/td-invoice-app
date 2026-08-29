@@ -158,3 +158,17 @@ export function isPublicPartnerSubPath(subPath: string): boolean {
  */
 export const PARTNER_VIA_HEADER = "x-td-partner-via";
 export const PARTNER_BASE_HEADER = "x-td-partner-base";
+
+/**
+ * Build an in-portal href from a base (see partnerBasePath) and a
+ * portal-relative path.
+ *
+ * Lives here rather than beside partnerBasePath() because it is a pure string
+ * join with no dependencies, and BOTH server pages and client components need
+ * it — lib/partner-jobs/context.ts is `server-only`, so a client component
+ * cannot reach anything defined there. context.ts re-exports this.
+ */
+export function partnerHref(basePath: string, subPath = "/"): string {
+  if (subPath === "/") return basePath === "" ? "/" : basePath;
+  return `${basePath}${subPath}`;
+}

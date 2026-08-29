@@ -14,6 +14,7 @@ import {
   PARTNER_BASE_HEADER,
   PARTNER_ROUTE_ROOT,
   PARTNER_VIA_HEADER,
+  partnerHref,
 } from "@/lib/partner-jobs/routing";
 import { getSiteUrl } from "@/lib/email/client";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
@@ -27,6 +28,13 @@ import type { PartnerCompany } from "@/lib/types/database";
  * lib/partner-jobs/routing.ts), so the two things a page always needs are:
  * which company it is rendering, and what prefix its links must carry.
  */
+
+/**
+ * Re-exported from the dependency-free routing module, where it now lives so
+ * CLIENT components (the jobs browser, the tab chips) can build in-portal links
+ * too — this file is `server-only` and cannot be imported by one.
+ */
+export { partnerHref };
 
 /**
  * The prefix every in-portal link and redirect must be built from, in EXTERNAL
@@ -48,12 +56,6 @@ export async function partnerBasePath(companySlug: string): Promise<string> {
     if (base && base.startsWith("/")) return base;
   }
   return `${PARTNER_ROUTE_ROOT}/${companySlug}`;
-}
-
-/** Build an absolute in-portal href from a base and a portal-relative path. */
-export function partnerHref(basePath: string, subPath = "/"): string {
-  if (subPath === "/") return basePath === "" ? "/" : basePath;
-  return `${basePath}${subPath}`;
 }
 
 /**

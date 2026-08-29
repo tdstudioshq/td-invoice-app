@@ -287,3 +287,51 @@ Artwork is stored with the request — open it in the dashboard to view or downl
 
   return { subject, html, text };
 }
+
+/**
+ * The generic notification email, rendered from a channel-agnostic
+ * `NotificationMessage` (lib/notifications/types.ts).
+ *
+ * Unlike the builders above — each of which knows its own subject matter — this
+ * one knows nothing about what it is announcing. That is deliberate: it is what
+ * lets a new portal event type start sending email without a template change,
+ * and it keeps every piece of email HTML in this one file rather than letting
+ * markup leak into the notification channel.
+ */
+export function notificationEmail(params: {
+  subject: string;
+  heading: string;
+  lines: [string, string][];
+  body?: string | null;
+  actionUrl: string;
+  actionLabel: string;
+  text: string;
+}): EmailContent {
+  const { subject, heading, lines, body, actionUrl, actionLabel, text } = params;
+
+  const rowsHtml = lines
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 0;color:#71717a;white-space:nowrap;">${escapeHtml(
+          label,
+        )}</td><td style="padding:4px 0 4px 24px;color:#18181b;">${escapeHtml(
+          value,
+        )}</td></tr>`,
+    )
+    .join("");
+
+  const bodyHtml = body
+    ? `<p style="margin:0 0 20px;font-size:13px;line-height:1.6;color:#3f3f46;white-space:pre-wrap;">${escapeHtml(
+        body,
+      )}</p>`
+    : "";
+
+  const html = shell(`
+    <h1 style="margin:0 0 16px;font-size:20px;">${escapeHtml(heading)}</h1>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;margin:0 0 20px;">${rowsHtml}</table>
+    ${bodyHtml}
+    ${button(actionUrl, actionLabel)}
+  `);
+
+  return { subject, html, text };
+}

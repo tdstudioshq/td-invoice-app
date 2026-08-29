@@ -5,13 +5,17 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
+import { JobActivity } from "@/components/partner-jobs/job-activity";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import { PartnerJobStatusForm } from "@/components/partner-jobs/admin-status-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
-import { getAdminPartnerJob } from "@/lib/partner-jobs/queries";
+import {
+  getAdminPartnerJob,
+  getAdminPartnerJobEvents,
+} from "@/lib/partner-jobs/queries";
 
 export const metadata = { title: "Partner Job" };
 
@@ -39,6 +43,8 @@ export default async function PartnerJobDetailPage(
 
   const job = await getAdminPartnerJob(jobId);
   if (!job) notFound();
+
+  const events = await getAdminPartnerJobEvents(jobId);
 
   const jobLevelFiles = job.files.filter((file) => !file.item_id);
 
@@ -70,6 +76,16 @@ export default async function PartnerJobDetailPage(
               <Detail label="Submitted">
                 {formatDateTime(job.created_at)}
               </Detail>
+              {/*
+                The PARTNER's own answer, read-only here. It is a separate
+                column from `status` precisely so the two sides cannot overwrite
+                each other — the rep saying they are finished is not the studio
+                saying the job is complete, and the Status card below is still
+                the only thing that moves `status`.
+              */}
+              <Detail label="Partner marked done">
+                {job.partner_done_at ? formatDateTime(job.partner_done_at) : "—"}
+              </Detail>
             </dl>
 
             {job.submitted_by_email ? (
@@ -91,6 +107,21 @@ export default async function PartnerJobDetailPage(
           </CardHeader>
           <CardContent>
             <PartnerJobStatusForm id={job.id} status={job.status} />
+          </CardContent>
+        </Card>
+
+        {/*
+          The same rows the notification emails are dispatched from — every
+          entry here either did, or deliberately did not, send one (see
+          NOTIFIABLE_PARTNER_JOB_EVENTS). Read through the service role, like
+          every other partner read on this page.
+        */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <JobActivity events={events} />
           </CardContent>
         </Card>
 

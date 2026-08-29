@@ -2,14 +2,18 @@ import "server-only";
 
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { PREVIEWS_PER_JOB } from "@/lib/partner-jobs/types";
+import { isPreviewableImage } from "@/lib/partner-jobs/uploads";
 import type {
   AdminDesignJobDetail,
   AdminDesignJobListItem,
   DesignJobFile,
   DesignJobItem,
   DesignJobListItem,
+  DesignJobPreview,
   DesignJobWithDetail,
   PartnerCompany,
+  PartnerJobEvent,
 } from "@/lib/types/database";
 
 /**
@@ -35,6 +39,8 @@ import type {
  */
 
 const LIST_LIMIT = 200;
+/** How many events a job's timeline / a company's feed shows at once. */
+const EVENT_LIMIT = 50;
 
 function countByJob(rows: { job_id: string }[] | null): Map<string, number> {
   const counts = new Map<string, number>();
@@ -43,6 +49,60 @@ function countByJob(rows: { job_id: string }[] | null): Map<string, number> {
   }
   return counts;
 }
+
+interface JobFileSummary {
+  file_count: number;
+  previews: DesignJobPreview[];
+}
+
+type FileSummaryRow = {
+  id: string;
+  job_id: string;
+  original_filename: string;
+  mime_type: string | null;
+};
+
+/**
+ * Per-job file counts and the first few previewable images, for the jobs grid.
+ *
+ * ONE query for the whole page, grouped in memory — the same shape as
+ * countByJob() above, and for the same reason: PostgREST cannot express
+ * "the first four rows per group", and the alternative is N+1.
+ *
+ * Two things are deliberately capped here rather than in the UI. `previews` is
+ * sliced to PREVIEWS_PER_JOB, so a job with twenty files can never turn into
+ * twenty image requests; and only RASTER files qualify — a PDF/AI/PSD/EPS has
+ * nothing a browser can draw, and an SVG is excluded for the same reason
+ * previewKind() excludes it (an inline SVG can carry script).
+ *
+ * The result carries ids and names, never URLs: bytes are reached through
+ * /api/partner-job-files/[id]?thumb=1, which is where authorization lives.
+ */
+function summarizeJobFiles(
+  rows: FileSummaryRow[] | null,
+): Map<string, JobFileSummary> {
+  const summary = new Map<string, JobFileSummary>();
+  for (const row of rows ?? []) {
+    let entry = summary.get(row.job_id);
+    if (!entry) {
+      entry = { file_count: 0, previews: [] };
+      summary.set(row.job_id, entry);
+    }
+    entry.file_count += 1;
+    if (
+      entry.previews.length < PREVIEWS_PER_JOB &&
+      isPreviewableImage(row.original_filename) &&
+      // A stored type that actively contradicts the extension is not drawn.
+      // Null is tolerated: it predates the upload path setting one.
+      (!row.mime_type || row.mime_type.toLowerCase().startsWith("image/"))
+    ) {
+      entry.previews.push({ id: row.id, name: row.original_filename });
+    }
+  }
+  return summary;
+}
+
+const EMPTY_SUMMARY: JobFileSummary = { file_count: 0, previews: [] };
 
 // ---------------------------------------------------------------------------
 // Partner-side reads (cookie-scoped, RLS-enforced)
@@ -65,19 +125,31 @@ export async function getPartnerJobs(): Promise<DesignJobListItem[]> {
     const jobs = data ?? [];
     if (jobs.length === 0) return [];
 
-    const { data: items, error: itemError } = await supabase
-      .from("design_job_items")
-      .select("job_id")
-      .in(
-        "job_id",
-        jobs.map((job) => job.id),
-      );
+    const jobIds = jobs.map((job) => job.id);
+    const [
+      { data: items, error: itemError },
+      { data: files, error: fileError },
+    ] = await Promise.all([
+      supabase.from("design_job_items").select("job_id").in("job_id", jobIds),
+      supabase
+        .from("design_job_files")
+        // Only the four columns the grid needs — never storage_path, which has
+        // no business in a list payload.
+        .select("id, job_id, original_filename, mime_type")
+        .in("job_id", jobIds)
+        // Upload order, so a card's slideshow opens on the same image the job's
+        // file list starts with.
+        .order("created_at", { ascending: true }),
+    ]);
     if (itemError) console.error("getPartnerJobs items", itemError.message);
+    if (fileError) console.error("getPartnerJobs files", fileError.message);
     const counts = countByJob(items);
+    const fileSummary = summarizeJobFiles(files);
 
     return jobs.map((job) => ({
       ...job,
       item_count: counts.get(job.id) ?? 0,
+      ...(fileSummary.get(job.id) ?? EMPTY_SUMMARY),
     }));
   } catch (error) {
     console.error("getPartnerJobs", error);
@@ -180,18 +252,20 @@ export async function getAllPartnerJobs(): Promise<AdminDesignJobListItem[]> {
     const jobs = data ?? [];
     if (jobs.length === 0) return [];
 
-    const [{ data: items }, { data: companies }] = await Promise.all([
-      supabase
-        .from("design_job_items")
-        .select("job_id")
-        .in(
-          "job_id",
-          jobs.map((job) => job.id),
-        ),
-      supabase.from("partner_companies").select("id, name, slug"),
-    ]);
+    const jobIds = jobs.map((job) => job.id);
+    const [{ data: items }, { data: files }, { data: companies }] =
+      await Promise.all([
+        supabase.from("design_job_items").select("job_id").in("job_id", jobIds),
+        supabase
+          .from("design_job_files")
+          .select("id, job_id, original_filename, mime_type")
+          .in("job_id", jobIds)
+          .order("created_at", { ascending: true }),
+        supabase.from("partner_companies").select("id, name, slug"),
+      ]);
 
     const counts = countByJob(items);
+    const fileSummary = summarizeJobFiles(files);
     const byCompany = new Map(
       (companies ?? []).map((company) => [company.id, company]),
     );
@@ -199,6 +273,7 @@ export async function getAllPartnerJobs(): Promise<AdminDesignJobListItem[]> {
     return jobs.map((job) => ({
       ...job,
       item_count: counts.get(job.id) ?? 0,
+      ...(fileSummary.get(job.id) ?? EMPTY_SUMMARY),
       company: byCompany.get(job.company_id) ?? null,
     }));
   } catch (error) {
@@ -310,5 +385,69 @@ export async function getPartnerJobFile(
   } catch (error) {
     console.error("getPartnerJobFile", error);
     return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Activity events (migration 20260829000000)
+// ---------------------------------------------------------------------------
+
+/**
+ * One job's activity timeline, as the REP sees it.
+ *
+ * Cookie-scoped, so `partner_job_events_partner_select` is the whole filter —
+ * a job id from another company yields nothing rather than an error, exactly
+ * like getPartnerJob() above.
+ */
+export async function getPartnerJobEvents(
+  jobId: string,
+): Promise<PartnerJobEvent[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("partner_job_events")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false })
+      .limit(EVENT_LIMIT);
+    if (error) {
+      console.error("getPartnerJobEvents", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error("getPartnerJobEvents", error);
+    return [];
+  }
+}
+
+/**
+ * One job's activity timeline, as the STUDIO sees it.
+ *
+ * Service-role, like every other admin read here — partner tables have no
+ * `owner_id` and so no admin policy to read through. Callers re-assert
+ * `requireAdmin()`.
+ */
+export async function getAdminPartnerJobEvents(
+  jobId: string,
+): Promise<PartnerJobEvent[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("partner_job_events")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("created_at", { ascending: false })
+      .limit(EVENT_LIMIT);
+    if (error) {
+      console.error("getAdminPartnerJobEvents", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error("getAdminPartnerJobEvents", error);
+    return [];
   }
 }

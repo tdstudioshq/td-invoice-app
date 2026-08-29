@@ -4,12 +4,14 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { getPartnerContext, partnerHomePath } from "@/lib/auth";
+import { recordPartnerJobEvent } from "@/lib/partner-jobs/events";
 import {
   deletePartnerJobSchema,
   discardPartnerUploadsSchema,
   mintPartnerUploadsSchema,
   partnerJobEditSchema,
   partnerJobSubmissionSchema,
+  setPartnerJobDoneSchema,
 } from "@/lib/partner-jobs/schema";
 import { MAX_JOB_FILES } from "@/lib/partner-jobs/types";
 import {
@@ -43,6 +45,17 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
  * Admin-only writes (status changes) live in app/actions/admin-partner-jobs.ts
  * so the partner bundle never references an admin endpoint — the same split as
  * mylar-printing / mylar-requests.
+ *
+ * ACTIVITY EVENTS. Every write here ends with one recordPartnerJobEvent() call,
+ * placed AFTER the write has committed and never inside a branch that can still
+ * fail. That function is the only thing in this file that knows notifications
+ * exist — it logs the event and hands the announcement to a dispatcher — so
+ * there is exactly one notification seam per action and none at all in the
+ * components. See lib/partner-jobs/events.ts.
+ *
+ * ONE EVENT PER USER ACTION, not per row touched. An edit that adds two files
+ * and renames the job is one event whose metadata says so, not three; low-level
+ * row churn is deliberately not the unit, or the studio's inbox becomes noise.
  */
 
 const BUCKET = "partner-job-files";
@@ -292,6 +305,22 @@ export async function submitPartnerJobAction(
     console.error("submitPartnerJobAction: RPC returned no job");
     return { error: "We couldn't file that job. Please try again." };
   }
+
+  await recordPartnerJobEvent({
+    jobId: created.job_id,
+    jobNumber: created.job_number,
+    jobName: submission.jobName,
+    companyId: partner.companyId,
+    companyName: partner.companyName,
+    eventType: "job.created",
+    actor: { kind: "partner" },
+    actorDisplay: partner.displayName ?? partner.companyName,
+    summary: `${submission.items.length} ${submission.items.length === 1 ? "product" : "products"}`,
+    metadata: {
+      products: submission.items.length,
+      files: verified.length,
+    },
+  });
 
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath("/partner-jobs");
@@ -560,6 +589,39 @@ export async function updatePartnerJobAction(
     if (objError) console.error("updatePartnerJobAction storage remove", objError.message);
   }
 
+  // One event for the whole save, typed by what dominated it. Artwork moving is
+  // what the studio most needs to hear about, so it wins over a rename; the
+  // metadata carries everything either way, so nothing is lost by not emitting
+  // three events for one click.
+  const filesAdded = verified.length;
+  const filesRemoved = removePaths.length + cascadePaths.length;
+  const eventType =
+    filesAdded > 0 ? "file.added" : filesRemoved > 0 ? "file.removed" : "job.updated";
+  const changes = [
+    filesAdded > 0 ? `${filesAdded} added` : null,
+    filesRemoved > 0 ? `${filesRemoved} removed` : null,
+  ].filter(Boolean);
+
+  await recordPartnerJobEvent({
+    jobId: edit.jobId,
+    jobNumber: saved.job_number,
+    jobName: edit.jobName,
+    companyId: partner.companyId,
+    companyName: partner.companyName,
+    eventType,
+    actor: { kind: "partner" },
+    actorDisplay: partner.displayName ?? partner.companyName,
+    summary:
+      changes.length > 0
+        ? `artwork ${changes.join(", ")}`
+        : "products and details saved",
+    metadata: {
+      filesAdded,
+      filesRemoved,
+      products: edit.items.length,
+    },
+  });
+
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath(`${partnerHomePath(partner.companySlug)}/${edit.jobId}`);
   revalidatePath("/partner-jobs");
@@ -594,11 +656,13 @@ export async function deletePartnerJobAction(
     .eq("job_id", jobId);
   const paths = (files ?? []).map((f) => f.storage_path);
 
+  // Selected on the way out because the event has to name a job that no longer
+  // exists — partner_job_events denormalizes number and name for exactly this.
   const { data: deleted, error } = await supabase
     .from("design_jobs")
     .delete()
     .eq("id", jobId)
-    .select("id");
+    .select("id, job_number, job_name");
   if (error) {
     console.error("deletePartnerJobAction", error.message);
     return { error: "We couldn't delete that job. Try again." };
@@ -613,7 +677,85 @@ export async function deletePartnerJobAction(
     if (objError) console.error("deletePartnerJobAction storage", objError.message);
   }
 
+  await recordPartnerJobEvent({
+    // The row is gone, so the FK cannot point at it. The number and name below
+    // are what the event and the notification are built from.
+    jobId: null,
+    jobNumber: deleted[0].job_number,
+    jobName: deleted[0].job_name,
+    companyId: partner.companyId,
+    companyName: partner.companyName,
+    eventType: "job.deleted",
+    actor: { kind: "partner" },
+    actorDisplay: partner.displayName ?? partner.companyName,
+    metadata: { filesRemoved: paths.length },
+  });
+
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath("/partner-jobs");
   return { deleted: true };
+}
+
+/**
+ * Tick a job off, or un-tick it.
+ *
+ * Writes `partner_done_at` and NOTHING else. That column exists precisely so a
+ * rep can answer "done on our end" without touching `status`, which stays the
+ * studio's — the trigger from 20260826000000 would force a status write back
+ * anyway, so the split is enforced in Postgres and not just respected here.
+ *
+ * Cookie-scoped like every other write in this file, so RLS decides whether the
+ * job is the caller's; a job belonging to another company updates zero rows and
+ * comes back as "couldn't be found" rather than as a permission error, which is
+ * the same non-answer `deletePartnerJobAction` gives.
+ *
+ * The timestamp sent here is only a hint — the trigger re-stamps it with now().
+ */
+export async function setPartnerJobDoneAction(
+  input: unknown,
+): Promise<{ error: string } | { done: boolean }> {
+  if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
+
+  const partner = await getPartnerContext();
+  if (!partner) return { error: NOT_A_PARTNER };
+
+  const parsed = setPartnerJobDoneSchema.safeParse(input);
+  if (!parsed.success) return { error: "That job couldn't be found." };
+  const { jobId, done } = parsed.data;
+
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
+    .from("design_jobs")
+    .update({ partner_done_at: done ? new Date().toISOString() : null })
+    .eq("id", jobId)
+    .select("id, status, partner_done_at, job_number, job_name");
+  if (error) {
+    console.error("setPartnerJobDoneAction", error.message);
+    return { error: "We couldn't update that job. Try again." };
+  }
+  // RLS returns no rows rather than an error when the job isn't the caller's.
+  if (!updated || updated.length === 0) {
+    return { error: "That job couldn't be found." };
+  }
+
+  // Logged for the timeline but NOT notified — see NOTIFIABLE_PARTNER_JOB_EVENTS.
+  // A rep tidying their own list is their business, not an email.
+  await recordPartnerJobEvent({
+    jobId,
+    jobNumber: updated[0].job_number,
+    jobName: updated[0].job_name,
+    companyId: partner.companyId,
+    companyName: partner.companyName,
+    eventType: "job.done_changed",
+    actor: { kind: "partner" },
+    actorDisplay: partner.displayName ?? partner.companyName,
+    summary: done ? "ticked off" : "un-ticked",
+    metadata: { done },
+  });
+
+  revalidatePath(partnerHomePath(partner.companySlug));
+  revalidatePath(`${partnerHomePath(partner.companySlug)}/${jobId}`);
+  revalidatePath("/partner-jobs");
+  revalidatePath(`/partner-jobs/${jobId}`);
+  return { done };
 }

@@ -1,52 +1,73 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { PlusIcon, StackIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { PageHeader } from "@/components/layout/page-header";
-import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
+import { JobTabs } from "@/components/partner-jobs/job-tabs";
+import { JobsBrowser } from "@/components/partner-jobs/jobs-browser";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { formatDate } from "@/lib/format";
 import {
   partnerBasePath,
   partnerHref,
   requirePartnerSession,
 } from "@/lib/partner-jobs/context";
 import { getPartnerJobs } from "@/lib/partner-jobs/queries";
+import {
+  PARTNER_JOB_VIEW_COOKIE,
+  countPartnerJobsByTab,
+  filterPartnerJobsByTab,
+  parsePartnerJobTab,
+  parsePartnerJobView,
+} from "@/lib/partner-jobs/types";
 
 export const metadata = { title: "Jobs" };
 
 /**
- * The rep's dashboard: every job their company has filed, newest first.
+ * The rep's dashboard: every job their company has filed.
  *
- * Deliberately minimal — no charts, no counters. A sales rep opens this to file
- * the next job or to check on the last one, and both should be one glance and
- * one tap away.
+ * TWO KINDS OF CONTROL, AND THEY LIVE IN DIFFERENT PLACES ON PURPOSE.
+ *
+ *   * The status TABS are a place — they belong in the URL (`?tab=`), are
+ *     bookmarkable, and are resolved here in the server component. They are also
+ *     a partition, so the counts sum to All (see partnerJobTab()).
+ *   * Search, sort and grid/list are how you are looking at that place right
+ *     now. They live in JobsBrowser, client-side and instant, over the ≤200 rows
+ *     this page already holds.
+ *
+ * The chosen VIEW is read from a cookie here rather than from localStorage in
+ * the browser, so a rep who prefers the list gets the list on the first paint
+ * instead of watching a grid flash and swap.
  *
  * `getPartnerJobs()` is RLS-scoped, so this page has no company filter of its
- * own; the session guard above decides who may see the page, and Postgres
- * decides what is in it.
+ * own; the session guard decides who may see it, and Postgres decides what is
+ * in it.
  */
 export default async function PartnerJobsPage({
   params,
+  searchParams,
 }: PageProps<"/partner/[slug]/jobs">) {
   const { slug } = await params;
   await requirePartnerSession(slug, "/jobs");
 
   const basePath = await partnerBasePath(slug);
-  const jobs = await getPartnerJobs();
+  const allJobs = await getPartnerJobs();
+
+  const { tab: tabParam } = await searchParams;
+  const tab = parsePartnerJobTab(
+    Array.isArray(tabParam) ? tabParam[0] : tabParam,
+  );
+  const counts = countPartnerJobsByTab(allJobs);
+  const jobs = filterPartnerJobsByTab(allJobs, tab);
+
+  const view = parsePartnerJobView(
+    (await cookies()).get(PARTNER_JOB_VIEW_COOKIE)?.value,
+  );
 
   return (
     <>
       <PageHeader
         title="Design Jobs"
-        description="Everything you've sent over, newest first."
+        description="Everything you've sent over."
       >
         <Button asChild className="w-full sm:w-auto">
           <Link href={partnerHref(basePath, "/jobs/new")}>
@@ -56,7 +77,7 @@ export default async function PartnerJobsPage({
         </Button>
       </PageHeader>
 
-      {jobs.length === 0 ? (
+      {allJobs.length === 0 ? (
         <div className="border-glass-border flex flex-col items-center justify-center rounded-[10px] border border-dashed px-6 py-16 text-center">
           <div className="border-glass-border bg-glass-highlight/15 text-metal-platinum mb-4 flex size-12 items-center justify-center rounded-[10px] border">
             <StackIcon className="size-5" />
@@ -77,86 +98,24 @@ export default async function PartnerJobsPage({
         </div>
       ) : (
         <>
-          <div className="space-y-3 sm:hidden">
-            {jobs.map((job) => (
-              <Link
-                key={job.id}
-                href={partnerHref(basePath, `/jobs/${job.id}`)}
-                className="glass active:bg-glass-highlight/20 block rounded-[8px] p-4 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{job.job_number}</p>
-                    <p className="text-muted-foreground mt-0.5 truncate text-sm">
-                      {job.job_name}
-                    </p>
-                  </div>
-                  <JobStatusBadge status={job.status} />
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                  <div>
-                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Products</dt>
-                    <dd className="mt-0.5 tabular-nums">
-                      {job.item_count}
-                      {job.item_count === 1 ? " item" : " items"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">Submitted</dt>
-                    <dd className="mt-0.5">{formatDate(job.created_at)}</dd>
-                  </div>
-                </dl>
-              </Link>
-            ))}
-          </div>
+          <JobTabs basePath={basePath} active={tab} counts={counts} />
 
-          <div className="glass hidden overflow-x-auto rounded-[8px] sm:block">
-            <Table className="min-w-[640px]">
-              <TableHeader className="bg-glass-highlight/10">
-                <TableRow>
-                  <TableHead className="px-4">Job</TableHead>
-                  <TableHead className="px-4">Name</TableHead>
-                  <TableHead className="px-4 text-right">Products</TableHead>
-                  <TableHead className="px-4">Submitted</TableHead>
-                  <TableHead className="px-4">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {jobs.map((job) => (
-                  <TableRow
-                    key={job.id}
-                    className="hover:bg-glass-highlight/10 transition-colors"
-                  >
-                    <TableCell className="px-4 py-3.5 font-medium">
-                      <Link
-                        href={partnerHref(basePath, `/jobs/${job.id}`)}
-                        className="hover:text-metal-platinum transition-colors"
-                      >
-                        {job.job_number}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="max-w-72 truncate px-4 py-3.5">
-                      <Link
-                        href={partnerHref(basePath, `/jobs/${job.id}`)}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        {job.job_name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5 text-right tabular-nums">
-                      {job.item_count}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground px-4 py-3.5 whitespace-nowrap">
-                      {formatDate(job.created_at)}
-                    </TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <JobStatusBadge status={job.status} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          {jobs.length === 0 ? (
+            // An empty TAB, not an empty portal. The chips above are the way
+            // back, so this does not re-offer "New Job".
+            <div className="border-glass-border rounded-[10px] border border-dashed px-6 py-14 text-center">
+              <p className="text-sm font-medium">
+                {tab === "done" ? "Nothing ticked off yet" : "Nothing here"}
+              </p>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {tab === "done"
+                  ? "Tick a job off with the circle beside it and it will move here."
+                  : "No jobs are in this state right now."}
+              </p>
+            </div>
+          ) : (
+            <JobsBrowser jobs={jobs} basePath={basePath} initialView={view} />
+          )}
         </>
       )}
     </>

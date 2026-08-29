@@ -162,3 +162,13 @@ export const partnerJobEditSchema = z.object({
 export type PartnerJobEdit = z.infer<typeof partnerJobEditSchema>;
 
 export const deletePartnerJobSchema = z.object({ jobId: z.string().uuid() });
+
+/**
+ * The rep's done checkbox. Only ever a job id and a boolean — the timestamp is
+ * server-assigned (and re-assigned by the trigger in 20260828000000), so there
+ * is nothing else here to validate.
+ */
+export const setPartnerJobDoneSchema = z.object({
+  jobId: z.string().uuid(),
+  done: z.boolean(),
+});
