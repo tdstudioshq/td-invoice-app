@@ -31,9 +31,10 @@ export const metadata = { title: "Job" };
  * move from here: it is the studio's field, and a database trigger forces it
  * back on any rep-side write, so hiding the control is not what enforces it.
  *
- * The Done checkbox is the rep's OWN answer and writes a different column
- * (`partner_done_at`), which is exactly why the two can sit side by side without
- * either one overwriting the other. See isJobDone().
+ * The Done checkbox writes `status` — the same field the studio's Complete
+ * checkbox writes — so this page and /partner-jobs are one answer. A rep may
+ * only tick and un-tick; the Status dropdown stays the studio's, which is why
+ * there is no status control here. See isJobDone().
  */
 export default async function PartnerJobDetailPage({
   params,
@@ -102,22 +103,6 @@ export default async function PartnerJobDetailPage({
                   <JobStatusBadge status={job.status} />
                 </dd>
               </div>
-              {/*
-                Only once ticked, and read-only here — the control itself lives
-                in the header. Repeating the date rather than the checkbox keeps
-                one place to click and gives the summary something the badge
-                above does not already say.
-              */}
-              {job.partner_done_at ? (
-                <div className="min-w-0">
-                  <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-                    Ticked off
-                  </dt>
-                  <dd className="mt-0.5 text-sm">
-                    {formatDateTime(job.partner_done_at)}
-                  </dd>
-                </div>
-              ) : null}
             </dl>
           </CardContent>
         </Card>

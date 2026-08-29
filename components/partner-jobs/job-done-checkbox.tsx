@@ -5,11 +5,7 @@ import { CheckCircleIcon, CircleIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 import { setPartnerJobDoneAction } from "@/app/actions/partner-jobs";
-import {
-  isJobDone,
-  isJobDoneLocked,
-  type DesignJobStatus,
-} from "@/lib/partner-jobs/types";
+import { isJobDone, type DesignJobStatus } from "@/lib/partner-jobs/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,10 +15,12 @@ import { cn } from "@/lib/utils";
  * than a square box — so ticking something off looks and means the same thing
  * in both places.
  *
- * A COMPLETED job is done and cannot be un-done from here: `status` is the
- * studio's field, so clearing `partner_done_at` would leave the job in the Done
- * tab anyway and the click would look broken. It renders ticked and disabled
- * with an explanation instead of pretending to be interactive.
+ * It writes the job's `status` — the SAME field the studio's Complete checkbox
+ * on /partner-jobs writes — so the two views are one answer and can never
+ * disagree. A rep may make only the two moves this control offers
+ * (`-> completed`, and `completed -> in_progress`); a trigger reverts anything
+ * else, so the `new` vs `in_progress` distinction stays the studio's without
+ * this component having to know about it.
  *
  * Deliberately a SIBLING of the row's link everywhere it is used, never nested
  * inside it: a <button> inside an <a> is invalid HTML, and keeping them apart is
@@ -33,17 +31,16 @@ export function JobDoneCheckbox({
   labelled = false,
   className,
 }: {
-  job: { id: string; status: DesignJobStatus; partner_done_at: string | null };
+  job: { id: string; status: DesignJobStatus };
   /** Show the word "Done" next to the circle (the detail page; not the list). */
   labelled?: boolean;
   className?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const done = isJobDone(job);
-  const locked = isJobDoneLocked(job);
 
   const toggle = () => {
-    if (locked || isPending) return;
+    if (isPending) return;
     startTransition(async () => {
       const result = await setPartnerJobDoneAction({
         jobId: job.id,
@@ -53,17 +50,13 @@ export function JobDoneCheckbox({
     });
   };
 
-  const label = locked
-    ? "Marked completed by TD Studios"
-    : done
-      ? "Mark as not done"
-      : "Mark as done";
+  const label = done ? "Mark as not done" : "Mark as done";
 
   return (
     <button
       type="button"
       onClick={toggle}
-      disabled={locked || isPending}
+      disabled={isPending}
       aria-pressed={done}
       // The visible word is the accessible name when there is one; otherwise the
       // circle needs to say what it does.
@@ -76,9 +69,7 @@ export function JobDoneCheckbox({
         // no padding — because padding it out would push it off the baseline of
         // the row it sits beside.
         labelled && "inline-flex min-h-9 items-center gap-2 text-sm",
-        locked
-          ? "cursor-default text-emerald-400"
-          : "text-metal-platinum hover:text-emerald-300",
+        "text-metal-platinum hover:text-emerald-300",
         isPending && "opacity-60",
         className,
       )}

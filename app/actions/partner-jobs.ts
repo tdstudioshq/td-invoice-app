@@ -13,7 +13,10 @@ import {
   partnerJobSubmissionSchema,
   setPartnerJobDoneSchema,
 } from "@/lib/partner-jobs/schema";
-import { MAX_JOB_FILES } from "@/lib/partner-jobs/types";
+import {
+  JOB_INCOMPLETE_STATUS,
+  MAX_JOB_FILES,
+} from "@/lib/partner-jobs/types";
 import {
   MAX_PARTNER_UPLOAD_BYTES,
   buildPartnerJobFilePath,
@@ -697,19 +700,20 @@ export async function deletePartnerJobAction(
 }
 
 /**
- * Tick a job off, or un-tick it.
+ * Tick a job complete, or un-tick it.
  *
- * Writes `partner_done_at` and NOTHING else. That column exists precisely so a
- * rep can answer "done on our end" without touching `status`, which stays the
- * studio's — the trigger from 20260826000000 would force a status write back
- * anyway, so the split is enforced in Postgres and not just respected here.
+ * Writes `status` — the SAME field the studio's Complete checkbox on
+ * /partner-jobs writes, which is what keeps the two views in sync (migration
+ * 20260829180000). A rep may make only the two moves this offers; the trigger
+ * reverts anything else, so `new` vs `in_progress` stays the studio's without
+ * this action needing to guard it.
+ *
+ * Un-ticking lands on `in_progress`, never `new` — see JOB_INCOMPLETE_STATUS.
  *
  * Cookie-scoped like every other write in this file, so RLS decides whether the
  * job is the caller's; a job belonging to another company updates zero rows and
  * comes back as "couldn't be found" rather than as a permission error, which is
  * the same non-answer `deletePartnerJobAction` gives.
- *
- * The timestamp sent here is only a hint — the trigger re-stamps it with now().
  */
 export async function setPartnerJobDoneAction(
   input: unknown,
@@ -726,9 +730,9 @@ export async function setPartnerJobDoneAction(
   const supabase = await createClient();
   const { data: updated, error } = await supabase
     .from("design_jobs")
-    .update({ partner_done_at: done ? new Date().toISOString() : null })
+    .update({ status: done ? "completed" : JOB_INCOMPLETE_STATUS })
     .eq("id", jobId)
-    .select("id, status, partner_done_at, job_number, job_name");
+    .select("id, status, job_number, job_name");
   if (error) {
     console.error("setPartnerJobDoneAction", error.message);
     return { error: "We couldn't update that job. Try again." };
@@ -738,19 +742,20 @@ export async function setPartnerJobDoneAction(
     return { error: "That job couldn't be found." };
   }
 
-  // Logged for the timeline but NOT notified — see NOTIFIABLE_PARTNER_JOB_EVENTS.
-  // A rep tidying their own list is their business, not an email.
+  // A status change, and notified as one. When this wrote a rep-private flag it
+  // was deliberately silent; now that it moves the field the studio works from,
+  // the studio needs to hear about it.
   await recordPartnerJobEvent({
     jobId,
     jobNumber: updated[0].job_number,
     jobName: updated[0].job_name,
     companyId: partner.companyId,
     companyName: partner.companyName,
-    eventType: "job.done_changed",
+    eventType: "job.status_changed",
     actor: { kind: "partner" },
     actorDisplay: partner.displayName ?? partner.companyName,
-    summary: done ? "ticked off" : "un-ticked",
-    metadata: { done },
+    summary: done ? "marked complete" : "reopened",
+    metadata: { to: done ? "completed" : JOB_INCOMPLETE_STATUS },
   });
 
   revalidatePath(partnerHomePath(partner.companySlug));

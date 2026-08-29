@@ -76,30 +76,24 @@ export function designJobStatusLabel(value: string): string {
 }
 
 /**
- * "Done" has TWO sources, and the OR of them is the answer.
+ * "Complete" is ONE shared answer, and `status` is it.
  *
- * `partner_done_at` is the rep's checkbox — their own "we're finished with this
- * on our end" — and `status` is the studio's workflow field, which a rep cannot
- * write (a trigger forces it back; see migration 20260826000000). Keeping them
- * as separate columns is what stops the two sides overwriting each other, but a
- * job the STUDIO has completed is finished whichever way you look at it, so both
- * land in the same place.
+ * Both checkboxes — the studio's on /partner-jobs and the rep's in the portal —
+ * write this same field, so the two views can never disagree (migration
+ * 20260829180000). A rep may make only the two moves a checkbox can make
+ * (`-> completed`, and `completed -> in_progress`); the `new` vs `in_progress`
+ * distinction stays the studio's, behind the Status dropdown, enforced by the
+ * trigger rather than by hiding a control.
  *
- * The consequence to remember at the UI: a completed job is done even with the
- * box un-ticked, which is why the checkbox is rendered ticked-and-disabled there
- * rather than offering to un-do something clearing the column would not un-do.
+ * This replaced an earlier design where the rep had a separate `partner_done_at`
+ * column. That column still exists and is retired — nothing reads or writes it.
  */
-export function isJobDone(job: {
-  status: DesignJobStatus;
-  partner_done_at: string | null;
-}): boolean {
-  return job.partner_done_at !== null || job.status === "completed";
-}
-
-/** A job the rep ticked is done regardless of where the studio has it. */
-export function isJobDoneLocked(job: { status: DesignJobStatus }): boolean {
+export function isJobDone(job: { status: DesignJobStatus }): boolean {
   return job.status === "completed";
 }
+
+/** Un-ticking lands here, never on `new`: see the migration for why. */
+export const JOB_INCOMPLETE_STATUS: DesignJobStatus = "in_progress";
 
 /**
  * The jobs list is tabbed by status, with Done pulled out in front of it.
@@ -129,21 +123,21 @@ export function parsePartnerJobTab(value: string | undefined): PartnerJobTab {
 /** The ONE tab a job belongs to. */
 export function partnerJobTab(job: {
   status: DesignJobStatus;
-  partner_done_at: string | null;
 }): Exclude<PartnerJobTab, "all"> {
   if (isJobDone(job)) return "done";
   return job.status === "in_progress" ? "in_progress" : "new";
 }
 
-export function filterPartnerJobsByTab<
-  T extends { status: DesignJobStatus; partner_done_at: string | null },
->(jobs: T[], tab: PartnerJobTab): T[] {
+export function filterPartnerJobsByTab<T extends { status: DesignJobStatus }>(
+  jobs: T[],
+  tab: PartnerJobTab,
+): T[] {
   return tab === "all" ? jobs : jobs.filter((job) => partnerJobTab(job) === tab);
 }
 
 /** Counts for the tab chips. Derived from the same partition, so they agree. */
 export function countPartnerJobsByTab(
-  jobs: { status: DesignJobStatus; partner_done_at: string | null }[],
+  jobs: { status: DesignJobStatus }[],
 ): Record<PartnerJobTab, number> {
   const counts: Record<PartnerJobTab, number> = {
     all: jobs.length,
@@ -353,4 +347,22 @@ export const NOTIFIABLE_PARTNER_JOB_EVENTS = [
 
 export function isNotifiableEvent(type: PartnerJobEventType): boolean {
   return (NOTIFIABLE_PARTNER_JOB_EVENTS as readonly string[]).includes(type);
+}
+
+/**
+ * The admin list's two sections.
+ *
+ * The same split the checkbox makes, from the same field, which is what stops a
+ * ticked box and its section from ever disagreeing: "Complete" is
+ * `status === "completed"` and "In progress" is everything else — `new` and
+ * `in_progress` together, since from the studio's point of view both mean the
+ * job is still on the pile.
+ */
+export function splitJobsByCompletion<T extends { status: DesignJobStatus }>(
+  jobs: T[],
+): { inProgress: T[]; complete: T[] } {
+  const inProgress: T[] = [];
+  const complete: T[] = [];
+  for (const job of jobs) (isJobDone(job) ? complete : inProgress).push(job);
+  return { inProgress, complete };
 }

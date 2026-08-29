@@ -572,7 +572,7 @@ change its password in Supabase and update the env var.
 | File a job | ✅ (own company only) | — |
 | Edit / delete their own job | ✅ (`20260826000000`) | — |
 | Change job **status** | ❌ **a trigger forces it back** | ✅ |
-| Mark a job **done** | ✅ writes `partner_done_at`, never `status` | read-only |
+| Mark a job **complete** | ✅ shared field — `-> completed` / `completed -> in_progress` only | ✅ (any status) |
 | Download job files | ✅ own company only | ✅ |
 | Join / move company | ❌ no INSERT or UPDATE policy on `partner_users` | via service role |
 
@@ -614,15 +614,21 @@ only the first image until a card is scrolled into view, runs slideshow timers
 only for visible cards, and lets the browser cache the redirect for 30 minutes.
 The list view loads no images at all.
 
-**Status vs. done are two different fields, on purpose.** `status`
-(new / in progress / completed) is the studio's, and `protect_design_job_columns()`
-forces it back on any rep-side write — reps *do* have an UPDATE policy now, so
-that immutability is a trigger rather than a missing policy. The rep's own
-answer is `partner_done_at`, written by the checkbox beside each job. Keeping
-them apart is what stops the studio moving a job to "in progress" from silently
-un-ticking the rep's box. Their jobs list is tabbed **All / New / In Progress /
-Done** off a `?tab=` search param; a job the studio marked completed counts as
-done too, and its checkbox renders ticked and disabled.
+**Complete is ONE shared answer.** Ticking a job complete in the admin list at
+`/partner-jobs` and ticking it in the Zaza portal write the same field
+(`design_jobs.status`), so the two views can never disagree. A rep may make only
+the two moves a checkbox can make — `-> completed` and `completed -> in_progress`
+— and a trigger silently reverts anything else, so the `new` vs `in_progress`
+distinction stays the studio's, behind the Status dropdown on a job's detail
+page. Un-ticking lands on `in_progress`, never `new`.
+
+The rep's list is tabbed **All / New / In Progress / Done** off a `?tab=` search
+param; the admin list is split into **In progress** and **Complete** sections.
+Both read that one field.
+
+(An earlier design gave the rep a separate `partner_done_at` column so the two
+sides could not overwrite each other. That was reversed in `20260829180000` in
+favour of one shared state; the column is retired but not yet dropped.)
 
 ### Activity events and notifications
 
@@ -669,9 +675,10 @@ message-shape changes — `renderNotificationSms()` is already the rendering.
 - The jobs page opens as a **grid**; toggling to **List** survives a reload (cookie)
 - A job with several images crossfades; one with a single image is static; one with none shows a placeholder
 - Search by name and by `ZA-` number; each sort re-orders the cards
-- A rep ticks a job off → it moves to the **Done** tab and the tab counts still sum to All
-- Un-ticking it returns it to its status tab; `/partner-jobs/[jobId]` shows "Partner marked done"
-- A job the studio set to **Completed** shows a ticked, disabled checkbox the rep cannot clear
+- A rep ticks a job off → it moves to the **Done** tab, and to **Complete** on `/partner-jobs`
+- The studio ticks one on `/partner-jobs` → the rep sees it as done too
+- Un-ticking from either side returns it to In Progress on both
+- A rep cannot set a job back to **New**, and cannot move **New → In Progress**
 - Filing, editing or deleting a job adds a row to the job's **Activity** card and emails `ADMIN_EMAILS`
 - Ticking a job done appears in Activity but sends **no** email (by design)
 - `tdstudiosny.com` and `www.tdstudiosny.com` behave exactly as before

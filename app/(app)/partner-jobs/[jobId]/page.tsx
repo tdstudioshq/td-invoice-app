@@ -76,16 +76,6 @@ export default async function PartnerJobDetailPage(
               <Detail label="Submitted">
                 {formatDateTime(job.created_at)}
               </Detail>
-              {/*
-                The PARTNER's own answer, read-only here. It is a separate
-                column from `status` precisely so the two sides cannot overwrite
-                each other — the rep saying they are finished is not the studio
-                saying the job is complete, and the Status card below is still
-                the only thing that moves `status`.
-              */}
-              <Detail label="Partner marked done">
-                {job.partner_done_at ? formatDateTime(job.partner_done_at) : "—"}
-              </Detail>
             </dl>
 
             {job.submitted_by_email ? (
