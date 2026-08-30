@@ -251,24 +251,46 @@ interface SortableJob {
   job_number: string;
   created_at: string;
   updated_at: string;
+  status: DesignJobStatus;
 }
 
-/** Pure, and total — never mutates its input, so it is safe to call in render. */
+/**
+ * Pure, and total — never mutates its input, so it is safe to call in render.
+ *
+ * COMPLETED JOBS ALWAYS SORT LAST, whichever sort is chosen: done-ness is the
+ * primary key and the selected sort only orders WITHIN each group. The list is
+ * a work queue first and an archive second, and the two would otherwise fight —
+ * ticking a job off bumps its `updated_at`, so under the default sort the job a
+ * rep just finished with would jump to the top of a page whose whole purpose is
+ * showing what is still outstanding. Same answer the admin list gives by
+ * sectioning with splitJobsByCompletion(), expressed here as a sort key because
+ * the tabs above this list already own the "put them in separate places" idea.
+ */
 export function sortPartnerJobs<T extends SortableJob>(
   jobs: T[],
   sort: PartnerJobSort,
 ): T[] {
-  const copy = [...jobs];
+  const within = comparePartnerJobsBy(sort);
+  return [...jobs].sort(
+    (a, b) => Number(isJobDone(a)) - Number(isJobDone(b)) || within(a, b),
+  );
+}
+
+/** The chosen sort, applied within a group of equally-done jobs. */
+function comparePartnerJobsBy(
+  sort: PartnerJobSort,
+): (a: SortableJob, b: SortableJob) => number {
   switch (sort) {
     case "newest":
-      return copy.sort((a, b) => b.created_at.localeCompare(a.created_at));
+      return (a, b) => b.created_at.localeCompare(a.created_at);
     case "name":
-      return copy.sort((a, b) =>
-        a.job_name.localeCompare(b.job_name, undefined, { sensitivity: "base" }),
-      );
+      return (a, b) =>
+        a.job_name.localeCompare(b.job_name, undefined, {
+          sensitivity: "base",
+        });
     case "recent":
     default:
-      return copy.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+      return (a, b) => b.updated_at.localeCompare(a.updated_at);
   }
 }
 
