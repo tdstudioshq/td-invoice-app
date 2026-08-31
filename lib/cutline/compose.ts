@@ -13,7 +13,7 @@ import { getCutlinePreset, type CutlinePreset } from "./presets";
  *
  * Mirrors the Python `cutline-bulk-engine` engine exactly:
  *   1. Output page size === the cutline PDF's first-page MediaBox (the contour
- *      defines the print bounds; default is 288×360pt = 4×5″).
+ *      defines the print bounds; default is 280.8×355.68pt = 3.9×4.94″).
  *   2. The artwork fills that page (1200×1500px art → 300 DPI).
  *   3. The vector cutline page is composited ON TOP, embedded as a Form XObject
  *      so its `/Separation /CutContour` spot colour survives untouched — never
