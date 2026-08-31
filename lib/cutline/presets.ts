@@ -41,9 +41,9 @@ export interface CutlinePreset {
 export const CUTLINE_PRESETS: CutlinePreset[] = [
   {
     id: "cut-line-file",
-    label: "Standard 3.9×4.94 contour",
+    label: "Standard 4×4.75 contour",
     description:
-      "Rounded-rectangle cut contour for 1170×1482 (3.9×4.94″) stickers.",
+      "Rounded-rectangle cut contour for 1200×1425 (4×4.75″) stickers.",
     file: "cut-line-file.pdf",
   },
 ];

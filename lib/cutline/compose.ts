@@ -13,8 +13,8 @@ import { getCutlinePreset, type CutlinePreset } from "./presets";
  *
  * Mirrors the Python `cutline-bulk-engine` engine exactly:
  *   1. Output page size === the cutline PDF's first-page MediaBox (the contour
- *      defines the print bounds; default is 280.8×355.68pt = 3.9×4.94″).
- *   2. The artwork fills that page (1200×1500px art → 300 DPI).
+ *      defines the print bounds; default is 288×342pt = 4×4.75″).
+ *   2. The artwork is stretched to fill that page exactly (no crop, no bars).
  *   3. The vector cutline page is composited ON TOP, embedded as a Form XObject
  *      so its `/Separation /CutContour` spot colour survives untouched — never
  *      rasterised or recoloured.
@@ -179,7 +179,12 @@ export async function composeCutlinePdf(
   options: ComposeOptions = {},
 ): Promise<Uint8Array> {
   const preset = getCutlinePreset(options.presetId);
-  const fit: FitMode = options.fit ?? "cover";
+  // STRETCH, not cover. The artboard is the cut contour's page, and the studio
+  // wants the dropped artwork to land on it exactly — no crop, no letterbox — so
+  // a design whose ratio differs from the contour is distorted to fit rather
+  // than having its edges trimmed away. `cover` was the original engine's
+  // behaviour and is still available per-call; this is only the default.
+  const fit: FitMode = options.fit ?? "stretch";
 
   const [normalized, cutlineBytes] = await Promise.all([
     normalizeImage(imageBytes),
