@@ -6,10 +6,17 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { JobDoneCheckbox } from "@/components/partner-jobs/job-done-checkbox";
 import { JobActivity } from "@/components/partner-jobs/job-activity";
+import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import {
   partnerBasePath,
@@ -115,6 +122,15 @@ export default async function PartnerJobDetailPage({
                 {job.items.length}
               </span>
             </CardTitle>
+            {job.files.length > 1 ? (
+              <CardAction>
+                <DownloadAllFilesButton
+                  files={job.files}
+                  jobNumber={job.job_number}
+                  label="Download all job files"
+                />
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent>
             <JobProductList

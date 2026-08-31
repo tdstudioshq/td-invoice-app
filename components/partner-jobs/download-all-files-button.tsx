@@ -62,9 +62,11 @@ function uniqueName(name: string, used: Set<string>): string {
 export function DownloadAllFilesButton({
   files,
   jobNumber,
+  label = "Download all",
 }: {
   files: DesignJobFile[];
   jobNumber: string;
+  label?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(0);
@@ -147,7 +149,7 @@ export function DownloadAllFilesButton({
       ) : (
         <DownloadSimpleIcon className="size-4" />
       )}
-      {busy ? `Preparing ${done}/${files.length}…` : "Download all"}
+      {busy ? `Preparing ${done}/${files.length}…` : label}
     </Button>
   );
 }

@@ -3,13 +3,20 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Mail } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobActivity } from "@/components/partner-jobs/job-activity";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import { PartnerJobStatusForm } from "@/components/partner-jobs/admin-status-form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { requireAdmin } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -123,6 +130,15 @@ export default async function PartnerJobDetailPage(
                 {job.items.length}
               </span>
             </CardTitle>
+            {job.files.length > 1 ? (
+              <CardAction>
+                <DownloadAllFilesButton
+                  files={job.files}
+                  jobNumber={job.job_number}
+                  label="Download all job files"
+                />
+              </CardAction>
+            ) : null}
           </CardHeader>
           <CardContent>
             <JobProductList
