@@ -72,7 +72,7 @@ export function QuantityStep({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="quantity" className="text-white">
-          Quantity
+          Custom Amount
         </Label>
         <div className="flex items-center gap-2">
           <Button
@@ -129,7 +129,7 @@ export function QuantityStep({
             error ? "text-sm leading-relaxed text-red-300" : helpTextClass
           }
         >
-          {error ?? "Type any amount, or use the presets above."}
+          {error ?? `Enter any amount — minimum ${MIN_QUANTITY} pieces.`}
         </p>
       </div>
     </div>

@@ -20,7 +20,6 @@ export function BagTypeStep({
       <StepHeading
         title="What type of Mylar bag do you need?"
         subtitle="Select the bag style you want us to print."
-        note="High quality · 6 mil heavy duty"
       />
       {/* One column on phones so the whole card stays an easy tap target;
           two from sm up, where four cards would otherwise run very long. */}

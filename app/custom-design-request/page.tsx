@@ -1,5 +1,4 @@
 import { HomeLogoLink } from "@/components/layout/home-logo";
-import Link from "next/link";
 
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { CustomDesignForm } from "@/app/custom-design-request/custom-design-form";
@@ -30,16 +29,6 @@ export default function CustomDesignRequestPage() {
         </header>
 
         <CustomDesignForm />
-
-        <p className="text-muted-foreground text-center text-sm">
-          Want to keep tabs on your projects?{" "}
-          <Link
-            href="/sign-up"
-            className="text-foreground font-medium underline-offset-4 hover:underline"
-          >
-            Create account to track this request
-          </Link>
-        </p>
 
         <BackToStudiosLink className="mx-auto" />
       </div>
