@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "client:create-marty": "node --env-file=.env.local scripts/create-marty-client.ts"
+    "client:create-marty": "node --env-file=.env.local scripts/create-marty-client.ts",
+    "admin:sync": "node --env-file=.env.local scripts/sync-workspace-admins.ts"
   },
   "dependencies": {
     "@developer-hub/liquid-glass": "^1.2.3",
