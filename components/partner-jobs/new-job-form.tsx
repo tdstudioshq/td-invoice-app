@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { reportError, summarizePaths } from "@/lib/observability/report-error";
 import type { DesignJobFile, DesignJobItem } from "@/lib/types/database";
 import { previewKind } from "@/lib/portal";
 import {
@@ -348,7 +349,14 @@ export function NewJobForm({
         paths: stranded.map((file) => file.path),
       }).then((result) => {
         if (!result.ok) {
-          console.error("could not discard stranded job files", stranded);
+          // `stranded` holds each file's Storage key, which embeds the rep's
+          // company id and the original artwork filename. The count and the
+          // file kinds are what a person debugging this actually needs.
+          reportError(
+            "partner job file cleanup",
+            new Error("stranded job files could not be discarded"),
+            summarizePaths(stranded.map((file) => file.path)),
+          );
         }
       });
     }

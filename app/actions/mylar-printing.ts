@@ -10,6 +10,7 @@ import {
   checkBurst,
   submitterHash,
 } from "@/lib/mylar-printing/abuse";
+import { reportError, summarizePaths } from "@/lib/observability/report-error";
 import {
   MAX_ARTWORK_BYTES,
   artworkExtensionOf,
@@ -262,7 +263,8 @@ async function removeObjects(
   try {
     await supabase.storage.from(BUCKET).remove(paths);
   } catch (err) {
-    console.error("mylar artwork cleanup failed", paths, err);
+    // Artwork keys carry the customer's original filename — summarize instead.
+    reportError("mylar artwork cleanup", err, summarizePaths(paths));
   }
 }
 

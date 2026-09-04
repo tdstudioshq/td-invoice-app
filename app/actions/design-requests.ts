@@ -13,6 +13,7 @@ import {
 } from "@/lib/mylar-printing/abuse";
 import { customDesignRequestSubmissionSchema } from "@/lib/design-requests/schema";
 import { getAdminEmails } from "@/lib/auth";
+import { reportError, summarizePaths } from "@/lib/observability/report-error";
 import {
   EMAIL_FROM,
   getResend,
@@ -252,7 +253,9 @@ async function removeDesignObjects(
   try {
     await supabase.storage.from(BUCKET).remove(paths);
   } catch (error) {
-    console.error("custom design asset cleanup", paths, error);
+    // Object keys embed the customer's own filename, so log the shape of the
+    // batch rather than the batch itself.
+    reportError("design-request asset cleanup", error, summarizePaths(paths));
   }
 }
 
