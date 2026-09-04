@@ -11,7 +11,7 @@ import {
 
 import { JobCard } from "@/components/partner-jobs/job-card";
 import { JobDoneCheckbox } from "@/components/partner-jobs/job-done-checkbox";
-import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
+import { JobStatusSelect } from "@/components/partner-jobs/job-status-select";
 import {
   Table,
   TableBody,
@@ -223,12 +223,12 @@ function JobList({
             )}
           >
             <JobDoneCheckbox job={job} className="mt-0.5" />
-            <Link
-              href={partnerHref(basePath, `/jobs/${job.id}`)}
-              className="min-w-0 flex-1"
-            >
+            <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <Link
+                  href={partnerHref(basePath, `/jobs/${job.id}`)}
+                  className="min-w-0 flex-1"
+                >
                   <p className="font-medium">{job.job_number}</p>
                   <p
                     className={cn(
@@ -238,27 +238,29 @@ function JobList({
                   >
                     {job.job_name}
                   </p>
-                </div>
-                <JobStatusBadge status={job.status} />
+                </Link>
+                <JobStatusSelect job={job} />
               </div>
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                <div>
-                  <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-                    Products
-                  </dt>
-                  <dd className="mt-0.5 tabular-nums">
-                    {job.item_count}
-                    {job.item_count === 1 ? " item" : " items"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-                    Updated
-                  </dt>
-                  <dd className="mt-0.5">{formatRelativeTime(job.updated_at)}</dd>
-                </div>
-              </dl>
-            </Link>
+              <Link href={partnerHref(basePath, `/jobs/${job.id}`)}>
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+                      Products
+                    </dt>
+                    <dd className="mt-0.5 tabular-nums">
+                      {job.item_count}
+                      {job.item_count === 1 ? " item" : " items"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-sm leading-relaxed md:text-xs">
+                      Updated
+                    </dt>
+                    <dd className="mt-0.5">{formatRelativeTime(job.updated_at)}</dd>
+                  </div>
+                </dl>
+              </Link>
+            </div>
           </div>
         ))}
       </div>
@@ -326,7 +328,7 @@ function JobList({
                     {formatRelativeTime(job.updated_at)}
                   </TableCell>
                   <TableCell className="px-4 py-3.5">
-                    <JobStatusBadge status={job.status} />
+                    <JobStatusSelect job={job} />
                   </TableCell>
                 </TableRow>
               );

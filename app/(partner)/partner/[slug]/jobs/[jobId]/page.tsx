@@ -38,10 +38,9 @@ export const metadata = { title: "Job" };
  * move from here: it is the studio's field, and a database trigger forces it
  * back on any rep-side write, so hiding the control is not what enforces it.
  *
- * The Done checkbox writes `status` — the same field the studio's Complete
- * checkbox writes — so this page and /partner-jobs are one answer. A rep may
- * only tick and un-tick; the Status dropdown stays the studio's, which is why
- * there is no status control here. See isJobDone().
+ * The Done checkbox writes `status` — the same field the jobs-list dropdown and
+ * studio controls write — so every view has one answer. The detail page keeps
+ * the quick Done shortcut; all three states are editable directly on /jobs.
  */
 export default async function PartnerJobDetailPage({
   params,

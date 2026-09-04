@@ -20,8 +20,8 @@ export const metadata = { title: "Edit Job" };
  * the read, so a job id belonging to another company resolves to null and 404s
  * here rather than opening somebody else's work.
  *
- * Status is deliberately absent: it is the studio's field, and the database
- * forces it back for any rep-side write, so there is nothing to show here.
+ * Status is deliberately absent: its dedicated control lives on the jobs
+ * dashboard rather than being mixed into the order-content edit form.
  */
 export default async function EditPartnerJobPage({
   params,

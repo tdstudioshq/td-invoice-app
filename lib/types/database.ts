@@ -896,10 +896,9 @@ export interface Database {
           job_name: string;
           status: DesignJobStatus;
           notes: string | null;
-          // When the PARTNER REP ticked this job off (20260828000000). The
-          // rep's own answer, deliberately separate from `status`, which stays
-          // the studio's — a rep cannot write `status` at all. NULL = not
-          // ticked. See isJobDone() in lib/partner-jobs/types.ts.
+          // RETIRED by 20260829180000. Completion and the full partner-editable
+          // lifecycle now live in `status`; the protection trigger prevents a
+          // stale client from writing this legacy column.
           partner_done_at: string | null;
           created_at: string;
           updated_at: string;

@@ -21,10 +21,9 @@ import type { ActionState } from "@/app/actions/types";
  * custom-design-requests.
  *
  * The service-role client is required here rather than convenient: partner
- * tables carry no `owner_id`, so there is no admin policy to write through, and
- * a database trigger forces `status` back for any caller with an auth.uid()
- * (which is what makes "a rep cannot change job status" a database invariant —
- * the service role has no auth.uid(), which is exactly how this gets through).
+ * tables carry no `owner_id`, so there is no admin policy to write through. The
+ * service role has no auth.uid(), which is how it bypasses the partner-company
+ * RLS path used by the dashboard dropdown.
  * `requireAdmin()` is therefore the only thing between a caller and a privileged
  * write, and it runs first — before anything is parsed or touched.
  *

@@ -15,12 +15,10 @@ import { cn } from "@/lib/utils";
  * than a square box — so ticking something off looks and means the same thing
  * in both places.
  *
- * It writes the job's `status` — the SAME field the studio's Complete checkbox
- * on /partner-jobs writes — so the two views are one answer and can never
- * disagree. A rep may make only the two moves this control offers
- * (`-> completed`, and `completed -> in_progress`); a trigger reverts anything
- * else, so the `new` vs `in_progress` distinction stays the studio's without
- * this component having to know about it.
+ * It writes the job's `status` — the SAME field the studio controls and the
+ * partner dropdown write — so every view has one answer. This button remains a
+ * quick two-state shortcut (`-> completed`, and `completed -> in_progress`);
+ * the adjacent dropdown owns the full three-state workflow.
  *
  * Deliberately a SIBLING of the row's link everywhere it is used, never nested
  * inside it: a <button> inside an <a> is invalid HTML, and keeping them apart is

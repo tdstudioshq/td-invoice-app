@@ -26,8 +26,8 @@ import {
  * hidden input (Radix's trigger isn't a form control), submitted through
  * useActionState with sonner for the result.
  *
- * This is the ONLY way a job's status changes anywhere in the app — partners
- * have no UPDATE policy at all, so the rep's own portal cannot touch it.
+ * This is the studio's full-size detail-page control. Partners use the compact
+ * RLS-scoped dropdown on their own jobs dashboard; both write the same field.
  */
 export function PartnerJobStatusForm({
   id,

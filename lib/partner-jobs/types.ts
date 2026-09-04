@@ -78,12 +78,10 @@ export function designJobStatusLabel(value: string): string {
 /**
  * "Complete" is ONE shared answer, and `status` is it.
  *
- * Both checkboxes — the studio's on /partner-jobs and the rep's in the portal —
- * write this same field, so the two views can never disagree (migration
- * 20260829180000). A rep may make only the two moves a checkbox can make
- * (`-> completed`, and `completed -> in_progress`); the `new` vs `in_progress`
- * distinction stays the studio's, behind the Status dropdown, enforced by the
- * trigger rather than by hiding a control.
+ * The studio controls and the rep's dropdown/quick checkbox write this same
+ * field, so the two views can never disagree. Migration 20260831113855 widened
+ * the partner control from the checkbox's two transitions to all three checked
+ * lifecycle values.
  *
  * This replaced an earlier design where the rep had a separate `partner_done_at`
  * column. That column still exists and is retired — nothing reads or writes it.
@@ -320,6 +318,11 @@ export function searchPartnerJobs<
  * Every event type the log accepts. Mirrors the `check` constraint on
  * partner_job_events.event_type and `PartnerJobEventType` in
  * lib/types/database.ts — widen all three together.
+ *
+ * `job.done_changed` is VESTIGIAL: no caller of `recordPartnerJobEvent()`
+ * passes it, and none has since the rep's done checkbox was folded into
+ * `job.status_changed`. It stays a valid type — and keeps its label — only so
+ * that rows written before then still render on the timeline. Do not emit it.
  */
 export const PARTNER_JOB_EVENT_TYPES = [
   "job.created",
@@ -350,10 +353,12 @@ export function partnerJobEventLabel(value: string): string {
  * Which events are worth telling a human about, as opposed to merely worth
  * recording.
  *
- * `job.done_changed` is deliberately absent: a rep ticking their own checkbox is
- * their own bookkeeping, and emailing the studio every time someone tidies their
- * list is exactly the noise this set exists to prevent. It is still logged, so
- * it shows on the timeline and can be un-muted later by removing it from here.
+ * In practice this is every event type anything actually emits. The one member
+ * of `PARTNER_JOB_EVENT_TYPES` missing from it is `job.done_changed`, and it is
+ * missing because it is vestigial (see the note there) — not because it was
+ * judged too noisy to send. Adding it back would change nothing, since no
+ * caller passes it; a rep marking a job complete emits `job.status_changed`,
+ * which is in this set.
  *
  * A per-company `muted_events` array subtracts from this set; nothing adds to
  * it, so a company can only ever be told less than this.

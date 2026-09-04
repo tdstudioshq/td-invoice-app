@@ -12,10 +12,13 @@ import {
   partnerJobEditSchema,
   partnerJobSubmissionSchema,
   setPartnerJobDoneSchema,
+  setPartnerJobStatusSchema,
 } from "@/lib/partner-jobs/schema";
 import {
+  DESIGN_JOB_STATUS_LABEL,
   JOB_INCOMPLETE_STATUS,
   MAX_JOB_FILES,
+  type DesignJobStatus,
 } from "@/lib/partner-jobs/types";
 import {
   MAX_PARTNER_UPLOAD_BYTES,
@@ -45,9 +48,9 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
  * `discardMylarArtworkAction` is: the path must sit under the caller's own
  * `{companyId}/{jobId}/` prefix, and the job must not exist yet.
  *
- * Admin-only writes (status changes) live in app/actions/admin-partner-jobs.ts
- * so the partner bundle never references an admin endpoint — the same split as
- * mylar-printing / mylar-requests.
+ * Admin status writes live separately in app/actions/admin-partner-jobs.ts so a
+ * partner bundle never references a service-role endpoint. Partner status
+ * writes in this file always use the cookie-scoped client and remain RLS-bound.
  *
  * ACTIVITY EVENTS. Every write here ends with one recordPartnerJobEvent() call,
  * placed AFTER the write has committed and never inside a branch that can still
@@ -700,67 +703,93 @@ export async function deletePartnerJobAction(
 }
 
 /**
- * Tick a job complete, or un-tick it.
+ * Set any of the three lifecycle states from the partner jobs dropdown.
  *
- * Writes `status` — the SAME field the studio's Complete checkbox on
- * /partner-jobs writes, which is what keeps the two views in sync (migration
- * 20260829180000). A rep may make only the two moves this offers; the trigger
- * reverts anything else, so `new` vs `in_progress` stays the studio's without
- * this action needing to guard it.
- *
- * Un-ticking lands on `in_progress`, never `new` — see JOB_INCOMPLETE_STATUS.
- *
- * Cookie-scoped like every other write in this file, so RLS decides whether the
- * job is the caller's; a job belonging to another company updates zero rows and
- * comes back as "couldn't be found" rather than as a permission error, which is
- * the same non-answer `deletePartnerJobAction` gives.
+ * Cookie-scoped like every other partner write: design_jobs_partner_update
+ * limits the UPDATE to the caller's own company, and migration
+ * 20260831113855 keeps the identity/ownership columns immutable while allowing
+ * this one checked field to move. A foreign job id therefore returns no row,
+ * not a useful clue about another company's data.
  */
-export async function setPartnerJobDoneAction(
+export async function setPartnerJobStatusAction(
   input: unknown,
-): Promise<{ error: string } | { done: boolean }> {
+): Promise<{ error: string } | { status: DesignJobStatus }> {
   if (!isSupabaseConfigured()) return { error: NOT_CONFIGURED };
 
   const partner = await getPartnerContext();
   if (!partner) return { error: NOT_A_PARTNER };
 
-  const parsed = setPartnerJobDoneSchema.safeParse(input);
+  const parsed = setPartnerJobStatusSchema.safeParse(input);
   if (!parsed.success) return { error: "That job couldn't be found." };
-  const { jobId, done } = parsed.data;
+  const { jobId, status } = parsed.data;
 
   const supabase = await createClient();
+  const { data: before, error: readError } = await supabase
+    .from("design_jobs")
+    .select("status")
+    .eq("id", jobId)
+    .maybeSingle();
+  if (readError) {
+    console.error("setPartnerJobStatusAction read", readError.message);
+    return { error: "We couldn't update that job. Try again." };
+  }
+  if (!before) return { error: "That job couldn't be found." };
+  if (before.status === status) return { status };
+
   const { data: updated, error } = await supabase
     .from("design_jobs")
-    .update({ status: done ? "completed" : JOB_INCOMPLETE_STATUS })
+    .update({ status })
     .eq("id", jobId)
-    .select("id, status, job_number, job_name");
+    .select("id, status, job_number, job_name")
+    .maybeSingle();
   if (error) {
-    console.error("setPartnerJobDoneAction", error.message);
+    console.error("setPartnerJobStatusAction", error.message);
     return { error: "We couldn't update that job. Try again." };
   }
   // RLS returns no rows rather than an error when the job isn't the caller's.
-  if (!updated || updated.length === 0) {
+  if (!updated) {
     return { error: "That job couldn't be found." };
   }
+  // This catches an unapplied/stale protection trigger explicitly instead of
+  // showing a successful dropdown choice that Postgres silently reverted.
+  if (updated.status !== status) {
+    return { error: "That status change wasn't accepted. Refresh and try again." };
+  }
 
-  // A status change, and notified as one. When this wrote a rep-private flag it
-  // was deliberately silent; now that it moves the field the studio works from,
-  // the studio needs to hear about it.
   await recordPartnerJobEvent({
     jobId,
-    jobNumber: updated[0].job_number,
-    jobName: updated[0].job_name,
+    jobNumber: updated.job_number,
+    jobName: updated.job_name,
     companyId: partner.companyId,
     companyName: partner.companyName,
     eventType: "job.status_changed",
     actor: { kind: "partner" },
     actorDisplay: partner.displayName ?? partner.companyName,
-    summary: done ? "marked complete" : "reopened",
-    metadata: { to: done ? "completed" : JOB_INCOMPLETE_STATUS },
+    summary: `${DESIGN_JOB_STATUS_LABEL[before.status]} → ${DESIGN_JOB_STATUS_LABEL[status]}`,
+    metadata: { from: before.status, to: status },
   });
 
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath(`${partnerHomePath(partner.companySlug)}/${jobId}`);
   revalidatePath("/partner-jobs");
   revalidatePath(`/partner-jobs/${jobId}`);
-  return { done };
+  return { status };
+}
+
+/**
+ * The existing quick Done checkbox is a two-state shortcut over the same write
+ * path as the dropdown. Un-ticking still lands on In Progress, never New.
+ */
+export async function setPartnerJobDoneAction(
+  input: unknown,
+): Promise<{ error: string } | { done: boolean }> {
+  const parsed = setPartnerJobDoneSchema.safeParse(input);
+  if (!parsed.success) return { error: "That job couldn't be found." };
+
+  const result = await setPartnerJobStatusAction({
+    jobId: parsed.data.jobId,
+    status: parsed.data.done ? "completed" : JOB_INCOMPLETE_STATUS,
+  });
+  if ("error" in result) return result;
+  return { done: result.status === "completed" };
 }

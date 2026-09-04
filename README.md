@@ -614,13 +614,15 @@ only the first image until a card is scrolled into view, runs slideshow timers
 only for visible cards, and lets the browser cache the redirect for 30 minutes.
 The list view loads no images at all.
 
-**Complete is ONE shared answer.** Ticking a job complete in the admin list at
-`/partner-jobs` and ticking it in the Zaza portal write the same field
-(`design_jobs.status`), so the two views can never disagree. A rep may make only
-the two moves a checkbox can make — `-> completed` and `completed -> in_progress`
-— and a trigger silently reverts anything else, so the `new` vs `in_progress`
-distinction stays the studio's, behind the Status dropdown on a job's detail
-page. Un-ticking lands on `in_progress`, never `new`.
+**Status is ONE shared answer.** Every control that touches it — the admin list
+at `/partner-jobs`, the Status dropdown on a job's detail page, and the rep's own
+dashboard in the Zaza portal — writes the same field (`design_jobs.status`), so no
+two views can disagree. Since `20260831113855` a rep sets any of the three states
+(**New / In Progress / Complete**) from a compact dropdown; the quick Done
+checkbox remains as a two-state shortcut over that same write, and un-ticking
+lands on `in_progress`, never `new`. A trigger still reverts a rep's writes to a
+job's identity — `company_id`, `job_number`, `submitted_by`, `created_at` and the
+retired `partner_done_at`.
 
 The rep's list is tabbed **All / New / In Progress / Done** off a `?tab=` search
 param; the admin list is split into **In progress** and **Complete** sections.
@@ -628,7 +630,8 @@ Both read that one field.
 
 (An earlier design gave the rep a separate `partner_done_at` column so the two
 sides could not overwrite each other. That was reversed in `20260829180000` in
-favour of one shared state; the column is retired but not yet dropped.)
+favour of one shared state, which `20260831113855` then widened from two
+transitions to all three values; the column is retired but not yet dropped.)
 
 ### Activity events and notifications
 
@@ -641,10 +644,11 @@ server action  →  recordPartnerJobEvent()  →  partner_job_events
 ```
 
 Event types are `job.created`, `job.updated`, `job.status_changed`,
-`job.done_changed`, `file.added`, `file.removed` and `job.deleted`. **One event
+`file.added`, `file.removed` and `job.deleted` (plus `job.done_changed`, which
+nothing emits any more — it survives only so older rows still render). **One event
 per user action**, not per row touched — an edit that adds two files and renames
-the job is a single event whose metadata says so. `job.done_changed` is logged
-but never emailed. Both job detail pages render the log as an **Activity** card.
+the job is a single event whose metadata says so. Both job detail pages render
+the log as an **Activity** card.
 
 Notification email reuses the existing Resend setup — `RESEND_API_KEY`,
 `RESEND_FROM_EMAIL` and `ADMIN_EMAILS`. **No new environment variables.** With

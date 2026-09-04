@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  DESIGN_JOB_STATUSES,
   MAX_ITEM_NOTES_LENGTH,
   MAX_ITEM_QUANTITY,
   MAX_JOB_FILES,
@@ -9,6 +10,7 @@ import {
   MAX_JOB_NOTES_LENGTH,
   PARTNER_PRODUCT_FINISHES,
   PARTNER_PRODUCT_TYPES,
+  type DesignJobStatus,
   type PartnerProductFinish,
   type PartnerProductType,
 } from "@/lib/partner-jobs/types";
@@ -35,6 +37,10 @@ const PRODUCT_TYPE_IDS = PARTNER_PRODUCT_TYPES as unknown as [
 const FINISH_IDS = PARTNER_PRODUCT_FINISHES as unknown as [
   PartnerProductFinish,
   ...PartnerProductFinish[],
+];
+const STATUS_IDS = DESIGN_JOB_STATUSES as unknown as [
+  DesignJobStatus,
+  ...DesignJobStatus[],
 ];
 
 export const jobNameSchema = z
@@ -163,12 +169,14 @@ export type PartnerJobEdit = z.infer<typeof partnerJobEditSchema>;
 
 export const deletePartnerJobSchema = z.object({ jobId: z.string().uuid() });
 
-/**
- * The rep's done checkbox. Only ever a job id and a boolean — the timestamp is
- * server-assigned (and re-assigned by the trigger in 20260828000000), so there
- * is nothing else here to validate.
- */
+/** The rep's quick Done checkbox: a job id and its requested boolean state. */
 export const setPartnerJobDoneSchema = z.object({
   jobId: z.string().uuid(),
   done: z.boolean(),
+});
+
+/** Any of the three lifecycle states exposed by the partner jobs dropdown. */
+export const setPartnerJobStatusSchema = z.object({
+  jobId: z.string().uuid(),
+  status: z.enum(STATUS_IDS),
 });

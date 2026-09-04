@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { JobDoneCheckbox } from "@/components/partner-jobs/job-done-checkbox";
 import { JobPreview } from "@/components/partner-jobs/job-preview";
-import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
+import { JobStatusSelect } from "@/components/partner-jobs/job-status-select";
 import { formatRelativeTime } from "@/lib/format";
 import { partnerHref } from "@/lib/partner-jobs/routing";
 import { isJobDone } from "@/lib/partner-jobs/types";
@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
  * One job as a card in the grid.
  *
  * Kept to five facts — artwork, name, number, how much is on it, when it last
- * moved — plus the status pill and the done checkbox. Everything else about a
- * job (products, notes, per-product artwork) is one tap away on the detail page,
- * and putting it here would make a wall of cards unreadable at a glance, which
- * is the only thing a grid is better at than the list.
+ * moved — plus the status dropdown and the done checkbox. Everything else
+ * about a job (products, notes, per-product artwork) is one tap away on the
+ * detail page, and putting it here would make a wall of cards unreadable at a
+ * glance, which is the only thing a grid is better at than the list.
  *
  * The checkbox is a SIBLING of the link, never a child: a <button> inside an <a>
  * is invalid HTML. It is positioned over the artwork rather than beside the
@@ -47,7 +47,7 @@ export function JobCard({
       >
         <JobPreview previews={job.previews} />
 
-        <div className="space-y-1.5 p-3">
+        <div className="space-y-1.5 px-3 pt-3">
           <p
             className={cn(
               "truncate text-sm font-medium",
@@ -64,14 +64,18 @@ export function JobCard({
               {job.file_count} {job.file_count === 1 ? "file" : "files"}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-2 pt-0.5">
-            <span className="text-muted-foreground/80 truncate text-[11px]">
-              {formatRelativeTime(job.updated_at)}
-            </span>
-            <JobStatusBadge status={job.status} className="h-5 px-2 text-[11px]" />
-          </div>
         </div>
       </Link>
+
+      {/* The Select is a sibling of the card link: interactive controls may not
+          be nested inside an anchor. It stacks on the narrow two-up phone grid
+          and returns to one line once each card has enough room. */}
+      <div className="flex flex-col items-stretch gap-2 p-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-muted-foreground/80 truncate text-[11px]">
+          {formatRelativeTime(job.updated_at)}
+        </span>
+        <JobStatusSelect job={job} className="w-full sm:w-auto" />
+      </div>
 
       {/*
         Over the artwork, in a pill so it stays legible on a light image. Only
