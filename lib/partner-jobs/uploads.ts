@@ -84,10 +84,24 @@ const ACCEPTED_PARTNER_MIME: Record<
   ],
 };
 
-/** For <input type="file" accept={...}>. */
-export const PARTNER_ACCEPT_ATTRIBUTE = ALLOWED_PARTNER_UPLOAD_EXTENSIONS.map(
-  (ext) => `.${ext}`,
-).join(",");
+/**
+ * For <input type="file" accept={...}>.
+ *
+ * BOTH the extensions and their MIME types, and the MIME half is NOT
+ * redundant: iOS matches an accept list against UTIs, never against filename
+ * extensions, so an extension-only list leaves the Photos picker with nothing
+ * it can match and a rep on an iPhone cannot select their artwork at all.
+ * Listing `image/jpeg` / `image/png` is also what makes iOS transcode a HEIC
+ * shot to JPEG on the way in, rather than handing over the .heic that
+ * validatePartnerUploadFile() would then refuse. `accept` is a union, so the
+ * extension half still covers desktop and the design formats browsers report
+ * no type for. Widening this does NOT widen what is accepted — the allowlist
+ * above is still the gate.
+ */
+export const PARTNER_ACCEPT_ATTRIBUTE = [
+  ...ALLOWED_PARTNER_UPLOAD_EXTENSIONS.map((ext) => `.${ext}`),
+  ...new Set(Object.values(PARTNER_EXTENSION_MIME)),
+].join(",");
 
 export const PARTNER_TYPES_LABEL = "JPG, PNG, WEBP, PDF, AI, EPS, SVG, PSD";
 

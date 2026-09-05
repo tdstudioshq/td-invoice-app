@@ -415,38 +415,46 @@ export function NewJobForm({
       }
 
       // The cap is job-wide, so the room left depends on every other product
-      // too — computed inside the updater against current state rather than
-      // from a value captured when the picker opened.
-      setItems((rows) => {
-        const used =
-          rows.reduce((sum, row) => sum + row.files.length, 0) +
-          (job?.files ?? []).filter((f) => !removedFileIds.includes(f.id)).length;
-        const room = MAX_JOB_FILES - used;
-        if (accepted.length > room) {
-          rejected.push(`Only ${MAX_JOB_FILES} files can be attached to a job.`);
+      // too — `fileCount` is exactly that number (stored files that will
+      // survive the save, plus everything already picked anywhere on the form).
+      //
+      // Read HERE rather than inside the setItems updater, which is where it
+      // used to live. An updater is deferred to the render phase, so the
+      // `rejected.push` below it ran AFTER the toast loop had already walked
+      // the array — the "only N files" message never reached the rep and files
+      // past the cap vanished with no explanation at all. Side effects
+      // (rejections, revoking preview URLs) have to happen out here; the
+      // updater stays pure.
+      const room = Math.max(MAX_JOB_FILES - fileCount, 0);
+      if (accepted.length > room) {
+        rejected.push(`Only ${MAX_JOB_FILES} files can be attached to a job.`);
+      }
+      const taking = accepted.slice(0, room);
+      // Anything that did not fit never reaches the DOM, so release its
+      // preview here or it pins the file for the life of the tab.
+      for (const spare of accepted.slice(taking.length)) {
+        if (spare.previewUrl) {
+          URL.revokeObjectURL(spare.previewUrl);
+          objectUrls.current.delete(spare.previewUrl);
         }
-        const taking = accepted.slice(0, Math.max(room, 0));
-        // Anything that did not fit never reaches the DOM, so release its
-        // preview here or it pins the file for the life of the tab.
-        for (const spare of accepted.slice(taking.length)) {
-          if (spare.previewUrl) {
-            URL.revokeObjectURL(spare.previewUrl);
-            objectUrls.current.delete(spare.previewUrl);
-          }
-        }
-        if (taking.length === 0) return rows;
-        return rows.map((row) =>
-          row.id === itemId ? { ...row, files: [...row.files, ...taking] } : row,
+      }
+      if (taking.length > 0) {
+        setItems((rows) =>
+          rows.map((row) =>
+            row.id === itemId ? { ...row, files: [...row.files, ...taking] } : row,
+          ),
         );
-      });
+      }
       for (const message of rejected) toast.error(message);
 
       // Let the same file be picked again after a removal.
       const input = fileInputs.current.get(itemId);
       if (input) input.value = "";
-      if (accepted.length > 0) resetUploads();
+      // Only when the pending list actually changed: nothing was added when the
+      // cap left no room, and discarding uploaded objects then would be wrong.
+      if (taking.length > 0) resetUploads();
     },
-    [job, removedFileIds, resetUploads],
+    [fileCount, resetUploads],
   );
 
   const toggleRemoved = useCallback((fileId: string) => {
