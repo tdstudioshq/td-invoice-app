@@ -58,6 +58,11 @@ import {
   type UploadedJobFile,
 } from "@/lib/partner-jobs/upload-client";
 import {
+  ImageConversionError,
+  convertToJpeg,
+  needsJpegConversion,
+} from "@/lib/partner-jobs/image-convert";
+import {
   PARTNER_ACCEPT_ATTRIBUTE,
   PARTNER_TYPES_LABEL,
   formatPartnerBytes,
@@ -269,7 +274,12 @@ export function NewJobForm({
   const objectUrls = useRef<Set<string>>(new Set());
   const jobIdRef = useRef<string | null>(null);
 
-  const busy = phase !== "idle";
+  /** How many files are mid-conversion. Folded into `busy`, so the whole form
+   *  is inert while a phone chews through a 14 MB HEIC — which is also what
+   *  keeps `fileCount` from going stale across the awaits in onPickFiles. */
+  const [converting, setConverting] = useState(0);
+
+  const busy = phase !== "idle" || converting > 0;
 
   /**
    * Files already stored against this job, split by which product owns them.
@@ -391,12 +401,56 @@ export function NewJobForm({
   );
 
   const onPickFiles = useCallback(
-    (itemId: string, picked: FileList | null) => {
+    async (itemId: string, picked: FileList | null) => {
       if (!picked || picked.length === 0) return;
-      const accepted: FileRow[] = [];
-      const rejected: string[] = [];
+      const chosen = Array.from(picked);
 
-      for (const file of Array.from(picked)) {
+      // Cleared up front rather than at the end: a pick that ends in a failed
+      // conversion must still let the rep choose the same file again.
+      const input = fileInputs.current.get(itemId);
+      if (input) input.value = "";
+
+      const rejected: string[] = [];
+      const converted: string[] = [];
+      const prepared: File[] = [];
+
+      // HEIC and TIFF become JPEGs HERE, before validation — which is the whole
+      // reason the allowlist did not have to widen. Only the converted .jpg is
+      // ever handed to validatePartnerUploadFile, minted a ticket, or stored.
+      const toConvert = chosen.filter((file) => needsJpegConversion(file.name));
+      if (toConvert.length > 0) setConverting(toConvert.length);
+      try {
+        for (const file of chosen) {
+          if (!needsJpegConversion(file.name)) {
+            prepared.push(file);
+            continue;
+          }
+          try {
+            const { file: jpeg, downscaled } = await convertToJpeg(file);
+            prepared.push(jpeg);
+            converted.push(
+              downscaled
+                ? `${file.name} converted to JPEG (scaled to fit)`
+                : `${file.name} converted to JPEG`,
+            );
+          } catch (error) {
+            // A source that cannot be converted is never added, so it can never
+            // reach the bucket in a format the press cannot use.
+            const why =
+              error instanceof ImageConversionError
+                ? error.message
+                : "it could not be converted";
+            rejected.push(
+              `${file.name}: ${why}. Save it as a JPEG and attach that instead.`,
+            );
+          }
+        }
+      } finally {
+        setConverting(0);
+      }
+
+      const accepted: FileRow[] = [];
+      for (const file of prepared) {
         const invalid = validatePartnerUploadFile(
           file.name,
           file.size,
@@ -445,11 +499,9 @@ export function NewJobForm({
           ),
         );
       }
+      for (const message of converted) toast.success(message);
       for (const message of rejected) toast.error(message);
 
-      // Let the same file be picked again after a removal.
-      const input = fileInputs.current.get(itemId);
-      if (input) input.value = "";
       // Only when the pending list actually changed: nothing was added when the
       // cap left no room, and discarding uploaded objects then would be wrong.
       if (taking.length > 0) resetUploads();
@@ -856,7 +908,11 @@ export function NewJobForm({
                     type="file"
                     multiple
                     accept={PARTNER_ACCEPT_ATTRIBUTE}
-                    onChange={(event) => onPickFiles(row.id, event.target.files)}
+                    onChange={(event) => {
+                      // Explicitly voided: the handler is async now (it may
+                      // convert a HEIC/TIFF first) and nothing awaits it.
+                      void onPickFiles(row.id, event.target.files);
+                    }}
                     disabled={busy}
                     className="sr-only"
                     id={`files-${row.id}`}
@@ -869,7 +925,9 @@ export function NewJobForm({
                     className="w-full sm:w-auto"
                   >
                     <PaperclipIcon className="size-4" />
-                    Attach files
+                    {converting > 0
+                      ? `Converting ${converting} file${converting === 1 ? "" : "s"}…`
+                      : "Attach files"}
                   </Button>
 
                   {row.files.length > 0 ? (

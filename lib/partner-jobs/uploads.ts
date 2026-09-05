@@ -85,6 +85,32 @@ const ACCEPTED_PARTNER_MIME: Record<
 };
 
 /**
+ * Sources the BROWSER converts to JPEG before anything else looks at them
+ * (lib/partner-jobs/image-convert.ts).
+ *
+ * Deliberately NOT in ALLOWED_PARTNER_UPLOAD_EXTENSIONS. These are the two
+ * formats a rep on an iPhone actually ends up holding — HEIC is the iOS camera
+ * default and TIFF is what iMessage hands over for a pasted image — and both
+ * are useless to a press. Listing them here makes the OS picker OFFER them;
+ * conversion then runs before validatePartnerUploadFile(), so what reaches the
+ * validator, the ticket and the bucket is always a .jpg. Widening `accept`
+ * widens what can be CHOSEN, never what can be STORED.
+ */
+export const CONVERTIBLE_TO_JPEG_EXTENSIONS = [
+  "heic",
+  "heif",
+  "tif",
+  "tiff",
+] as const;
+
+/** What a browser reports for those, so the picker matches on iOS too. */
+const CONVERTIBLE_TO_JPEG_MIME = [
+  "image/heic",
+  "image/heif",
+  "image/tiff",
+] as const;
+
+/**
  * For <input type="file" accept={...}>.
  *
  * BOTH the extensions and their MIME types, and the MIME half is NOT
@@ -101,6 +127,8 @@ const ACCEPTED_PARTNER_MIME: Record<
 export const PARTNER_ACCEPT_ATTRIBUTE = [
   ...ALLOWED_PARTNER_UPLOAD_EXTENSIONS.map((ext) => `.${ext}`),
   ...new Set(Object.values(PARTNER_EXTENSION_MIME)),
+  ...CONVERTIBLE_TO_JPEG_EXTENSIONS.map((ext) => `.${ext}`),
+  ...CONVERTIBLE_TO_JPEG_MIME,
 ].join(",");
 
 export const PARTNER_TYPES_LABEL = "JPG, PNG, WEBP, PDF, AI, EPS, SVG, PSD";
