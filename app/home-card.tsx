@@ -45,7 +45,6 @@ export function HomeCard({ redirectTo, justReset }: { redirectTo?: string; justR
     <>
       <section className={styles.card} aria-labelledby="home-title">
         <header className={styles.header}>
-          <p className={styles.eyebrow}>Independent studio · New York</p>
           <div className={styles.logoWrap}>
             <Image src="/td-studios-diamond-logo.png" alt="TD Studios diamond logo"
               width={128} height={128} priority unoptimized className={styles.logo} />
@@ -53,8 +52,8 @@ export function HomeCard({ redirectTo, justReset }: { redirectTo?: string; justR
           <h1 id="home-title" className={styles.title}>
             {isBio ? "TD STUDIOS" : mode === "signin" ? "Welcome back" : "Reset password"}
           </h1>
-          <p className={styles.description}>
-            {isBio ? <>Full service design &amp;<br />packaging agency.</> : "Your studio. All in one place."}
+          <p className={isBio ? `${styles.description} ${styles.tagline}` : styles.description}>
+            {isBio ? "Full service design & packaging agency." : "Your studio. All in one place."}
           </p>
         </header>
 
