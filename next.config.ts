@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
     ];
   },
   outputFileTracingIncludes: {
+    "/newpremades/image/*": ["./assets/newpremades/*.webp"],
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.
