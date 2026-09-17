@@ -1,5 +1,57 @@
 # Security and reliability implementation report
 
+## Preview verification and draft review — September 17, 2026
+
+Implementation commit `df789b1` was committed and pushed to
+`security/six-priorities`. Vercel deployment
+`dpl_9iFamYQS7EM4qMqYLqCTqwtH8VPU` is a **Ready preview**, not production:
+https://td-invoice-m0spkh0ld-td-studios-2026.vercel.app.
+Earlier statements about an unpushed worktree or no deployments describe the
+earlier validation sessions, not the current publication state.
+
+Actual verification used `vercel inspect <preview>`, `vercel inspect <preview>
+--logs`, authenticated `vercel curl`, and isolated Chromium against this exact
+deployment. Vercel preview-protection access was obtained through its CLI; no
+application account or existing browser session was reused. Temporary test
+scripts were `/tmp/td-preview-verify.mjs` and `/tmp/td-preview-followup.mjs`.
+
+| Preview check | Observed result |
+|---|---|
+| Homepage and public pages | HTTP 200 for `/`, `/how-to-order`, `/portfolio`, `/mylar-printing`, `/mylar-bag-printing`, `/custom-design-request`, `/qr-generator`, and `/mylar`. |
+| Login/signup | Both rendered; empty submissions stayed client-side with 2 and 5 invalid required inputs respectively. Forgot-password panel opened. No valid credentials, signup, OAuth, or reset-email submission attempted. |
+| Password reset | HTTP 200; missing recovery session displayed invalid/expired link. Fresh navigation with an expired-link hash displayed `Link expired`. |
+| Anonymous admin/portal | `/dashboard`, `/clients`, `/invoices`, `/settings`, `/portal`, `/portal/files` redirected to login. Explicit redirect checks returned 307. |
+| Partner/Zaza | `/partner/zaza/jobs` and `/zaza-orders/jobs` returned 307 to their respective partner login routes; login pages rendered `Zaza Orders`. Production subdomain not exercised. |
+| Galleries | All six galleries stayed at the entry-code gate with forged cookies. `/gso` returned 307 to `/designs`. |
+| Protected assets | Synthetic invoice PDF, client file, partner file, mylar artwork, design-request asset, gallery asset, newpremades image, and processing-job requests returned 401. Remote signed-storage optimizer request returned 400. |
+| Disabled processing | Four tool pages rendered. POSTs with empty file manifests to cutline, mockup-sheet, and bag-mockup-grid APIs each returned 503 with `Image processing is temporarily unavailable.` No files uploaded or jobs created. |
+| Browser errors/network | First pass deliberately blocked external resources, producing expected console/network failures and one reset-page network-idle timeout. Follow-up allowed public portfolio images and fonts, stubbed Vercel's feedback script, and used DOM readiness: no page exceptions, console errors, failed requests, or HTTP errors; no broken completed portfolio images observed. Expired-hash follow-up also clean. |
+| Build/runtime logs | Build logs show successful compilation, TypeScript, 28 static pages, and deployment completion. Install-script approval warnings remain informational. `vercel logs <deployment> --level error --since 1h --limit 50` and the equivalent `--status-code 500` query returned no logs; this is the available log window, not proof about unobserved requests. |
+
+`PROCESSING_ENABLED=false` and `DISABLE_EXTERNAL_EFFECTS=true` were supplied at
+preview deployment. Verification made page/asset reads and disabled processing
+POSTs only. Browser interception blocked unrelated writes and outbound service
+calls; no inquiry, signup, OAuth, reset email, or customer-message action was
+submitted. The external-effects flag guards Resend, not every possible Supabase
+Auth email or external form, so delivery behavior is deliberately untested.
+
+No code defect was established by this preview pass; no application fix was
+made. Authenticated admin/customer/portal/partner role behavior, valid gallery
+sessions/downloads, private bucket configuration, throttling, and full worker
+execution remain staging gates. Docker/Supabase integration and live inventory
+remain blocked as documented below. No migration, gallery transfer/deletion,
+worker deployment, merge, or production promotion occurred. **Production
+readiness is not claimed.**
+
+| Priority | Local evidence | Preview evidence | Staging / production |
+|---|---|---|---|
+| Dependencies | Web audit clean; mobile 9 high/12 moderate remain | Build and TypeScript passed | Mobile advisories unresolved; production unverified |
+| Function permissions | Isolated replay/assertions pass | Anonymous API denials pass | Docker and live inventory pending |
+| Admin authorization | Guards and SQL assertions pass | Anonymous redirects pass | Authenticated role matrix pending |
+| Galleries | Session tests pass | Gates, forged rejection, redirects and asset denials pass | Private bucket/checksum/authenticated transfer checks pending |
+| Processing | Renderer tests pass | UI renders; three APIs return disabled 503 | Worker/resource/realistic workload pending; disabled |
+| CI/tests | Prior local checks pass | Preview smoke checks passed within stated scope | Draft PR will trigger CI; no CI success claimed yet |
+
 Implementation date: September 16–17, 2026. Branch: `security/six-priorities`.
 Inspected HEAD is the audited commit `7d772dfaf41f31194a4ffea18719eb16ebd61434`; findings were rechecked against actual files and resolved dependencies. Existing edits to `CLAUDE.md` and untracked `ARCHITECTURE_AUDIT.md` were preserved. No commits, pushes, production queries, migrations, asset transfers/deletions, history rewrites or deployments were performed.
 
