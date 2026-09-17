@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
+import { OWNER_RESOLVE_ERROR, currentOwnerId, requireAdmin } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { TASK_PRIORITIES, TASK_STATUSES } from "@/lib/tasks";
 import type { ActionState } from "@/app/actions/types";
@@ -60,6 +60,7 @@ export async function createTaskAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseTaskFields(formData);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid task." };
@@ -87,6 +88,7 @@ export async function updateTaskAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = taskFieldsSchema
     .extend({ status: statusSchema })
     .safeParse({
@@ -132,6 +134,7 @@ export async function setTaskStatusAction(
   id: string,
   status: TaskStatus,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsedStatus = statusSchema.safeParse(status);
   const parsedId = z.string().uuid().safeParse(id);
   if (!parsedStatus.success || !parsedId.success) {
@@ -156,6 +159,7 @@ export async function setTaskStatusAction(
 }
 
 export async function deleteTaskAction(id: string): Promise<ActionState> {
+  await requireAdmin();
   const parsedId = z.string().uuid().safeParse(id);
   if (!parsedId.success) return { error: "Invalid task." };
 

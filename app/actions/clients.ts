@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
+import { OWNER_RESOLVE_ERROR, currentOwnerId, requireAdmin } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { ActionState } from "@/app/actions/types";
 
@@ -52,6 +52,7 @@ export async function createClientAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseClient(formData);
   if (!parsed.success) {
     return { fieldErrors: toFieldErrors(parsed.error) };
@@ -92,6 +93,7 @@ export async function updateClientAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseClient(formData);
   if (!parsed.success) {
     return { fieldErrors: toFieldErrors(parsed.error) };
@@ -127,6 +129,7 @@ export async function updateClientAction(
 }
 
 export async function deleteClientAction(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id || !isSupabaseConfigured()) return;
 

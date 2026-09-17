@@ -34,7 +34,6 @@ const nextConfig: NextConfig = {
     ];
   },
   outputFileTracingIncludes: {
-    "/newpremades/image/*": ["./assets/newpremades/*.webp"],
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.
@@ -44,13 +43,7 @@ const nextConfig: NextConfig = {
     // The password-protected premade gallery uses short-lived URLs from its
     // private Storage bucket. Keep the allow-list limited to signed objects on
     // this project's Supabase host.
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "tbgyyyffbxveukbihnhp.supabase.co",
-        pathname: "/storage/v1/object/sign/**",
-      },
-    ],
+    remotePatterns: [], // Private signed URLs must never enter the shared optimizer cache.
   },
 };
 

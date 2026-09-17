@@ -257,7 +257,9 @@ export function startFileUpload(
       throw new Error("The selected client is no longer available.");
     }
 
-    const isAdmin = client.owner_id === session.user.id;
+    const { data: workspaceOwner, error: ownerError } = await supabase.rpc("current_owner_id");
+    if (ownerError) throw new Error("Could not verify workspace access.");
+    const isAdmin = workspaceOwner !== null && client.owner_id === workspaceOwner;
     if (!isAdmin && category !== "uploads") {
       throw new Error("Portal uploads must use the uploads category.");
     }

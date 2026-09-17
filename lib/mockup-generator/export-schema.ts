@@ -12,14 +12,14 @@ import { MOCKUP_EXPORT_FORMATS } from "./types";
  */
 
 const transformSchema = z.object({
-  offsetX: z.number().finite(),
-  offsetY: z.number().finite(),
+  offsetX: z.number().finite().min(-10000).max(10000),
+  offsetY: z.number().finite().min(-10000).max(10000),
   scale: z.number().finite().min(0.01).max(20),
   rotation: z.number().finite(),
 });
 
 const placementSchema = z.object({
-  slotId: z.string().min(1),
+  slotId: z.enum(["1", "2", "3", "4", "5", "6", "7", "8"]),
   fitMode: z.enum(["cover", "contain"]),
   transform: transformSchema,
 });

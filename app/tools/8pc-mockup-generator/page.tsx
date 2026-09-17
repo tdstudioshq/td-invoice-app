@@ -15,7 +15,7 @@ export const metadata = {
 
 // PUBLIC, no-auth tool. Artwork is decoded and previewed entirely in the
 // browser (react-konva canvas); nothing is uploaded until the user exports,
-// at which point /api/mockup-sheet/generate composes the final sheet
+// at which point /api/mockup-sheet/generate queues the final sheet for a bounded worker
 // server-side and streams it straight back. Nothing is persisted.
 export default function EightPieceMockupGeneratorPage() {
   return (
@@ -27,6 +27,7 @@ export default function EightPieceMockupGeneratorPage() {
           <h1 className="public-title font-bold tracking-tight text-white">
             8-Piece Mockup Generator
           </h1>
+          <p className="text-sm text-white/60">Private uploads. Maximum 40 megapixels per image, 80 MB per export, 120 MB output. Exports may take two minutes; temporary files expire after 24 hours. 30 exports per hour.</p>
           <p className="text-muted-foreground max-w-lg text-base leading-relaxed md:text-sm">
             Drag up to 8 designs onto the sheet, reorder and fine-tune each one, then export
             a print-ready PNG, JPG, or PDF — no more relinking each image by hand.

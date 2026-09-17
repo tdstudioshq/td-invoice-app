@@ -39,9 +39,11 @@ export const POST = supabaseRoute({ auth: "secret" }, async (req, ctx) => {
     );
   }
 
+  const { data: workspace, error: ownerError } = await ctx.supabaseAdmin.from("workspace_owner").select("owner_id").eq("singleton", true).single();
+  if (ownerError || !workspace) return Response.json({ error: "Workspace owner is not configured." }, { status: 503 });
   const { data, error } = await ctx.supabaseAdmin
     .from("clients")
-    .insert({ company_name: companyName })
+    .insert({ company_name: companyName, owner_id: workspace.owner_id })
     .select("*")
     .single();
 

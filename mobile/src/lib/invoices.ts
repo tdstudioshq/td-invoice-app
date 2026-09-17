@@ -149,7 +149,9 @@ async function getOwnerId() {
   } = await supabase.auth.getUser();
   if (error) throw new Error(error.message);
   if (!user) throw new Error("You must be signed in.");
-  return user.id;
+  const { data: ownerId, error: ownerError } = await supabase.rpc("current_owner_id");
+  if (ownerError || !ownerId) throw new Error("Workspace admin access required.");
+  return ownerId;
 }
 
 async function assertOwnedClient(clientId: string, ownerId: string) {

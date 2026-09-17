@@ -1,4 +1,5 @@
 import "server-only";
+import { hasGalleryAccess } from "@/lib/security/gallery";
 
 import { unstable_cache } from "next/cache";
 
@@ -25,7 +26,7 @@ export type {
 
 export const PREMADE_DESIGNS_BUCKET = "premade-designs";
 
-const SIGNED_URL_LIFETIME_SECONDS = 60 * 60;
+const SIGNED_URL_LIFETIME_SECONDS = 60;
 
 function prettifyFolder(folder: string): string {
   return folder
@@ -93,6 +94,7 @@ export const getPremadeDesigns = unstable_cache(
 export async function signPremadeDesignUrls(
   paths: string[],
 ): Promise<SignedPremadeDesignUrls> {
+  if (!await hasGalleryAccess("premadedesigns")) throw new Error("Unauthorized");
   if (!isSupabaseAdminConfigured()) {
     throw new Error("Premade designs Storage is not configured.");
   }

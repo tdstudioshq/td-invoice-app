@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
+import { OWNER_RESOLVE_ERROR, currentOwnerId, requireAdmin } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCompanySettings, getInvoice } from "@/lib/data";
 import { buildInvoicePdfData } from "@/lib/pdf/invoice-pdf-data";
@@ -130,6 +130,7 @@ export async function createInvoiceAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseInvoice(formData);
   if (!parsed.success) {
     return { fieldErrors: toFieldErrors(parsed.error) };
@@ -180,6 +181,7 @@ export async function updateInvoiceAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = parseInvoice(formData);
   if (!parsed.success) {
     return { fieldErrors: toFieldErrors(parsed.error) };
@@ -231,6 +233,7 @@ export async function updateInvoiceAction(
 export async function updateInvoiceStatusAction(
   formData: FormData,
 ): Promise<void> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "") as InvoiceStatus;
   const valid: InvoiceStatus[] = ["draft", "sent", "paid", "overdue"];
@@ -245,6 +248,7 @@ export async function updateInvoiceStatusAction(
 }
 
 export async function deleteInvoiceAction(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id || !isSupabaseConfigured()) return;
 
@@ -270,6 +274,7 @@ export async function addPaymentAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = paymentSchema.safeParse({
     invoice_id: formData.get("invoice_id"),
     amount: formData.get("amount"),
@@ -330,6 +335,7 @@ export async function sendInvoiceAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Missing invoice." };
   if (!isSupabaseConfigured()) {

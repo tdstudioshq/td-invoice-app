@@ -1,5 +1,4 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import { securityService } from "@/lib/security/service";
 import { hasNewPremadesAccess } from "../../access";
 import designs from "../../manifest.json";
 
@@ -11,6 +10,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const { id } = await context.params;
   if (!designs.some((design) => design.id === id)) return new Response("Not found", { status: 404, headers });
   const variant = new URL(request.url).searchParams.get("size") === "preview" ? "preview" : "thumb";
-  const data = await readFile(path.join(process.cwd(), "assets", "newpremades", `${id}-${variant}.webp`));
-  return new Response(new Uint8Array(data), { headers: { ...headers, "Content-Type": "image/webp" } });
+  const { data, error } = await securityService().storage.from("restricted-galleries").createSignedUrl(`newpremades/${id}-${variant}.webp`, 60);
+  if (error || !data) return new Response("Unavailable", { status: 503, headers });
+  return new Response(null, { status: 302, headers: { ...headers, Location: data.signedUrl } });
 }

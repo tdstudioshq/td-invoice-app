@@ -12,8 +12,7 @@ export const MAX_IMAGES = 40;
 /** Per-image upload cap. */
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
-/** Guards the combined export request body well under Vercel's Functions
- * body-size ceiling. */
+/** Combined private-storage input budget, enforced before worker decoding. */
 export const MAX_TOTAL_BYTES = 80 * 1024 * 1024; // 80 MB
 
 /** Safety valve on the rendered output itself — a 40-image grid at the
