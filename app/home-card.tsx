@@ -97,6 +97,38 @@ const BIO_LINKS: {
   },
 ];
 
+/**
+ * The rotating showcase between the prize button and the tiles.
+ *
+ * ADD IMAGES HERE: drop the files into `public/showcase/` and list them below.
+ * They cycle in array order. The box renders **nothing at all** while the list
+ * is empty, so an unfinished set can never ship an empty frame, and a single
+ * entry renders as a still with no timer running.
+ *
+ * Paths are served straight from `public/`. They are rendered `unoptimized`
+ * like every other non-logo image here — this project's Vercel image
+ * allowance is exhausted, so an optimized transform returns 402 and the image
+ * renders blank. Pre-size the files to roughly their display size (~840px wide
+ * covers a 2x phone) since the optimizer is not there to do it.
+ */
+const SHOWCASE_IMAGES: {
+  src: string;
+  alt: string;
+  /** `cover` fills and crops (right for photos); `contain` fits a whole mark in. */
+  fit?: "cover" | "contain";
+}[] = [
+  // PLACEHOLDER — replace with real work photos. A near-square mark in a wide
+  // box has to be `contain`, or `cover` slices its edges off.
+  {
+    src: "/showcase/td-studios-lottery.svg",
+    alt: "TD Studios lottery ticket artwork",
+    fit: "contain",
+  },
+];
+
+/** How long each image holds before the crossfade to the next one starts. */
+const SHOWCASE_HOLD_MS = 2000;
+
 const PRIZE_LINK = BIO_LINKS.find((link) => link.tier === "prize");
 const TILE_LINKS = BIO_LINKS.filter((link) => link.tier === "tile");
 
@@ -216,6 +248,87 @@ const socialBadge =
  * line: a full-height card leaves the most slack there, and filling it with
  * the marks keeps the play area below the tear line tight.
  */
+/**
+ * Crossfading showcase. Every image is mounted and stacked; only the active
+ * one is opaque, so the transition is a pure opacity handoff on the compositor
+ * with no layout work and no flash of an unloaded source.
+ *
+ * Opacity is animated on the images, never on an ancestor of the frosted card:
+ * a filling opacity animation on the card promotes it to a Chromium Backdrop
+ * Root permanently and silently kills its `backdrop-filter` (see the note on
+ * `.home-enter-card`). Fading the children individually is the way around it.
+ */
+function ShowcaseSlideshow() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (SHOWCASE_IMAGES.length < 2) return;
+
+    const stillness = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let timer: number | null = null;
+
+    const stop = () => {
+      if (timer !== null) window.clearInterval(timer);
+      timer = null;
+    };
+
+    // Auto-advance is exactly the thing a reduced-motion viewer should not be
+    // given — it is content that changes without being asked for — so they
+    // keep the first image, which is why the list's order matters. A hidden
+    // tab stops too, rather than burning a timer nobody is watching. Both are
+    // watched live, so flipping the OS setting takes effect without a reload.
+    const sync = () => {
+      const wanted = !stillness.matches && !document.hidden;
+      if (wanted === (timer !== null)) return;
+      if (wanted) {
+        timer = window.setInterval(
+          () => setActive((i) => (i + 1) % SHOWCASE_IMAGES.length),
+          SHOWCASE_HOLD_MS,
+        );
+      } else {
+        stop();
+      }
+    };
+
+    sync();
+    stillness.addEventListener("change", sync);
+    document.addEventListener("visibilitychange", sync);
+
+    return () => {
+      stop();
+      stillness.removeEventListener("change", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
+
+  if (SHOWCASE_IMAGES.length === 0) return null;
+
+  return (
+    <div
+      className="tk-showcase home-enter-btn"
+      style={{ "--home-stagger": 1 } as React.CSSProperties}
+    >
+      {SHOWCASE_IMAGES.map((image, index) => (
+        <Image
+          key={image.src}
+          src={image.src}
+          alt={image.alt}
+          fill
+          sizes="(max-width: 767px) 92vw, 420px"
+          unoptimized
+          priority={index === 0}
+          // Only the visible slide is announced; the rest are still in the DOM
+          // purely so the crossfade has something to fade to.
+          aria-hidden={index === active ? undefined : true}
+          data-active={index === active ? "1" : undefined}
+          style={{ objectFit: image.fit ?? "cover" }}
+          className="tk-showcase-slide"
+        />
+      ))}
+    </div>
+  );
+}
+
 function SocialRow() {
   // Clipboard writes reject on insecure origins and when the browser withholds
   // permission — surface the handle in the toast so it stays usable either way.
@@ -463,6 +576,8 @@ export function HomeCard({
                 </a>
               ) : null}
 
+              <ShowcaseSlideshow />
+
               <div className="tk-tile-grid grid grid-cols-2 gap-3">
                 {TILE_LINKS.map(
                   ({ label, href, icon: LinkIcon, sameTab }, index) => (
@@ -473,9 +588,10 @@ export function HomeCard({
                         ? {}
                         : { target: "_blank", rel: "noreferrer" })}
                       className={cn(buttonBase, tileButton, "home-enter-btn")}
-                      // +1 so the prize keeps the first beat of the stagger.
+                      // +2: the prize keeps the first beat and the showcase
+                      // takes the second, so the tiles carry on from there.
                       style={
-                        { "--home-stagger": index + 1 } as React.CSSProperties
+                        { "--home-stagger": index + 2 } as React.CSSProperties
                       }
                       onPointerDown={beginSweep}
                       onAnimationEnd={endSweep}

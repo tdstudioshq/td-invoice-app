@@ -572,6 +572,7 @@
     --home-social-gap: 0.75rem;
     --home-link-gap: 0.875rem;
     --home-link-h: 3.5rem;
+    --home-showcase-h: 9rem;
     --home-cta-room: 4rem;
   }
 
@@ -586,6 +587,7 @@
       --home-social-gap: 0.625rem;
       --home-link-gap: 0.75rem;
       --home-link-h: 3.25rem;
+      --home-showcase-h: 7.5rem;
       --home-cta-room: 3.25rem;
     }
   }
@@ -601,6 +603,7 @@
       --home-social-gap: 0.5rem;
       --home-link-gap: 0.625rem;
       --home-link-h: 3rem;
+      --home-showcase-h: 5.5rem;
       /* Nothing is given up here: at this tier the whole card clears the fold,
          so the floating CTA never triggers and this strip is pure slack. */
       --home-cta-room: 1.5rem;
@@ -1060,6 +1063,43 @@
     .tk-tile:hover {
       transition: none;
       transform: none;
+    }
+  }
+
+  /*
+   * Rotating showcase under the prize button. The height comes from the shell
+   * scale for the same reason every other row's does — keyed to viewport
+   * HEIGHT, because this is the block that decides whether the last tile
+   * clears the fold on a short phone.
+   */
+  .tk-showcase {
+    position: relative;
+    height: var(--home-showcase-h, 9rem);
+    overflow: hidden;
+    border-radius: 0.875rem;
+    border: 1px solid rgb(255 255 255 / 14%);
+    /* A tint rather than nothing, so a slow-loading first image reads as a
+       frame filling in instead of a hole in the ticket. */
+    background: rgb(255 255 255 / 4%);
+  }
+
+  /* Every slide is stacked; only the active one is opaque. Opacity alone, so
+     the handoff stays on the compositor. */
+  .tk-showcase-slide {
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 700ms ease-in-out;
+  }
+
+  .tk-showcase-slide[data-active="1"] {
+    opacity: 1;
+  }
+
+  /* The timer is already stopped in JS under reduced motion; this covers the
+     one crossfade that may be mid-flight when the setting flips. */
+  @media (prefers-reduced-motion: reduce) {
+    .tk-showcase-slide {
+      transition: none;
     }
   }
 
