@@ -1,0 +1,62 @@
+name: Security and reliability
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- --max-warnings=0
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:db
+      - run: docker build -f worker/Dockerfile -t td-image-worker-test .
+      - run: npm audit --omit=dev
+      - run: npm run build:test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.107.0
+      - run: npm ci
+      - run: supabase start -x studio,logflare,vector,edge-runtime
+      - run: supabase db reset --local --no-seed
+      - name: RLS and function assertions (local database only)
+        run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f tests/database/security.sql
+      - run: npx playwright install --with-deps chromium
+      - name: Isolated API and browser integration
+        run: node scripts/test-local-stack.mjs
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx expo install --check
+      - run: npx expo-doctor

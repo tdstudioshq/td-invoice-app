@@ -10,9 +10,7 @@ export const MAX_SLOTS = 8;
 /** Per-image upload cap — configurable here, not scattered through the UI. */
 export const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB
 
-/** Guards the combined request body of an up-to-8-file export request well
- * under Vercel's Functions body-size ceiling, so an oversized batch fails
- * fast client-side with an actionable message instead of a platform 413. */
+/** Combined private-storage input budget, enforced before worker decoding. */
 export const MAX_TOTAL_BYTES = 80 * 1024 * 1024; // 80 MB
 
 export const ACCEPTED_MIME = ["image/jpeg", "image/jpg", "image/png", "image/webp"];

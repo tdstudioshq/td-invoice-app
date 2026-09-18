@@ -1,4 +1,5 @@
 "use client";
+import { processImageJob } from "@/lib/processing/client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -159,67 +160,18 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
     });
   }, []);
 
-  // Upload + compose a single file. XHR (not fetch) so we can surface real upload
-  // progress and distinguish "uploading" from "processing". The PDF comes back as
-  // the response body (a blob) — nothing is stored server-side.
-  const processOne = useCallback(
-    (item: Item) =>
-      new Promise<void>((resolve) => {
-        const form = new FormData();
-        form.append("file", item.file);
-        form.append("preset", presetId);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/cutline/generate");
-        xhr.responseType = "blob";
-
-        update(item.id, { status: "uploading", progress: 0, error: undefined });
-
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            update(item.id, { progress: Math.round((e.loaded / e.total) * 100) });
-          }
-        };
-        // Bytes are all sent — the server is now composing the PDF.
-        xhr.upload.onload = () => update(item.id, { status: "processing", progress: 100 });
-
-        xhr.onload = () => {
-          const blob = xhr.response as Blob;
-          if (xhr.status >= 200 && xhr.status < 300 && blob && blob.size > 0) {
-            const outName = pdfNameFor(item.file.name);
-            update(item.id, {
-              status: "complete",
-              blob,
-              url: URL.createObjectURL(blob),
-              outName,
-            });
-            resolve();
-          } else {
-            // Error body is JSON; read it out of the blob.
-            blob
-              ?.text()
-              .then((text) => {
-                let message = `Request failed (${xhr.status})`;
-                try {
-                  message = JSON.parse(text).error || message;
-                } catch {
-                  /* keep default */
-                }
-                update(item.id, { status: "failed", error: message });
-              })
-              .catch(() => update(item.id, { status: "failed", error: "Request failed" }))
-              .finally(resolve);
-          }
-        };
-        xhr.onerror = () => {
-          update(item.id, { status: "failed", error: "Network error" });
-          resolve();
-        };
-
-        xhr.send(form);
-      }),
-    [presetId, update],
-  );
+  const processOne = useCallback(async (item: Item) => {
+    const form = new FormData(); form.set("file", item.file); form.set("preset", presetId);
+    update(item.id, { status: "uploading", progress: 0, error: undefined });
+    try {
+      const result = await processImageJob("/api/cutline/generate", form,
+        (status, progress) => update(item.id, { status, progress }));
+      const blob = await result.blob();
+      update(item.id, { status: "complete", blob, url: URL.createObjectURL(blob), outName: pdfNameFor(item.file.name) });
+    } catch (error) {
+      update(item.id, { status: "failed", error: error instanceof Error ? error.message : "Export failed. Please retry." });
+    }
+  }, [presetId, update]);
 
   const generate = useCallback(async () => {
     const queue = items.filter(

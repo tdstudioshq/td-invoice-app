@@ -1,4 +1,5 @@
 "use client";
+import { processImageJob } from "@/lib/processing/client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -195,6 +196,7 @@ export function MockupSheetGenerator() {
   const [exportDpi, setExportDpi] = useState<MockupExportDpi>(300);
   const [exportBackground, setExportBackground] = useState<"white" | "transparent">("white");
   const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState("Preparing…");
   const [containerWidth, setContainerWidth] = useState(0);
   const [dragActive, setDragActive] = useState(false);
 
@@ -456,6 +458,7 @@ export function MockupSheetGenerator() {
     }
 
     setExporting(true);
+    setExportProgress("Preparing…");
     try {
       const meta = {
         format: exportFormat,
@@ -467,7 +470,7 @@ export function MockupSheetGenerator() {
       form.append("meta", JSON.stringify(meta));
       active.forEach((p) => form.append(`file:${p.slotId}`, p.file));
 
-      const res = await fetch("/api/mockup-sheet/generate", { method: "POST", body: form });
+      const res = await processImageJob("/api/mockup-sheet/generate", form, (phase, percent) => setExportProgress(phase === "uploading" ? `Uploading ${percent}%` : "Processing…"));
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error || `Export failed (${res.status}).`);
@@ -724,7 +727,7 @@ export function MockupSheetGenerator() {
             ) : (
               <DownloadSimpleIcon className="size-4" />
             )}
-            {exporting ? "Exporting…" : `Export ${FORMAT_LABEL[exportFormat]}`}
+            {exporting ? exportProgress : `Export ${FORMAT_LABEL[exportFormat]}`}
           </Button>
         </div>
       </div>

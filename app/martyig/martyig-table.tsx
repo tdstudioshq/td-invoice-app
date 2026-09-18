@@ -22,11 +22,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-import leadsData from "./leads.json";
 
 type Lead = { name: string; username: string };
 
-const LEADS = leadsData as Lead[];
 const PAGE_SIZE = 50;
 
 /** First two initials from the display name, falling back to the username. */
@@ -47,7 +45,7 @@ function hueFor(seed: string) {
   return hash % 360;
 }
 
-export function MartyigTable() {
+export function MartyigTable({ leads }: { leads: Lead[] }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"name" | "username">("name");
   const [namedOnly, setNamedOnly] = useState(false);
@@ -55,7 +53,7 @@ export function MartyigTable() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = LEADS.filter((lead) => {
+    const list = leads.filter((lead) => {
       if (namedOnly && !lead.name) return false;
       if (!q) return true;
       return (
@@ -71,7 +69,7 @@ export function MartyigTable() {
       const bKey = b.name || `￿${b.username}`;
       return aKey.localeCompare(bKey);
     });
-  }, [query, sort, namedOnly]);
+  }, [query, sort, namedOnly, leads]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pageCount - 1);

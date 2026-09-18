@@ -72,7 +72,7 @@ async function renderSingleBagPng(
 
   let meta;
   try {
-    meta = await sharp(imageBytes, { failOn: "none" }).rotate().metadata();
+    meta = await sharp(imageBytes, { failOn: "error", limitInputPixels: 40_000_000 }).rotate().metadata();
     if (!meta.width || !meta.height) throw new Error("missing dimensions");
   } catch (err) {
     throw new MockupGridInputError(
@@ -87,7 +87,7 @@ async function renderSingleBagPng(
   const drawX = rx + (rw - dw) / 2;
   const drawY = ry + (rh - dh) / 2;
 
-  const resized = await sharp(imageBytes, { failOn: "none" })
+  const resized = await sharp(imageBytes, { failOn: "error", limitInputPixels: 40_000_000 })
     .rotate()
     .toColourspace("srgb")
     .resize(Math.max(1, Math.round(dw)), Math.max(1, Math.round(dh)), { fit: "fill" })

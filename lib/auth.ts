@@ -295,8 +295,8 @@ export async function requirePortalUser(): Promise<PortalContext | null> {
  * the application and the RLS policies can never disagree about who owns a row
  * — a mismatch would fail the policy's `with check` and reject the write.
  *
- * Returns the canonical workspace owner for a workspace admin and the caller's
- * own `auth.uid()` for everyone else, matching the policy predicate exactly.
+ * Returns the canonical workspace owner for a workspace admin and NULL for
+ * everyone else. Ordinary accounts cannot create their own admin workspace.
  * `null` means the RPC failed; callers must surface an error rather than
  * falling back to `user.id`, which would recreate the forked-dataset bug this
  * whole mechanism exists to prevent.
@@ -317,3 +317,11 @@ export async function currentOwnerId(
 /** Shared message for the (unexpected) case where the RPC above fails. */
 export const OWNER_RESOLVE_ERROR =
   "Could not resolve the workspace owner. Run `npm run admin:sync` and try again.";
+
+/** Shared admin guard for APIs: preserve HTTP errors instead of page redirects. */
+export async function requireAdminApi(): Promise<Response | User> {
+  const user = await getUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!isAdminEmail(user.email)) return new Response("Not found", { status: 404 });
+  return user;
+}

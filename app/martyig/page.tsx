@@ -5,7 +5,8 @@ import { enterMartyigCodeAction, hasMartyigAccess } from "@/app/martyig/access";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { MartyigTable } from "./martyig-table";
-import leads from "./leads.json";
+import { securityService } from "@/lib/security/service";
+import { z } from "zod";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/zazalogo.png";
@@ -49,6 +50,9 @@ export default async function MartyigPage() {
     );
   }
 
+  const { data, error } = await securityService().storage.from("restricted-galleries").download("martyig/leads.json");
+  if (error || !data) throw new Error("Gallery data unavailable.");
+  const leads = z.array(z.object({ name: z.string(), username: z.string() })).parse(JSON.parse(await data.text()));
   const total = leads.length;
   const named = leads.filter((lead) => lead.name).length;
 
@@ -86,7 +90,7 @@ export default async function MartyigPage() {
           />
         </div>
 
-        <MartyigTable />
+        <MartyigTable leads={leads} />
 
         <BackToStudiosLink className="mx-auto" />
       </div>

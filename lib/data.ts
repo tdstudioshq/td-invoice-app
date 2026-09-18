@@ -1,3 +1,4 @@
+import { hasGalleryAccess, type Gallery } from "@/lib/security/gallery";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import {
   createAdminClient,
@@ -590,6 +591,8 @@ export async function getMafiaTerpzImages(): Promise<PortfolioImage[]> {
 async function listPublicBucketImages(
   bucket: string,
 ): Promise<PortfolioImage[]> {
+  const gallery = ({ GSO: "designs", "TASTE BUDZ": "taste-budz", "MAFIA terpz": "mafiaterpz" } as Record<string, Gallery>)[bucket];
+  if (gallery && !await hasGalleryAccess(gallery)) return [];
   const storage = isSupabaseAdminConfigured()
     ? createAdminClient().storage
     : isSupabaseConfigured()
@@ -616,12 +619,13 @@ async function listPublicBucketImages(
       if (!object.id || !isImageFile(object.name)) continue;
       const path = object.name;
       const { data: pub } = storage.from(bucket).getPublicUrl(path);
+      const url = gallery ? `/api/gallery/${gallery}?path=${encodeURIComponent(path)}` : pub.publicUrl;
       images.push({
         id: path,
         name: object.name,
         title: prettifyName(object.name),
         path,
-        url: pub.publicUrl,
+        url,
         category: categorizeImage(path),
       });
     }

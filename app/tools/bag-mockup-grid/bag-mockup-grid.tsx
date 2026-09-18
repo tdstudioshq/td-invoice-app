@@ -1,4 +1,5 @@
 "use client";
+import { processImageJob } from "@/lib/processing/client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -195,6 +196,7 @@ export function BagMockupGrid() {
   const [exportFormat, setExportFormat] = useState<BagGridExportFormat>("png");
   const [exportDpi, setExportDpi] = useState<BagGridExportDpi>(150);
   const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState("Preparing…");
   const [dragActive, setDragActive] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -330,13 +332,14 @@ export function BagMockupGrid() {
     }
 
     setExporting(true);
+    setExportProgress("Preparing…");
     try {
       const meta = { format: exportFormat, dpi: exportDpi, order: images.map((img) => img.id) };
       const form = new FormData();
       form.append("meta", JSON.stringify(meta));
       images.forEach((img) => form.append(`file:${img.id}`, img.file));
 
-      const res = await fetch("/api/bag-mockup-grid/generate", { method: "POST", body: form });
+      const res = await processImageJob("/api/bag-mockup-grid/generate", form, (phase, percent) => setExportProgress(phase === "uploading" ? `Uploading ${percent}%` : "Processing…"));
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(data?.error || `Export failed (${res.status}).`);
@@ -419,7 +422,7 @@ export function BagMockupGrid() {
             ) : (
               <DownloadSimpleIcon className="size-4" />
             )}
-            {exporting ? "Exporting…" : `Export ${FORMAT_LABEL[exportFormat]}`}
+            {exporting ? exportProgress : `Export ${FORMAT_LABEL[exportFormat]}`}
           </Button>
         </div>
       </div>

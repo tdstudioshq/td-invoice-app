@@ -6,6 +6,14 @@ in a focused, dark, zinc-themed workspace. Alongside the invoicing core it hosts
 a client portal, a QR code platform, several public print tools, and a public
 custom-printing quote wizard.
 
+Security/reliability changes on this branch require a coordinated rollout. Read
+[`IMPLEMENTATION_REPORT.md`](IMPLEMENTATION_REPORT.md) and
+[`docs/SECURITY_ROLLOUT.md`](docs/SECURITY_ROLLOUT.md) before deploying. Gallery
+assets now require private storage and configured signed sessions; print tools
+use direct uploads and a separately hosted bounded worker. Older architecture
+notes below describing public buckets or in-request rendering are superseded by
+that runbook. Source gallery assets remain until verified transfer and cutover.
+
 Built with **Next.js 16 (App Router)**, **React 19**, **TypeScript**,
 **Tailwind CSS v4**, **shadcn/ui**, and **Supabase** (Postgres).
 
@@ -263,7 +271,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npx tsc --noEmit`            | Typecheck (no dedicated script)                |
 | `npm run client:create-marty` | Idempotent portal-client bootstrap             |
 
-`next lint` was removed in Next 16 — use `npm run lint`. There is no test setup.
+`next lint` was removed in Next 16 — use `npm run lint`. Run `npm test`, `npm run test:db`, and `npm run test:browser`; full local Supabase integration uses `node scripts/test-local-stack.mjs`.
 
 ## Project structure
 
