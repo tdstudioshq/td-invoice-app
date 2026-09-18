@@ -5,18 +5,11 @@ import Image from "next/image";
 import { GlassCard } from "@developer-hub/liquid-glass";
 import { toast } from "sonner";
 import {
-  AppleLogoIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  ChatCircleTextIcon,
-  CurrencyDollarIcon,
-  ImagesIcon,
   PackageIcon,
-  PaintBrushIcon,
-  SquaresFourIcon,
   type Icon,
 } from "@phosphor-icons/react";
-import { SocialIcon } from "react-social-icons";
 
 import { ForgotPasswordForm } from "@/app/login/forgot-password-form";
 import { LoginForm } from "@/app/login/login-form";
@@ -34,6 +27,11 @@ import { cn } from "@/lib/utils";
  * `sticky` marks the one link the phone-only floating CTA mirrors once it
  * scrolls out of view. It is a flag rather than a second hardcoded href so the
  * two can never drift apart.
+ *
+ * The card is deliberately down to a SINGLE call to action: the secondary tile
+ * grid and the social badges were removed, so this is the only thing a visitor
+ * can press. `tier` is kept so a tile can be added back without reshaping the
+ * array, but nothing renders `tile` today.
  */
 const BIO_LINKS: {
   label: string;
@@ -44,10 +42,10 @@ const BIO_LINKS: {
   sameTab?: boolean;
   sticky?: boolean;
   /**
-   * `prize` is the one full-width gold row; `tile` links pair off into the
-   * two-column grid beneath it, in the order listed. Exactly one `prize` is
-   * expected — a second would spend the accent twice and flatten the
-   * hierarchy the ticket exists to create.
+   * `prize` is the one full-width gold row. `tile` used to pair off into a
+   * two-column grid beneath it; nothing renders that tier now. Exactly one
+   * `prize` is expected — a second would spend the accent twice and flatten
+   * the hierarchy the ticket exists to create.
    */
   tier: "prize" | "tile";
 }[] = [
@@ -62,43 +60,10 @@ const BIO_LINKS: {
     sticky: true,
     tier: "prize",
   },
-  {
-    // E.164 number so both iOS and Android open their messaging app with the
-    // recipient prefilled. No `?body=` — the two platforms disagree on the
-    // separator, and a wrong one swallows the number on iOS.
-    label: "Text Me",
-    href: "sms:+19297528373",
-    icon: ChatCircleTextIcon,
-    sameTab: true,
-    tier: "tile",
-  },
-  {
-    label: "Custom Design",
-    href: "/custom-design-request",
-    icon: PaintBrushIcon,
-    sameTab: true,
-    tier: "tile",
-  },
-  {
-    // Points at the Instagram grid rather than the in-app /premadedesigns
-    // gallery. External, so it deliberately drops `sameTab` and opens in a new
-    // tab — leaving the bio card behind in the original one.
-    label: "Premade Designs",
-    href: "https://instagram.com/tdstudiosco",
-    icon: ImagesIcon,
-    tier: "tile",
-  },
-  {
-    label: "Portfolio",
-    href: "/portfolio",
-    icon: SquaresFourIcon,
-    sameTab: true,
-    tier: "tile",
-  },
 ];
 
 /**
- * The rotating showcase between the prize button and the tiles.
+ * The rotating showcase, directly under the order button.
  *
  * ADD IMAGES HERE: drop the files into `public/showcase/` and list them below.
  * They cycle in array order. The box renders **nothing at all** while the list
@@ -131,34 +96,8 @@ const SHOWCASE_IMAGES: {
 const SHOWCASE_HOLD_MS = 2000;
 
 const PRIZE_LINK = BIO_LINKS.find((link) => link.tier === "prize");
-const TILE_LINKS = BIO_LINKS.filter((link) => link.tier === "tile");
 
 const STICKY_LINK = BIO_LINKS.find((link) => link.sticky);
-
-/**
- * Chime publishes no per-user pay URL for a $ChimeSign — the handle only works
- * inside their app — so the Chime badge copies this to the clipboard instead of
- * linking anywhere. Replace the badge with an `<a>` if Chime ever ships one.
- */
-const CHIME_SIGN = "$tyler-diorio-1";
-
-/**
- * Chime's mark ships in neither react-social-icons nor Phosphor, so this is a
- * stand-in: the thick open ring from their logo. Drop in the official asset if
- * you have it.
- */
-function ChimeMarkIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="M17.5 7a7 7 0 1 0 0 10"
-        stroke="currentColor"
-        strokeWidth="3.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 /*
  * Phone-only tactile feedback.
@@ -209,7 +148,7 @@ function endTap(event: React.AnimationEvent<HTMLElement>) {
 }
 
 /*
- * The bio buttons, in two tiers.
+ * The bio button.
  *
  * `relative isolate overflow-hidden` is shared but inert on desktop: it exists
  * so the light-sweep pseudo-element has a stacking context to sit behind the
@@ -228,27 +167,6 @@ const buttonBase =
 const prizeButton =
   "tk-prize-btn flex-col items-center justify-center gap-0.5 px-5 py-4 text-center md:min-h-[4.5rem]";
 
-/** Secondary prizes. Quiet glass so the gold keeps its job. */
-const tileButton =
-  "tk-tile flex-col items-center justify-center gap-2 px-3 py-4 text-center text-white backdrop-blur-md md:min-h-[5.25rem] max-md:active:border-white/40";
-
-/**
- * The round brand badges under the title. Sized to the 40px circle that
- * react-social-icons renders for Instagram so the row reads as one set; each
- * badge supplies its own brand background.
- *
- * The 40px visual stays at every width — bumping it would move desktop — while
- * `.home-pop` widens the *hit* area to 48px on phones with an invisible inset
- * pseudo-element, so the touch target clears 44px without the layout changing.
- */
-const socialBadge =
-  "home-pop relative inline-flex size-10 items-center justify-center rounded-full transition-transform hover:scale-110 active:translate-y-px";
-
-/**
- * The payment + contact marks. They sit in the stub, under the positioning
- * line: a full-height card leaves the most slack there, and filling it with
- * the marks keeps the play area below the tear line tight.
- */
 /**
  * Crossfading showcase. Every image is mounted and stacked; only the active
  * one is opaque, so the transition is a pure opacity handoff on the compositor
@@ -327,78 +245,6 @@ function ShowcaseSlideshow() {
         />
       ))}
     </div>
-  );
-}
-
-function SocialRow() {
-  // Clipboard writes reject on insecure origins and when the browser withholds
-  // permission — surface the handle in the toast so it stays usable either way.
-  const copyChimeSign = async () => {
-    try {
-      await navigator.clipboard.writeText(CHIME_SIGN);
-      toast.success(`Chime handle ${CHIME_SIGN} copied`);
-    } catch {
-      toast.error(`Couldn't copy — my Chime is ${CHIME_SIGN}`);
-    }
-  };
-
-  return (
-            <div className="home-social-row flex items-center justify-center gap-3">
-              {/* Instagram is the only one of the four react-social-icons
-                  ships a brand mark for; the rest are hand-built badges. */}
-              <SocialIcon
-                url="https://instagram.com/tdstudiosco"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="home-pop home-enter-icon relative rounded-full transition-transform hover:scale-110 active:translate-y-px"
-                style={{ height: 40, width: 40 }}
-                onPointerDown={beginTap}
-                onAnimationEnd={endTap}
-              />
-              <a
-                href="https://cash.app/$tdiorio23"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Cash App $tdiorio23"
-                className={cn(
-                  socialBadge,
-                  "home-enter-icon bg-[#00D632] text-white",
-                )}
-                onPointerDown={beginTap}
-                onAnimationEnd={endTap}
-              >
-                <CurrencyDollarIcon weight="bold" className="size-5" />
-              </a>
-              {/* Same sms: handoff as the Text Me button, and same reason for
-                  no target="_blank" — the OS takes the navigation and would
-                  leave an empty tab behind. */}
-              <a
-                href="sms:+19297528373"
-                aria-label="Text me"
-                className={cn(
-                  socialBadge,
-                  "home-enter-icon bg-white text-black",
-                )}
-                onPointerDown={beginTap}
-                onAnimationEnd={endTap}
-              >
-                <AppleLogoIcon weight="fill" className="size-5" />
-              </a>
-              <button
-                type="button"
-                onClick={copyChimeSign}
-                aria-label={`Copy my Chime handle ${CHIME_SIGN}`}
-                className={cn(
-                  socialBadge,
-                  "home-enter-icon bg-[#1EC677] text-white",
-                )}
-                onPointerDown={beginTap}
-                onAnimationEnd={endTap}
-              >
-                <ChimeMarkIcon className="size-5" />
-              </button>
-            </div>
   );
 }
 
@@ -528,9 +374,6 @@ export function HomeCard({
                 <p className="home-enter-title tk-eyebrow pt-1">
                   FULL SERVICE DESIGN &amp; PACKAGING AGENCY
                 </p>
-                <div className="pt-3">
-                  <SocialRow />
-                </div>
               </>
             ) : (
               <>
@@ -578,34 +421,6 @@ export function HomeCard({
               ) : null}
 
               <ShowcaseSlideshow />
-
-              <div className="tk-tile-grid grid grid-cols-2 gap-3">
-                {TILE_LINKS.map(
-                  ({ label, href, icon: LinkIcon, sameTab }, index) => (
-                    <a
-                      key={label}
-                      href={href}
-                      {...(sameTab
-                        ? {}
-                        : { target: "_blank", rel: "noreferrer" })}
-                      className={cn(buttonBase, tileButton, "home-enter-btn")}
-                      // +2: the prize keeps the first beat and the showcase
-                      // takes the second, so the tiles carry on from there.
-                      style={
-                        { "--home-stagger": index + 2 } as React.CSSProperties
-                      }
-                      onPointerDown={beginSweep}
-                      onAnimationEnd={endSweep}
-                    >
-                      <LinkIcon
-                        weight="bold"
-                        className="size-5 shrink-0 opacity-70"
-                      />
-                      <span className="tk-tile-label">{label}</span>
-                    </a>
-                  ),
-                )}
-              </div>
 
               {/* Ticket footer: the small print. The marks moved up into the
                   stub, where they fill the space the tall card leaves under
