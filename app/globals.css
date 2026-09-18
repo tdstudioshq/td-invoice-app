@@ -572,7 +572,7 @@
     --home-social-gap: 0.75rem;
     --home-link-gap: 0.875rem;
     --home-link-h: 3.5rem;
-    --home-showcase-h: 9rem;
+    --home-showcase-h: 18rem;
     --home-cta-room: 4rem;
   }
 
@@ -587,7 +587,7 @@
       --home-social-gap: 0.625rem;
       --home-link-gap: 0.75rem;
       --home-link-h: 3.25rem;
-      --home-showcase-h: 7.5rem;
+      --home-showcase-h: 14rem;
       --home-cta-room: 3.25rem;
     }
   }
@@ -603,7 +603,7 @@
       --home-social-gap: 0.5rem;
       --home-link-gap: 0.625rem;
       --home-link-h: 3rem;
-      --home-showcase-h: 5.5rem;
+      --home-showcase-h: 10rem;
       /* Nothing is given up here: at this tier the whole card clears the fold,
          so the floating CTA never triggers and this strip is pure slack. */
       --home-cta-room: 1.5rem;
@@ -1074,7 +1074,15 @@
    */
   .tk-showcase {
     position: relative;
-    height: var(--home-showcase-h, 9rem);
+    /* Height drives, aspect-ratio derives the width, so the frame is exactly
+       the 4:5 of the artwork: `cover` then fills it with zero crop and zero
+       letterboxing. Sizing the box to the content instead of cropping the
+       content to the box is the whole point — these are product designs whose
+       logo sits at the top, which a wide strip would slice straight off. */
+    height: var(--home-showcase-h, 18rem);
+    aspect-ratio: 4 / 5;
+    width: auto;
+    margin-inline: auto;
     overflow: hidden;
     border-radius: 0.875rem;
     border: 1px solid rgb(255 255 255 / 14%);

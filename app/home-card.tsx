@@ -117,13 +117,14 @@ const SHOWCASE_IMAGES: {
   /** `cover` fills and crops (right for photos); `contain` fits a whole mark in. */
   fit?: "cover" | "contain";
 }[] = [
-  // PLACEHOLDER — replace with real work photos. A near-square mark in a wide
-  // box has to be `contain`, or `cover` slices its edges off.
-  {
-    src: "/showcase/td-studios-lottery.svg",
-    alt: "TD Studios lottery ticket artwork",
-    fit: "contain",
-  },
+  // Premade mylar designs, 720x900 (4:5) to match the box — so `cover` fills it
+  // with no crop. Pre-sized and re-encoded from the 1200x1500 masters, because
+  // the optimizer is out of the delivery path and whatever ships here is what
+  // the browser downloads.
+  { src: "/showcase/mike-ike-french-toast.jpg", alt: "Mike and Ike French Toast premade mylar design" },
+  { src: "/showcase/hersheys-cookies-n-creme-cheesecake.jpg", alt: "Hershey's Cookies 'n' Creme Cheesecake premade mylar design" },
+  { src: "/showcase/rainbow-apple-jacks.jpg", alt: "Rainbow Apple Jacks premade mylar design" },
+  { src: "/showcase/nesquik-cinnamon-toast-crunch.jpg", alt: "Nesquik Cinnamon Toast Crunch premade mylar design" },
 ];
 
 /** How long each image holds before the crossfade to the next one starts. */
