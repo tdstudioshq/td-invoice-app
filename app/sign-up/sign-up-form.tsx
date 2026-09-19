@@ -53,7 +53,7 @@ export function SignUpForm() {
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="full_name" className="text-white">
+        <Label htmlFor="full_name" className="text-base text-white md:text-sm">
           Your name
         </Label>
         <Input
@@ -74,7 +74,7 @@ export function SignUpForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="business_name" className="text-white">
+        <Label htmlFor="business_name" className="text-base text-white md:text-sm">
           Business name
         </Label>
         <Input
@@ -95,7 +95,7 @@ export function SignUpForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email" className="text-white">
+        <Label htmlFor="email" className="text-base text-white md:text-sm">
           Email
         </Label>
         <Input
@@ -114,7 +114,7 @@ export function SignUpForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password" className="text-white">
+        <Label htmlFor="password" className="text-base text-white md:text-sm">
           Password
         </Label>
         <Input
@@ -135,7 +135,7 @@ export function SignUpForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="confirm_password" className="text-white">
+        <Label htmlFor="confirm_password" className="text-base text-white md:text-sm">
           Confirm password
         </Label>
         <Input
@@ -164,9 +164,12 @@ export function SignUpForm() {
 
       <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
         Already have an account?{" "}
+        {/* See the matching note in `login-form.tsx`: always-on underline (no
+            hover on touch) plus inline vertical padding that grows the hit box
+            without changing the line height. */}
         <Link
           href="/login"
-          className="text-foreground underline-offset-4 hover:underline"
+          className="text-foreground rounded-sm px-0.5 py-3 underline underline-offset-4 decoration-white/40 transition-colors hover:decoration-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
           Sign in
         </Link>

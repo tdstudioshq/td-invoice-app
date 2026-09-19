@@ -146,7 +146,7 @@ export function CustomDesignForm() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="name" className="text-white">
+          <Label htmlFor="name" className="text-base text-white md:text-sm">
             Name
           </Label>
           <Input
@@ -161,7 +161,7 @@ export function CustomDesignForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email" className="text-white">
+          <Label htmlFor="email" className="text-base text-white md:text-sm">
             Email
           </Label>
           <Input
@@ -176,7 +176,7 @@ export function CustomDesignForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="phone" className="text-white">
+          <Label htmlFor="phone" className="text-base text-white md:text-sm">
             Phone number
           </Label>
           <Input
@@ -191,7 +191,7 @@ export function CustomDesignForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="instagram" className="text-white">
+          <Label htmlFor="instagram" className="text-base text-white md:text-sm">
             Instagram username
           </Label>
           <Input
@@ -206,7 +206,7 @@ export function CustomDesignForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="design_type" className="text-white">
+        <Label htmlFor="design_type" className="text-base text-white md:text-sm">
           Design type
         </Label>
         <select
@@ -236,7 +236,7 @@ export function CustomDesignForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="notes" className="text-white">
+        <Label htmlFor="notes" className="text-base text-white md:text-sm">
           Project notes / request details
         </Label>
         <Textarea
@@ -250,7 +250,7 @@ export function CustomDesignForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="assets" className="text-white">
+        <Label htmlFor="assets" className="text-base text-white md:text-sm">
           Logos / assets / references
         </Label>
         <Input

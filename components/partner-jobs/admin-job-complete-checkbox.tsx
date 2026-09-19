@@ -56,7 +56,11 @@ export function AdminJobCompleteCheckbox({
       aria-label={label}
       title={label}
       className={cn(
-        "text-metal-platinum shrink-0 transition-colors hover:text-emerald-300",
+        "text-metal-platinum relative shrink-0 transition-colors hover:text-emerald-300",
+        // Invisible ::after tap area: the visible circle is a 20px icon, and
+        // padding it would break its alignment with the row beside it. Matches
+        // the partner-side JobDoneCheckbox.
+        "after:absolute after:-inset-2.5 after:content-['']",
         isPending && "opacity-60",
         className,
       )}

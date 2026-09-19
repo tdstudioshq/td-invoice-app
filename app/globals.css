@@ -297,6 +297,85 @@
   }
 
   /*
+   * Fullscreen gallery lightbox chrome.
+   *
+   * Three galleries (`/portfolio` + every sibling that shares its renderer,
+   * `/whiteash`, `/premadedesigns`) open the same shape: a `fixed inset-0`
+   * surface with a close button absolutely positioned at `top-4 right-4`, a
+   * counter pill at the top centre, and prev/next chevrons pinned to the sides.
+   *
+   * `p-4` on the surface does NOT move any of them: an absolutely positioned
+   * child resolves its offsets against the containing block's PADDING box, so
+   * `top: 1rem` is measured from the outer edge whatever padding is set. On a
+   * phone the layout viewport starts under the Dynamic Island, so a 44px close
+   * button at `top: 16px` spans 16-60px — i.e. it sits behind the island, and
+   * in landscape the side chevrons sit behind the notch rail. The one control
+   * that dismisses a fullscreen overlay is the worst possible thing to lose.
+   *
+   * So the insets become custom properties that resolve `env(safe-area-inset-*)`
+   * once, on the surface, and every piece of chrome reads them: the surface for
+   * its padding (which keeps the image itself clear of the insets) and each
+   * control for its own offset. `max()` rather than addition, so a device with
+   * no inset still gets the intended 16px and never collapses to the edge.
+   *
+   * Descendant selectors (0,2,0) deliberately outrank Tailwind's `sm:` variants
+   * (0,1,0), so the breakpoint step lives here too rather than half here and
+   * half in six `sm:top-6` utilities that would silently stop applying.
+   */
+  .lightbox-shell {
+    --lb-top: max(1rem, env(safe-area-inset-top));
+    --lb-right: max(1rem, env(safe-area-inset-right));
+    --lb-bottom: max(1rem, env(safe-area-inset-bottom));
+    --lb-left: max(1rem, env(safe-area-inset-left));
+    padding: var(--lb-top) var(--lb-right) var(--lb-bottom) var(--lb-left);
+  }
+
+  @media (min-width: 640px) {
+    .lightbox-shell {
+      --lb-top: max(2rem, env(safe-area-inset-top));
+      --lb-right: max(1.5rem, env(safe-area-inset-right));
+      --lb-bottom: max(2rem, env(safe-area-inset-bottom));
+      --lb-left: max(1.5rem, env(safe-area-inset-left));
+    }
+  }
+
+  /*
+   * The chrome also has to paint ABOVE the image, which on `/whiteash` and
+   * `/premadedesigns` it did not: both wrap the image in a `relative` element
+   * that comes after the buttons in the markup, and two positioned siblings
+   * at `z-index: auto` paint in tree order — so the artwork covered its own
+   * prev/next controls. Invisible on desktop, where the image is narrower than
+   * the surface; on a phone the image is nearly the full width, so the only
+   * way left to step through a 166-design gallery was the swipe handler.
+   */
+  .lightbox-shell .lb-close,
+  .lightbox-shell .lb-prev,
+  .lightbox-shell .lb-next {
+    z-index: 10;
+  }
+
+  .lightbox-shell .lb-close {
+    top: var(--lb-top);
+    right: var(--lb-right);
+  }
+
+  /* Label only — raised for the same reason, but never a tap target, so a
+     tap that lands on it still reaches the backdrop and closes. */
+  .lightbox-shell .lb-badge {
+    top: var(--lb-top);
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .lightbox-shell .lb-prev {
+    left: var(--lb-left);
+  }
+
+  .lightbox-shell .lb-next {
+    right: var(--lb-right);
+  }
+
+  /*
    * The h1 on those same pages.
    *
    * Was a flat `text-2xl` — 24px of Bebas Neue, a condensed face whose glyphs

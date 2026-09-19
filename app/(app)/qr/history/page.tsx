@@ -69,40 +69,72 @@ export default async function QrHistoryPage() {
           description="Each QR code created here or on the public generator will be logged here."
         />
       ) : (
-        <div className="border-border overflow-hidden border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>When</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Content</TableHead>
-                <TableHead>Account</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {generations.map((gen) => (
-                <TableRow key={gen.id}>
-                  <TableCell className="whitespace-nowrap">
-                    {formatDateTime(gen.created_at)}
-                  </TableCell>
-                  <TableCell className="capitalize">{gen.source}</TableCell>
-                  <TableCell className="capitalize">{gen.type}</TableCell>
-                  {/* Plain text, never a link — content is untrusted public input. */}
-                  <TableCell
-                    className="text-muted-foreground max-w-80 truncate"
-                    title={gen.content}
-                  >
-                    {gen.content}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
+        <>
+          {/* Below sm this is a card list, matching every other admin table.
+              Five columns of nowrap cells in a 390px viewport was a sideways
+              scroll inside the card with the content column unreadable. */}
+          <div className="space-y-3 sm:hidden">
+            {generations.map((gen) => (
+              <article
+                key={gen.id}
+                className="border-border space-y-2 rounded-[8px] border p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-sm font-medium capitalize">
+                    {gen.type} · <span className="capitalize">{gen.source}</span>
+                  </p>
+                  <span className="text-muted-foreground shrink-0 text-xs">
                     {gen.owner_id ? "Signed in" : "Anonymous"}
-                  </TableCell>
+                  </span>
+                </div>
+                {/* Plain text, never a link — content is untrusted public
+                    input. break-all so a long URL wraps instead of widening
+                    the page. */}
+                <p className="text-muted-foreground line-clamp-3 text-sm break-all">
+                  {gen.content}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {formatDateTime(gen.created_at)}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="border-border hidden overflow-hidden border sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>When</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Content</TableHead>
+                  <TableHead>Account</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {generations.map((gen) => (
+                  <TableRow key={gen.id}>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDateTime(gen.created_at)}
+                    </TableCell>
+                    <TableCell className="capitalize">{gen.source}</TableCell>
+                    <TableCell className="capitalize">{gen.type}</TableCell>
+                    {/* Plain text, never a link — content is untrusted public input. */}
+                    <TableCell
+                      className="text-muted-foreground max-w-80 truncate"
+                      title={gen.content}
+                    >
+                      {gen.content}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {gen.owner_id ? "Signed in" : "Anonymous"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </>
   );

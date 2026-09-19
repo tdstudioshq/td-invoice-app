@@ -45,7 +45,7 @@ export function JobTabs({
             )}
             aria-current={current ? "page" : undefined}
             className={cn(
-              "border-glass-border inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm whitespace-nowrap transition-colors",
+              "border-glass-border inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm whitespace-nowrap transition-colors md:min-h-9",
               current
                 ? "bg-glass-highlight/25 text-foreground"
                 : "text-muted-foreground hover:bg-glass-highlight/10 hover:text-foreground",

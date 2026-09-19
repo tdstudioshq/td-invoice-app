@@ -37,7 +37,7 @@ export default async function EditPartnerJobPage({
     <>
       <Link
         href={partnerHref(basePath, `/jobs/${jobId}`)}
-        className="text-muted-foreground hover:text-foreground mb-4 inline-flex min-h-9 items-center gap-1.5 text-sm transition-colors"
+        className="text-muted-foreground hover:text-foreground mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors md:min-h-9"
       >
         <ArrowLeftIcon className="size-4" />
         Back to {job.job_number}

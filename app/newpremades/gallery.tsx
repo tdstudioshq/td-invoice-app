@@ -15,16 +15,18 @@ export function NewPremadesGallery({ designs }: { designs: Design[] }) {
   const selectedIndex = selected ? filtered.findIndex((design) => design.id === selected.id) : -1;
   return <>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <label className="flex flex-col gap-2 text-sm text-white/70 sm:w-80">Search designs
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the collection…" className="min-h-12 rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white outline-none focus:border-white/70" />
+      <label className="flex flex-col gap-2 text-base text-white/70 sm:w-80 md:text-sm">Search designs
+        {/* `text-base` is load-bearing, not styling: iOS Safari zooms the page
+            on focus for anything under 16px. */}
+        <input type="search" inputMode="search" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the collection…" className="min-h-12 rounded-xl border border-white/20 bg-white/5 px-4 text-base text-white outline-none placeholder:text-white/40 focus:border-white/70 focus-visible:ring-2 focus-visible:ring-white/40" />
       </label>
-      <p role="status" className="text-sm text-white/50">{filtered.length} {filtered.length === 1 ? "design" : "designs"}</p>
+      <p role="status" className="text-base text-white/60 md:text-sm">{filtered.length} {filtered.length === 1 ? "design" : "designs"}</p>
     </div>
     {filtered.length === 0 && <p className="py-16 text-center text-white/65">No designs match your search.</p>}
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
       {filtered.map((design, index) => <button key={design.id} onClick={() => setSelected(design)} className="group overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-left transition-colors hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-4" aria-label={`Preview ${design.title}`}>
         <img src={imageUrl(design.id)} width={design.width} height={design.height} alt={design.title} loading={index < 4 ? "eager" : "lazy"} decoding="async" className="aspect-[4/5] w-full object-contain" />
-        <span className="block px-3 py-4 text-sm sm:text-base">{design.title}</span>
+        <span className="block px-3 py-3.5 text-base leading-snug md:text-sm">{design.title}</span>
       </button>)}
     </div>
     <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) setSelected(null); }}>
