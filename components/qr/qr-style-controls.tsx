@@ -110,7 +110,7 @@ export function QrStyleControls({
 
   return (
     <div className="space-y-2">
-      <Label>Logo</Label>
+      <Label className="text-base md:text-sm">Logo</Label>
       <input
         ref={fileInput}
         type="file"

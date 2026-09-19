@@ -93,7 +93,7 @@ export function DesignCountStep({
 
       {isCustom ? (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="designCount" className="text-white">
+          <Label htmlFor="designCount" className="text-base text-white md:text-sm">
             Number of designs
           </Label>
           <Input

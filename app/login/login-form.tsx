@@ -31,7 +31,7 @@ export function LoginForm({
       ) : null}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className="text-base md:text-sm">Email</Label>
         <Input
           id="email"
           name="email"
@@ -48,7 +48,7 @@ export function LoginForm({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-base md:text-sm">Password</Label>
           <button
             type="button"
             onClick={onForgot}
@@ -87,9 +87,17 @@ export function LoginForm({
 
       <p className="text-muted-foreground text-center text-sm leading-relaxed md:text-xs">
         New customer?{" "}
+        {/*
+          Underlined always, not just on hover: there is no hover on a phone, so
+          a hover-only underline left this reading as ordinary text distinguished
+          from its sentence by colour alone. The vertical padding is hit box
+          only — padding on an inline box takes pointer events without changing
+          the line height, so the tappable area grows from ~17px to ~41px and
+          nothing around it moves.
+        */}
         <Link
           href="/sign-up"
-          className="text-foreground underline-offset-4 hover:underline"
+          className="text-foreground rounded-sm px-0.5 py-3 underline underline-offset-4 decoration-white/40 transition-colors hover:decoration-white focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
           Create an account
         </Link>

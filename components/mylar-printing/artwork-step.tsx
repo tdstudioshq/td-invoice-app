@@ -295,7 +295,7 @@ function DesignCard({
 
       {showQuantity ? (
         <div className="mt-4 flex flex-col gap-2">
-          <Label htmlFor={quantityId} className="text-white">
+          <Label htmlFor={quantityId} className="text-base text-white md:text-sm">
             Quantity
           </Label>
           <Input

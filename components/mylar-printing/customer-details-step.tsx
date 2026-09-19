@@ -146,7 +146,7 @@ export function CustomerDetailsStep({
 
       <div className="grid gap-5 sm:grid-cols-2 sm:gap-x-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="customerName" className="text-white">
+          <Label htmlFor="customerName" className="text-base text-white md:text-sm">
             Name
           </Label>
           <Input
@@ -169,7 +169,7 @@ export function CustomerDetailsStep({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="brandName" className="text-white">
+          <Label htmlFor="brandName" className="text-base text-white md:text-sm">
             Brand or company{" "}
             <span className="text-muted-foreground text-[13px] md:text-[11px]">
               (optional)
@@ -195,7 +195,7 @@ export function CustomerDetailsStep({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="customerEmail" className="text-white">
+          <Label htmlFor="customerEmail" className="text-base text-white md:text-sm">
             Email
           </Label>
           <Input
@@ -220,7 +220,7 @@ export function CustomerDetailsStep({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="customerPhone" className="text-white">
+          <Label htmlFor="customerPhone" className="text-base text-white md:text-sm">
             Phone number{" "}
             <span className="text-muted-foreground text-[13px] md:text-[11px]">
               {phoneRequired ? "(required)" : "(optional)"}
@@ -311,7 +311,7 @@ export function CustomerDetailsStep({
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="neededBy" className="text-white">
+        <Label htmlFor="neededBy" className="text-base text-white md:text-sm">
           Need it by{" "}
           <span className="text-muted-foreground text-[13px] md:text-[11px]">
               (optional)
@@ -349,7 +349,7 @@ export function CustomerDetailsStep({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="notes" className="text-white">
+        <Label htmlFor="notes" className="text-base text-white md:text-sm">
           Additional notes{" "}
           <span className="text-muted-foreground text-[13px] md:text-[11px]">
               (optional)

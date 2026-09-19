@@ -385,14 +385,14 @@ function Lightbox({
         if (Math.abs(dx) > 55) (dx < 0 ? onNext : onPrev)();
         touchX.current = null;
       }}
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/92 p-4 backdrop-blur-xl sm:p-8"
+      className="lightbox-shell fixed inset-0 z-[100] grid place-items-center bg-black/92 backdrop-blur-xl"
     >
       <button
         ref={closeRef}
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute top-4 right-4 grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white sm:top-6 sm:right-6"
+        className="lb-close absolute grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white"
       >
         <XIcon weight="bold" className="size-5" />
       </button>
@@ -402,7 +402,7 @@ function Lightbox({
         onClick={onPrev}
         disabled={!hasPrev}
         aria-label="Previous design"
-        className="absolute left-2 grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white disabled:pointer-events-none disabled:opacity-25 sm:left-6"
+        className="lb-prev absolute grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white disabled:pointer-events-none disabled:opacity-25"
       >
         <CaretLeftIcon weight="bold" className="size-5" />
       </button>
@@ -412,7 +412,7 @@ function Lightbox({
         onClick={onNext}
         disabled={!hasNext}
         aria-label="Next design"
-        className="absolute right-2 grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white disabled:pointer-events-none disabled:opacity-25 sm:right-6"
+        className="lb-next absolute grid size-11 place-items-center rounded-full border border-white/15 bg-black/50 text-white/70 backdrop-blur-md transition-colors hover:border-white/30 hover:text-white disabled:pointer-events-none disabled:opacity-25"
       >
         <CaretRightIcon weight="bold" className="size-5" />
       </button>
