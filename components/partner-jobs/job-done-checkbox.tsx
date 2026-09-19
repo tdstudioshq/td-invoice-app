@@ -61,12 +61,15 @@ export function JobDoneCheckbox({
       aria-label={labelled ? undefined : label}
       title={label}
       className={cn(
-        "shrink-0 transition-colors",
-        // min-h-9 is the portal's tap-target floor, applied only to the labelled
-        // variant. The bare circle matches the task manager's toggle exactly —
-        // no padding — because padding it out would push it off the baseline of
-        // the row it sits beside.
-        labelled && "inline-flex min-h-9 items-center gap-2 text-sm",
+        "relative shrink-0 transition-colors",
+        labelled && "inline-flex min-h-11 items-center gap-2 text-sm md:min-h-9",
+        // The bare circle is a 20px icon, well under a thumb. Padding it out
+        // would push it off the baseline of the row it sits beside (which is
+        // why it never had any), so the tap area is an invisible ::after
+        // instead: it expands the hit region to ~40px and contributes nothing
+        // to layout. The 10px halo stays inside the gap-3 gutter separating it
+        // from the adjacent link, so it steals no taps from it.
+        !labelled && "after:absolute after:-inset-2.5 after:content-['']",
         "text-metal-platinum hover:text-emerald-300",
         isPending && "opacity-60",
         className,

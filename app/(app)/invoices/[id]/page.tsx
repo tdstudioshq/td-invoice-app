@@ -390,28 +390,54 @@ export default async function InvoiceDetailPage(
               No payments recorded yet.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Card list below sm, matching the line items above. */}
+              <ul className="divide-glass-border divide-y sm:hidden">
                 {invoice.payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {payment.method ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
+                  <li
+                    key={payment.id}
+                    className="flex items-baseline justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm">
+                        {formatDate(payment.payment_date)}
+                      </p>
+                      <p className="text-muted-foreground truncate text-sm">
+                        {payment.method ?? "—"}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-medium tabular-nums">
                       {formatCurrency(payment.amount)}
-                    </TableCell>
-                  </TableRow>
+                    </span>
+                  </li>
                 ))}
-              </TableBody>
-            </Table>
+              </ul>
+
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invoice.payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {payment.method ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatCurrency(payment.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

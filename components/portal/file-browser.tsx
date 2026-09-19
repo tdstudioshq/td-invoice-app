@@ -204,7 +204,9 @@ export function FileBrowser({
       type="button"
       onClick={() => setView(id)}
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+        // min-h-11 below lg: these are horizontal chips on a phone and were a
+        // 36px tap target. The desktop rail keeps its tighter rhythm.
+        "flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors lg:min-h-0",
         view === id
           ? "bg-accent text-accent-foreground font-medium"
           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
@@ -277,12 +279,15 @@ export function FileBrowser({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search files…"
-              className="h-9 pl-9"
+              className="h-11 pl-9 md:h-9"
               aria-label="Search files"
             />
           </div>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-            <SelectTrigger className="h-9 w-[150px]" aria-label="Sort files">
+            <SelectTrigger
+              className="h-11 w-[150px] md:h-9"
+              aria-label="Sort files"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -307,7 +312,7 @@ export function FileBrowser({
                 aria-label={label}
                 aria-pressed={layout === id}
                 className={cn(
-                  "flex size-9 items-center justify-center transition-colors",
+                  "flex size-11 items-center justify-center transition-colors md:size-9",
                   layout === id
                     ? "bg-accent text-accent-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -320,7 +325,7 @@ export function FileBrowser({
           {canUpload ? (
             <Button
               size="sm"
-              className="h-9"
+              className="h-11 md:h-9"
               onClick={() => setUploadOpen(true)}
             >
               <UploadSimpleIcon className="size-4" />
@@ -523,7 +528,12 @@ function FileCard({
           onToggle={() => onToggleFavorite(file.id)}
           className={cn(
             "bg-background/70 absolute top-1.5 right-1.5 backdrop-blur-sm",
-            !favorited && "opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100",
+            // Hover-to-reveal only where a hover actually exists. On a touch
+            // screen there is no hover, so an unfavorited star used to be
+            // permanently invisible — i.e. you could not favorite from the grid
+            // on a phone at all.
+            !favorited &&
+              "pointer-fine:opacity-0 pointer-fine:transition-opacity pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100",
           )}
         />
       </div>
@@ -536,11 +546,14 @@ function FileCard({
             {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}
           </p>
         </div>
+        {/* Same reason as the star above: gated on pointer-fine so the download
+            is reachable on a phone instead of waiting for a hover that never
+            comes. Sized to a real tap target below md. */}
         <a
           href={downloadUrl(file.id)}
           onClick={(e) => e.stopPropagation()}
           aria-label={`Download ${file.name}`}
-          className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+          className="text-muted-foreground hover:text-foreground -mr-1.5 flex size-11 shrink-0 items-center justify-center md:mr-0 md:size-auto pointer-fine:opacity-0 pointer-fine:transition-opacity pointer-fine:group-hover:opacity-100 pointer-fine:focus-visible:opacity-100"
         >
           <DownloadSimpleIcon className="size-4.5" />
         </a>
@@ -594,12 +607,13 @@ function FileRow({
       <FavoriteStar
         favorited={favorited}
         onToggle={() => onToggleFavorite(file.id)}
+        className="size-11 md:size-8"
       />
       <a
         href={downloadUrl(file.id)}
         onClick={(e) => e.stopPropagation()}
         aria-label={`Download ${file.name}`}
-        className="text-muted-foreground hover:text-foreground shrink-0"
+        className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center md:size-8"
       >
         <DownloadSimpleIcon className="size-4.5" />
       </a>
@@ -682,7 +696,7 @@ function FilePreviewModal({
                   type="button"
                   onClick={() => onStep(-1)}
                   aria-label="Previous file"
-                  className="bg-background/70 hover:bg-background absolute top-1/2 left-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur transition-colors"
+                  className="bg-background/70 hover:bg-background absolute top-1/2 left-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur transition-colors md:size-9"
                 >
                   <CaretLeftIcon className="size-4.5" />
                 </button>
@@ -692,7 +706,7 @@ function FilePreviewModal({
                   type="button"
                   onClick={() => onStep(1)}
                   aria-label="Next file"
-                  className="bg-background/70 hover:bg-background absolute top-1/2 right-2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur transition-colors"
+                  className="bg-background/70 hover:bg-background absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full backdrop-blur transition-colors md:size-9"
                 >
                   <CaretRightIcon className="size-4.5" />
                 </button>

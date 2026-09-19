@@ -95,7 +95,7 @@ export function JobFileList({
                 </span>
                 <span className="flex shrink-0 items-center gap-0.5">
                   {kind !== null ? (
-                    <Button asChild variant="ghost" size="icon" className="size-8">
+                    <Button asChild variant="ghost" size="icon" className="size-11 md:size-8">
                       <a
                         href={`${href}?inline=1`}
                         target="_blank"
@@ -106,7 +106,7 @@ export function JobFileList({
                       </a>
                     </Button>
                   ) : null}
-                  <Button asChild variant="ghost" size="icon" className="size-8">
+                  <Button asChild variant="ghost" size="icon" className="size-11 md:size-8">
                     <a href={href} aria-label={`Download ${file.original_filename}`}>
                       <DownloadSimpleIcon className="size-4" />
                     </a>

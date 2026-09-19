@@ -135,11 +135,13 @@ export function CreatePortalUserDialog({
               ) : null}
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            {/* min-h-11 on the label makes the whole row the tap target; the
+                bare 16px box was well under a thumb. */}
+            <label className="flex min-h-11 items-center gap-2.5 text-sm md:min-h-0">
               <input
                 type="checkbox"
                 name="can_upload"
-                className="border-input size-4 accent-foreground"
+                className="border-input accent-foreground size-5 md:size-4"
               />
               Allow this client to upload files
             </label>

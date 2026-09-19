@@ -302,7 +302,10 @@ function TaskRow({
         onClick={toggleDone}
         disabled={isPending}
         aria-label={done ? "Mark as to do" : "Mark as done"}
-        className="mt-0.5 shrink-0 text-metal-platinum transition-colors hover:text-emerald-300"
+        // Invisible ::after tap area: the visible circle is a 20px icon and
+        // padding it would drop it off the baseline of the title beside it.
+        // The 10px halo stays inside the gap-3 gutter, so it steals no taps.
+        className="text-metal-platinum relative mt-0.5 shrink-0 transition-colors hover:text-emerald-300 after:absolute after:-inset-2.5 after:content-['']"
       >
         {done ? (
           <CheckCircleIcon weight="fill" className="size-5 text-emerald-400" />
