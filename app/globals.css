@@ -1153,15 +1153,11 @@
    */
   .tk-showcase {
     position: relative;
-    /* Height drives, aspect-ratio derives the width, so the frame is exactly
-       the 4:5 of the artwork: `cover` then fills it with zero crop and zero
-       letterboxing. Sizing the box to the content instead of cropping the
-       content to the box is the whole point — these are product designs whose
-       logo sits at the top, which a wide strip would slice straight off. */
+    /* Share the order button's full row width, keeping the height responsive
+       to the available viewport space. */
     height: var(--home-showcase-h, 18rem);
-    aspect-ratio: 4 / 5;
-    width: auto;
-    margin-inline: auto;
+    width: 100%;
+    flex-shrink: 0;
     overflow: hidden;
     border-radius: 0.875rem;
     border: 1px solid rgb(255 255 255 / 14%);
