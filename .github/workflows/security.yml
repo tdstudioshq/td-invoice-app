@@ -43,6 +43,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Isolated API and browser integration
         run: node scripts/test-local-stack.mjs
+      - name: Preserve integration failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-integration-results
+          path: test-results/
+          retention-days: 7
   mobile:
     runs-on: ubuntu-latest
     defaults:

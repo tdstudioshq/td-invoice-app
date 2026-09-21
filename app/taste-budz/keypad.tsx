@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { BackspaceIcon } from "@phosphor-icons/react";
 
 import { enterTasteBudzCodeAction } from "@/app/taste-budz/access";
@@ -9,6 +9,7 @@ import type { ActionState } from "@/app/actions/types";
 import { cn } from "@/lib/utils";
 
 const CODE_LENGTH = 4;
+const subscribeToHydration = () => () => {};
 
 /**
  * Phone-style keypad gate. Collects a 4-digit code and auto-submits it to the
@@ -31,6 +32,8 @@ export function TasteBudzKeypad({
   action?: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   extraFields?: Record<string, string>;
 }) {
+  // SSR buttons stay disabled until their click handlers are attached.
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false);
   const [digits, setDigits] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
@@ -66,7 +69,7 @@ export function TasteBudzKeypad({
   const press = (d: string) => {
     // Compute the next code here in the event handler — never inside the
     // setState updater, which React may run during render.
-    if (pending || digits.length >= CODE_LENGTH) return;
+    if (!hydrated || pending || digits.length >= CODE_LENGTH) return;
     setError(null);
     const next = digits + d;
     setDigits(next);
@@ -99,17 +102,17 @@ export function TasteBudzKeypad({
 
         <div className="grid grid-cols-3 gap-3">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-            <KeypadButton key={d} onClick={() => press(d)} disabled={pending}>
+            <KeypadButton key={d} onClick={() => press(d)} disabled={!hydrated || pending}>
               {d}
             </KeypadButton>
           ))}
           <span />
-          <KeypadButton onClick={() => press("0")} disabled={pending}>
+          <KeypadButton onClick={() => press("0")} disabled={!hydrated || pending}>
             0
           </KeypadButton>
           <KeypadButton
             onClick={backspace}
-            disabled={pending || digits.length === 0}
+            disabled={!hydrated || pending || digits.length === 0}
             aria-label="Delete last digit"
           >
             <BackspaceIcon className="size-6" />
