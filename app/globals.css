@@ -835,6 +835,12 @@
       justify-content: center;
     }
 
+    /* Put spare space above the branding so the contact button follows the
+       service line with only the normal row gap. */
+    .home-glass .home-card-inner:not(.home-card-inner--form) .home-card-head {
+      justify-content: flex-end;
+    }
+
     .home-glass .home-card-links {
       flex: 0 0 auto;
     }
@@ -985,7 +991,7 @@
     /* The phone backdrop is a bright red photograph, so these two roles carry
        their own shadow rather than relying on the glass to isolate them —
        the same trade `.text-on-photo` makes. */
-    color: rgb(255 255 255 / 82%);
+    color: #fff;
     text-shadow: 0 1px 3px rgb(0 0 0 / 60%);
     /* Balanced, because the tagline is long enough to wrap at the narrow
        desktop card and an orphaned last word reads as a mistake. */

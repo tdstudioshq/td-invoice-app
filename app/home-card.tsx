@@ -28,10 +28,8 @@ import { cn } from "@/lib/utils";
  * scrolls out of view. It is a flag rather than a second hardcoded href so the
  * two can never drift apart.
  *
- * The card is deliberately down to a SINGLE call to action: the secondary tile
- * grid and the social badges were removed, so this is the only thing a visitor
- * can press. `tier` is kept so a tile can be added back without reshaping the
- * array, but nothing renders `tile` today.
+ * This array owns the order CTA. A separate mobile contact button sits above
+ * it. `tier` is kept for the former tile grid; nothing renders `tile` today.
  */
 const BIO_LINKS: {
   label: string;
@@ -394,7 +392,22 @@ export function HomeCard({
             <div className="home-card-links flex flex-col gap-3">
               {/* The tear line. Everything above it is who this is; everything
                   below it is what you can do. */}
-              <div aria-hidden className="tk-perforation mx-1 mb-1" />
+              <div aria-hidden className="tk-perforation mx-1 mb-1 hidden md:block" />
+
+              <a
+                href="sms:+19297528373"
+                className={cn(
+                  buttonBase,
+                  "tk-tile flex-col items-center justify-center gap-1 px-4 py-4 text-center text-white md:hidden",
+                )}
+                onPointerDown={beginSweep}
+                onAnimationEnd={endSweep}
+              >
+                <span className="tk-prize">GET IN TOUCH</span>
+                <span className="tk-micro !text-white leading-snug">
+                  CUSTOM DESIGNS INQUIRY/QUESTIONS
+                </span>
+              </a>
 
               {PRIZE_LINK ? (
                 <a
