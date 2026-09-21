@@ -3,14 +3,10 @@ import { Bebas_Neue, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/site";
 
-// Absolute base for metadata URLs. Set NEXT_PUBLIC_SITE_URL in production;
-// falls back to the Vercel-provided URL, then localhost for dev.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000");
+// Canonical public origin; preview hostnames must not replace the business URL.
+const siteUrl = SITE_URL;
 
 // Bebas Neue only ships a single 400 weight and has no lowercase — it renders
 // everything in caps by design.
@@ -32,16 +28,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  applicationName: "TD Studios Invoicing",
+  applicationName: "TD Studios",
   title: {
-    default: "TD Studios — Invoicing",
+    default: SITE_TITLE,
     template: "%s · TD Studios",
   },
-  description:
-    "TD Studios invoicing — manage clients, create invoices, and track payments.",
+  description: SITE_DESCRIPTION,
   appleWebApp: {
     capable: true,
-    title: "TD Invoices",
+    title: "TD Studios",
     statusBarStyle: "black-translucent",
   },
   formatDetection: { telephone: false },

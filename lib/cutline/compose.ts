@@ -122,7 +122,7 @@ function toZeroOffsetBytes(buf: Uint8Array): Uint8Array {
  */
 async function normalizeImage(input: Buffer): Promise<NormalizedImage> {
   try {
-    const base = sharp(input, { failOn: "none" }).rotate(); // rotate() auto-orients from EXIF
+    const base = sharp(input, { failOn: "error", limitInputPixels: 40_000_000 }).rotate(); // rotate() auto-orients from EXIF
     const meta = await base.metadata();
     const hasAlpha = Boolean(meta.hasAlpha);
 

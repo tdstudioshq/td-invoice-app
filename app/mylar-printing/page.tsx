@@ -9,6 +9,7 @@ import { BackToStudiosLink } from "@/components/layout/public-page-link";
 // "Custom Mylar Printing · TD Studios".
 export const metadata = {
   title: "Custom Mylar Printing",
+  alternates: { canonical: "/mylar-printing" },
   description:
     "Submit your custom Mylar bag printing order to TD Studios. Choose your bag size, quantity, upload your artwork, and request a printing quote.",
 };

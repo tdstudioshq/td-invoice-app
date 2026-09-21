@@ -8,7 +8,7 @@ import { Resend } from "resend";
  * set up, so the app still builds and runs without it.
  */
 export function isResendConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  return process.env.DISABLE_EXTERNAL_EFFECTS !== "true" && Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 }
 
 /** The verified sender address (e.g. "TD Studios <invoices@…>"). */

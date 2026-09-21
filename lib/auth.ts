@@ -317,3 +317,11 @@ export async function currentOwnerId(
 /** Shared message for the (unexpected) case where the RPC above fails. */
 export const OWNER_RESOLVE_ERROR =
   "Could not resolve the workspace owner. Run `npm run admin:sync` and try again.";
+
+/** Shared admin guard for APIs: preserve HTTP errors instead of page redirects. */
+export async function requireAdminApi(): Promise<Response | User> {
+  const user = await getUser();
+  if (!user) return new Response("Unauthorized", { status: 401 });
+  if (!isAdminEmail(user.email)) return new Response("Not found", { status: 404 });
+  return user;
+}

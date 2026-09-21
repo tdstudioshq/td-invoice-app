@@ -1,5 +1,7 @@
 "use client";
 
+import { directUploadError } from "@/lib/http/upload-limits";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CheckCircleIcon,
@@ -169,6 +171,13 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
         form.append("file", item.file);
         form.append("preset", presetId);
 
+        const sizeError = directUploadError(form);
+        if (sizeError) {
+          update(item.id, { status: "failed", error: sizeError });
+          resolve();
+          return;
+        }
+
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/cutline/generate");
         xhr.responseType = "blob";
@@ -326,7 +335,7 @@ export function CutlineGenerator({ presets }: { presets: PresetOption[] }) {
           Drag &amp; drop designs, or click to browse
         </p>
         <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-          JPG or PNG · up to 30 MB · max {MAX_BATCH} per batch
+          JPG or PNG · under 4 MB per export · max {MAX_BATCH} per batch
         </p>
         <input
           ref={inputRef}

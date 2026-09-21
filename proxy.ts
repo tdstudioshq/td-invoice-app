@@ -26,6 +26,8 @@ import {
 // the page has to load client-side to read it — redirecting would strip it.
 const PUBLIC_PATHS = new Set<string>([
   "/",
+  "/robots.txt",
+  "/sitemap.xml",
   "/login",
   "/sign-up",
   "/reset-password",

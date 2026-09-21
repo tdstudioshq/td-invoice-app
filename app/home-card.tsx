@@ -361,9 +361,9 @@ export function HomeCard({
             </div>
             {isBio ? (
               <>
-                <CardTitle className="home-enter-title tk-wordmark font-bold">
+                <h1 className="home-enter-title tk-wordmark font-bold">
                   TD STUDIOS
-                </CardTitle>
+                </h1>
                 {/* Gold hairline + service line: the card never said what the
                     business actually does, which is the first thing a visitor
                     arriving from an Instagram bio needs to know. */}

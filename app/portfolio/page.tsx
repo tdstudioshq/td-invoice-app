@@ -8,6 +8,7 @@ import { getPortfolioImages } from "@/lib/data";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
+  alternates: { canonical: "/portfolio" },
   title: "Portfolio",
   description:
     "A gallery of custom design work by TD Studios — packaging, logos, websites, branding, and mockups.",

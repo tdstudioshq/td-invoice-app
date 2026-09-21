@@ -1,5 +1,7 @@
 "use client";
 
+import { directUploadError } from "@/lib/http/upload-limits";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -451,7 +453,7 @@ export function MockupSheetGenerator() {
     }
     const totalBytes = active.reduce((sum, p) => sum + p.file.size, 0);
     if (totalBytes > MAX_TOTAL_BYTES) {
-      toast.error("Combined images are too large to export at once — remove a few and try again.");
+      toast.error("This export supports up to 4 MB combined. Use smaller images or fewer items.");
       return;
     }
 
@@ -466,6 +468,9 @@ export function MockupSheetGenerator() {
       const form = new FormData();
       form.append("meta", JSON.stringify(meta));
       active.forEach((p) => form.append(`file:${p.slotId}`, p.file));
+
+      const sizeError = directUploadError(form);
+      if (sizeError) throw new Error(sizeError);
 
       const res = await fetch("/api/mockup-sheet/generate", { method: "POST", body: form });
       if (!res.ok) {
@@ -578,7 +583,7 @@ export function MockupSheetGenerator() {
           <UploadSimpleIcon className="text-muted-foreground size-6" />
           <p className="text-sm font-medium">Drop images or click to browse</p>
           <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-            {ALLOWED_TYPES_LABEL} · up to 25 MB each · fills the next open slot
+            {ALLOWED_TYPES_LABEL} · 25 MB preview limit · 4 MB combined export limit
           </p>
         </div>
 

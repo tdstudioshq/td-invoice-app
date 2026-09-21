@@ -41,16 +41,8 @@ const nextConfig: NextConfig = {
     "/api/cutline/generate": ["./public/assets/cutlines/cut-line-file.pdf"],
   },
   images: {
-    // The password-protected premade gallery uses short-lived URLs from its
-    // private Storage bucket. Keep the allow-list limited to signed objects on
-    // this project's Supabase host.
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "tbgyyyffbxveukbihnhp.supabase.co",
-        pathname: "/storage/v1/object/sign/**",
-      },
-    ],
+    // Gallery components already render signed images unoptimized.
+    remotePatterns: [], // Keep private signed URLs out of the shared optimizer cache.
   },
 };
 

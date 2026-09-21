@@ -64,5 +64,5 @@ export async function GET(
     detail: { name: file.name },
   });
 
-  return Response.redirect(signed.signedUrl, 302);
+  return new Response(null, { status: 302, headers: { Location: signed.signedUrl, "Cache-Control": "private, no-store" } });
 }

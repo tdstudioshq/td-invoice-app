@@ -5,6 +5,7 @@ import { CustomDesignForm } from "@/app/custom-design-request/custom-design-form
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
+  alternates: { canonical: "/custom-design-request" },
   title: "Request Custom Design",
   description:
     "Request a custom design from TD Studios — tell us about your project and share your logos, assets, and references.",

@@ -1,5 +1,7 @@
 "use client";
 
+import { directUploadError } from "@/lib/http/upload-limits";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
@@ -325,7 +327,7 @@ export function BagMockupGrid() {
     }
     const totalBytes = images.reduce((sum, img) => sum + img.file.size, 0);
     if (totalBytes > MAX_TOTAL_BYTES) {
-      toast.error("Combined images are too large to export at once — remove a few and try again.");
+      toast.error("This export supports up to 4 MB combined. Use smaller images or fewer items.");
       return;
     }
 
@@ -335,6 +337,9 @@ export function BagMockupGrid() {
       const form = new FormData();
       form.append("meta", JSON.stringify(meta));
       images.forEach((img) => form.append(`file:${img.id}`, img.file));
+
+      const sizeError = directUploadError(form);
+      if (sizeError) throw new Error(sizeError);
 
       const res = await fetch("/api/bag-mockup-grid/generate", { method: "POST", body: form });
       if (!res.ok) {

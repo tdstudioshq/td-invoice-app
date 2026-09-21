@@ -1,3 +1,5 @@
+import { readBoundedForm, UploadTooLargeError } from "@/lib/http/bounded-form";
+import { MAX_DIRECT_BYTES, DIRECT_OUTPUT_MESSAGE } from "@/lib/http/upload-limits";
 import { composeMockupPdf, composeMockupRaster, MockupInputError, type SlotFile } from "@/lib/mockup-generator/compose";
 import { exportRequestSchema } from "@/lib/mockup-generator/export-schema";
 import {
@@ -21,8 +23,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   let form: FormData;
   try {
-    form = await req.formData();
-  } catch {
+    form = await readBoundedForm(req);
+  } catch (error) {
+    if (error instanceof UploadTooLargeError) return Response.json({ error: error.message }, { status: 413 });
     return Response.json({ error: "Expected multipart form data." }, { status: 400 });
   }
 
@@ -92,6 +95,7 @@ export async function POST(req: Request) {
   try {
     if (request.format === "pdf") {
       const pdfBytes = await composeMockupPdf(request, files);
+      if (pdfBytes.byteLength > MAX_DIRECT_BYTES) return Response.json({ error: DIRECT_OUTPUT_MESSAGE }, { status: 413 });
       return new Response(pdfBytes as BodyInit, {
         status: 200,
         headers: {
@@ -103,6 +107,7 @@ export async function POST(req: Request) {
     }
 
     const { bytes } = await composeMockupRaster(request, files, request.format);
+    if (bytes.byteLength > MAX_DIRECT_BYTES) return Response.json({ error: DIRECT_OUTPUT_MESSAGE }, { status: 413 });
     return new Response(bytes as BodyInit, {
       status: 200,
       headers: {

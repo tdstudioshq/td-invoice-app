@@ -1,0 +1,31 @@
+name: Website checks
+on:
+  pull_request:
+  push:
+    branches: [main, codex/website-readiness]
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- --max-warnings=0
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev
+      - run: npm run build:test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - name: Preserve browser verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-test-results
+          path: test-results/
+          retention-days: 7

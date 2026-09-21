@@ -1,3 +1,5 @@
+import { readBoundedForm, UploadTooLargeError } from "@/lib/http/bounded-form";
+import { MAX_DIRECT_BYTES, DIRECT_OUTPUT_MESSAGE } from "@/lib/http/upload-limits";
 import { composeBagGridPdf, composeBagGridRaster, MockupGridInputError, type GridFile } from "@/lib/bag-mockup-grid/compose";
 import { exportRequestSchema } from "@/lib/bag-mockup-grid/export-schema";
 import {
@@ -20,8 +22,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   let form: FormData;
   try {
-    form = await req.formData();
-  } catch {
+    form = await readBoundedForm(req);
+  } catch (error) {
+    if (error instanceof UploadTooLargeError) return Response.json({ error: error.message }, { status: 413 });
     return Response.json({ error: "Expected multipart form data." }, { status: 400 });
   }
 
@@ -80,6 +83,7 @@ export async function POST(req: Request) {
   try {
     if (request.format === "pdf") {
       const pdfBytes = await composeBagGridPdf(request, files);
+      if (pdfBytes.byteLength > MAX_DIRECT_BYTES) return Response.json({ error: DIRECT_OUTPUT_MESSAGE }, { status: 413 });
       return new Response(pdfBytes as BodyInit, {
         status: 200,
         headers: {
@@ -91,6 +95,7 @@ export async function POST(req: Request) {
     }
 
     const { bytes } = await composeBagGridRaster(request, files, request.format);
+    if (bytes.byteLength > MAX_DIRECT_BYTES) return Response.json({ error: DIRECT_OUTPUT_MESSAGE }, { status: 413 });
     return new Response(bytes as BodyInit, {
       status: 200,
       headers: {
