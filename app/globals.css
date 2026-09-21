@@ -689,6 +689,17 @@
     }
   }
 
+  /* Compact portrait phones, including a 320px-wide SE with browser chrome. */
+  @media (max-width: 767px) and (max-height: 600px) {
+    .home-shell {
+      --home-pad: 0.875rem;
+      --home-gap: 0.75rem;
+      --home-logo: 4.5rem;
+      --home-link-h: 2.5rem;
+      --home-showcase-h: clamp(5rem, calc(100svh - 24.5rem), 8rem);
+    }
+  }
+
   /*
    * Phone-only structural overrides for the card.
    *
@@ -718,7 +729,7 @@
     .home-glass > .glass,
     .home-glass > .glass > div {
       width: 100%;
-      height: 100%;
+      height: auto;
     }
 
     .home-glass > .glass > .glass__warp {
@@ -773,7 +784,7 @@
     /* The scale, applied. Every one of these overrides a Tailwind utility of
        lower specificity, so the markup keeps its own desktop values. */
     .home-glass .home-card-inner {
-      height: 100%;
+      height: auto;
       padding: var(--home-pad);
       gap: var(--home-gap);
     }
@@ -803,42 +814,11 @@
       padding-block: 0.5rem;
     }
 
-    /*
-     * Where the height goes.
-     *
-     * The block under the header — the bio links, or the sign-in form when the
-     * card is flipped — takes every pixel the header does not, so neither view
-     * leaves a void at the bottom of a full-height card.
-     *
-     * The links spend theirs on the buttons rather than on the gaps between
-     * them: uncapped `flex` keeps the stack reading as one set at every screen
-     * height, where capping the buttons pushes the remainder into the gaps and
-     * a tall phone ends up with the five links drifting apart. The gaps above
-     * grew a little to match: buttons land around 55px on an SE and 100-115px
-     * on a 6.1" phone and up, which needs the extra separation not to read as
-     * one slab.
-     *
-     * `min-height` on the buttons still applies as a floor, so this only ever
-     * makes a target bigger.
-     */
-    /*
-     * Where the slack goes.
-     *
-     * The stub takes it, not the play area. Stretching the buttons instead
-     * inflates the prize and leaves each tile taller than it; pinning the
-     * footer to the bottom instead opens a dead band above it. Giving the
-     * height to the stub reads as a generous ticket header, and it settles the
-     * actions low on the screen, which is where a thumb already is.
-     */
+    /* Keep the branding content-sized. Growing this header creates a blank
+       region above the logo and can push the slideshow below Safari's toolbar. */
     .home-glass .home-card-head {
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       justify-content: center;
-    }
-
-    /* Put spare space above the branding so the contact button follows the
-       service line with only the normal row gap. */
-    .home-glass .home-card-inner:not(.home-card-inner--form) .home-card-head {
-      justify-content: flex-end;
     }
 
     .home-glass .home-card-links {
@@ -880,24 +860,13 @@
       height: var(--home-cta-room);
     }
 
-    /*
-     * Full-bleed height: the card fills the viewport instead of floating in it.
-     *
-     * Six elements sit between the shell and the card's content, two of them
-     * written by the library, so the height has to be handed down explicitly at
-     * every step — `height: 100%` stops dead at the first ancestor that has no
-     * height of its own. The chain is: shell (min-height: 100svh, flex column)
-     * -> slot -> GlassCard's own display:flex wrapper -> .home-glass -> .glass
-     * -> the library's content wrapper -> .home-card-inner.
-     *
-     * `flex: 1 1 auto` with the default `min-height: auto`, deliberately: the
-     * card GROWS into spare height but never shrinks below its content, so a
-     * screen too short to hold it scrolls exactly as it did before rather than
-     * squashing the buttons.
-     */
+    /* The shell centres a content-sized card within the small viewport.
+       Do not stretch the slot or propagate percentage heights through the
+       library wrappers: that makes the card taller than its visible content.
+       Exceptionally short screens and enlarged text can still scroll. */
     .home-card-slot {
       display: flex;
-      flex: 1 1 auto;
+      flex: 0 0 auto;
     }
 
     /*
