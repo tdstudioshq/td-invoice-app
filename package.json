@@ -7,6 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "premade:sync": "bun run --env-file=.env.local scripts/sync-premade-designs.ts",
+    "premade:sync:dry": "bun run --env-file=.env.local scripts/sync-premade-designs.ts --dry-run",
+    "premade:sync:verify": "bun run --env-file=.env.local scripts/sync-premade-designs.ts --dry-run --verify-storage --no-cache",
     "client:create-marty": "node --env-file=.env.local scripts/create-marty-client.ts",
     "admin:sync": "node --env-file=.env.local scripts/sync-workspace-admins.ts"
   },

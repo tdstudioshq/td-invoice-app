@@ -161,7 +161,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/tools/bag-mockup-grid`        | Bag Mockup Grid (lineup)                        |
 | `/qr-generator`                 | Public QR generator (no saving)                 |
 | `/portfolio`                    | Portfolio gallery                               |
-| `/premadedesigns`               | Premade designs gallery (keypad-gated)          |
+| `/premadedesigns`               | Premade designs gallery (keypad-gated, DB manifest) |
 | `/gso`                          | GSO gallery                                     |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
@@ -241,8 +241,18 @@ private: `client-files` (25 MB/file), `design-requests`, and `mylar-artwork`
 (50 MB/file). The gallery buckets are **not** created by any migration and must
 be added by hand in the Supabase dashboard: the public ones (`custom-work`,
 `GSO`, `TASTE BUDZ`, `MAFIA terpz`) and the **private `premade-designs`** bucket
-that `/premadedesigns` reads through its manifest RPC. A gallery whose
+that `/premadedesigns` reads through its database manifest RPC. A gallery whose
 bucket is missing renders its empty state rather than erroring.
+
+The premade catalog is synchronized from the local master folder with:
+
+```bash
+bun run premade:sync:dry   # reconcile and report without changing Supabase
+bun run premade:sync       # upload only new SHA-256 designs and update categories
+```
+
+The sync is additive: Supabase-only artwork is reported and never deleted. The
+private bucket remains private and the site uses short-lived signed URLs.
 
 ### 4. Run the dev server
 

@@ -13,6 +13,7 @@
 
 # testing
 /coverage
+/.premade-sync/
 
 # next.js
 /.next/
