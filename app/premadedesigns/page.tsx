@@ -31,17 +31,6 @@ export const metadata = {
 // No filenames or signed image URLs reach the browser until the keypad unlocks.
 export const dynamic = "force-dynamic";
 
-/**
- * Volume pricing shown above the gallery. Every tier carries the same "each"
- * suffix so the three cards stay the same height in the grid — edit the labels
- * and prices here to change them.
- */
-const PRICING_TIERS = [
-  { label: "Single Design", price: "$25" },
-  { label: "5+ Designs", price: "$20" },
-  { label: "25+ Designs", price: "$15" },
-];
-
 export default async function PremadeDesignsPage() {
   const unlocked = await hasPremadeDesignsAccess();
 
@@ -122,36 +111,6 @@ export default async function PremadeDesignsPage() {
               : " in the private collection"}
           </p>
         </header>
-
-        <section
-          aria-labelledby="pricing-heading"
-          className="mx-auto flex w-full max-w-2xl flex-col gap-3"
-        >
-          <h2
-            id="pricing-heading"
-            className="text-center text-sm tracking-[0.2em] text-white/70 md:text-xs"
-          >
-            PRICING
-          </h2>
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
-            {PRICING_TIERS.map(({ label, price }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/15 bg-black/35 px-2 py-4 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)] backdrop-blur-md sm:px-4 sm:py-5"
-              >
-                <span className="text-muted-foreground text-sm leading-tight">
-                  {label}
-                </span>
-                <span className="text-2xl leading-none text-white sm:text-4xl">
-                  {price}
-                </span>
-                <span className="text-muted-foreground text-[13px] leading-none md:text-xs">
-                  each
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {designs.length === 0 ? (
           <p className="text-muted-foreground text-center text-base md:text-sm">
