@@ -34,47 +34,6 @@ import { cn } from "@/lib/utils";
 type CachedUrl = { url: string; expiresAt: number };
 
 /**
- * Ownership mark laid over every image that comes out of the Storage bucket —
- * design cards, collection covers, and the lightbox. Pre-resized to 800px wide
- * because these render `unoptimized` (the Vercel image optimizer is out of the
- * delivery path here), so the asset ships at its display size or better.
- */
-const WATERMARK_SRC = "/premade-watermark.png";
-const WATERMARK_WIDTH = 800;
-const WATERMARK_HEIGHT = 756;
-
-function DesignWatermark({
-  widthClass = "w-[72%]",
-  className,
-}: {
-  widthClass?: string;
-  className?: string;
-}) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "pointer-events-none absolute inset-0 flex items-center justify-center",
-        className,
-      )}
-    >
-      <Image
-        src={WATERMARK_SRC}
-        alt=""
-        width={WATERMARK_WIDTH}
-        height={WATERMARK_HEIGHT}
-        unoptimized
-        draggable={false}
-        className={cn(
-          "h-auto max-w-none opacity-[0.85] drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] select-none",
-          widthClass,
-        )}
-      />
-    </span>
-  );
-}
-
-/**
  * The gallery has two views over the same manifest:
  *
  *   `null`     — the collections index: one box per folder, with a cover image.
@@ -450,7 +409,6 @@ function CollectionCard({
             )}
           />
         ) : null}
-        <DesignWatermark widthClass="w-[68%]" />
         <span
           className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
           onContextMenu={(event) => event.preventDefault()}
@@ -516,7 +474,6 @@ function DesignCard({
             )}
           />
         ) : null}
-        <DesignWatermark />
         <span
           className="absolute inset-0"
           onContextMenu={(event) => event.preventDefault()}
@@ -664,7 +621,6 @@ function DesignLightbox({
               draggable={false}
               className="h-auto max-h-[84vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl select-none"
             />
-            <DesignWatermark widthClass="w-[55%]" className="rounded-2xl" />
           </motion.div>
         </motion.div>
       ) : null}
