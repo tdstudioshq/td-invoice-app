@@ -6,7 +6,7 @@ import {
   createAdminClient,
   isSupabaseAdminConfigured,
 } from "@/lib/supabase/admin";
-import { isImageFile, prettifyName } from "@/lib/portfolio";
+import { prettifyName } from "@/lib/portfolio";
 import type {
   PremadeDesign,
   SignedPremadeDesignUrls,
@@ -42,27 +42,42 @@ async function loadPremadeDesigns(): Promise<PremadeDesign[]> {
 
   try {
     const { data, error } = await createAdminClient().rpc(
-      "list_premade_design_paths",
+      "list_premade_design_catalog",
     );
     if (error) throw error;
     if (!Array.isArray(data)) return [];
 
     return data
-      .filter((path): path is string =>
-        typeof path === "string" && isImageFile(path),
+      .filter(
+        (entry): entry is {
+          [key: string]: string;
+        } => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+            return false;
+          }
+          const record = entry as Record<string, unknown>;
+          return [
+            "id",
+            "filename",
+            "path",
+            "content_hash",
+            "collection",
+            "collection_name",
+          ].every((key) => typeof record[key] === "string");
+        },
       )
-      .map((path) => {
-        const name = path.slice(path.lastIndexOf("/") + 1);
-        const folder = path.includes("/")
-          ? path.slice(0, path.lastIndexOf("/"))
-          : "";
+      .map((entry) => {
+        const name = entry.filename;
+        const path = entry.path;
+        const folder = entry.collection;
         return {
-          id: path,
+          id: `${entry.id}:${folder}`,
           name,
           path,
           title: prettifyName(name),
           folder,
-          folderLabel: folder ? prettifyFolder(folder) : "Uncategorized",
+          folderLabel: entry.collection_name || prettifyFolder(folder),
+          contentHash: entry.content_hash,
         };
       })
       .sort(
@@ -85,7 +100,7 @@ async function loadPremadeDesigns(): Promise<PremadeDesign[]> {
  */
 export const getPremadeDesigns = unstable_cache(
   loadPremadeDesigns,
-  ["premade-designs-manifest-v2"],
+  ["premade-designs-manifest-v3"],
   { revalidate: 60, tags: ["premade-designs"] },
 );
 

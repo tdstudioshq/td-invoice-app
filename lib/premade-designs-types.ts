@@ -14,6 +14,7 @@ export interface PremadeDesign {
   title: string;
   folder: string;
   folderLabel: string;
+  contentHash: string;
 }
 
 export interface SignedPremadeDesignUrls {

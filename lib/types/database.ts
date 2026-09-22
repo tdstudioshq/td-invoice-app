@@ -101,6 +101,98 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      premade_designs: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          family: string | null;
+          storage_bucket: string;
+          storage_path: string;
+          filename: string;
+          mime_type: string;
+          width: number | null;
+          height: number | null;
+          size_bytes: number | null;
+          sha256: string;
+          active: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug: string;
+          family?: string | null;
+          storage_bucket?: string;
+          storage_path: string;
+          filename: string;
+          mime_type?: string;
+          width?: number | null;
+          height?: number | null;
+          size_bytes?: number | null;
+          sha256: string;
+          active?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["premade_designs"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      premade_collections: {
+        Row: {
+          id: string;
+          normalized_path: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          normalized_path: string;
+          name: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["premade_collections"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      premade_design_collections: {
+        Row: {
+          design_id: string;
+          collection_id: string;
+          source_relative_path: string;
+          normalized_relative_path: string;
+          original_filename: string;
+          normalized_filename: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          design_id: string;
+          collection_id: string;
+          source_relative_path: string;
+          normalized_relative_path: string;
+          original_filename: string;
+          normalized_filename: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["premade_design_collections"]["Insert"]
+        >;
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
@@ -1075,6 +1167,17 @@ export interface Database {
       };
       list_premade_design_paths: {
         Args: Record<string, never>;
+        Returns: Json;
+      };
+      list_premade_design_catalog: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      sync_premade_catalog: {
+        Args: {
+          p_designs: Json;
+          p_memberships: Json;
+        };
         Returns: Json;
       };
       next_invoice_number: {

@@ -81,6 +81,9 @@ export default async function PremadeDesignsPage() {
 
   const designs = await getPremadeDesigns();
   const collections = buildPremadeCollections(designs);
+  const uniqueDesignCount = new Set(
+    designs.map((design) => design.contentHash),
+  ).size;
 
   // Sign only what the first screen shows. With more than one collection that
   // is the index's cover images; with a single collection the gallery opens
@@ -113,7 +116,7 @@ export default async function PremadeDesignsPage() {
             ADD YOUR LOGO &amp; QR CODE &amp; RECEIVE YOUR FILE VIA GOOGLE DRIVE
           </p>
           <p className="text-sm text-white/60 md:text-xs">
-            {designs.length.toLocaleString()} designs
+            {uniqueDesignCount.toLocaleString()} designs
             {collections.length > 1
               ? ` across ${collections.length.toLocaleString()} collections`
               : " in the private collection"}
