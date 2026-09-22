@@ -56,3 +56,6 @@ supabase/.temp/
 # from (lib/mockup-generator/templates/eight-piece.ts). It is never imported and
 # never read at runtime, so it stays out of git history rather than bloating it.
 8pc-template.pdf
+
+/playwright-report/
+/test-results/

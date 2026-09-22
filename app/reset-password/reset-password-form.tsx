@@ -21,11 +21,11 @@ export function ResetPasswordForm() {
   // hash ourselves (deterministic), rather than racing the auto-detector.
   const supabase = useMemo(
     () =>
-      createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? createBrowserClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         { auth: { detectSessionInUrl: false } },
-      ),
+      ) : null,
     [],
   );
 
@@ -40,6 +40,7 @@ export function ResetPasswordForm() {
     let active = true;
 
     async function init() {
+      if (!supabase) { setReason("Password reset is not configured."); setPhase("invalid"); return; }
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
 
       // Supabase reports failures (expired/used link) in the hash.
@@ -91,6 +92,7 @@ export function ResetPasswordForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!supabase) return;
     setError(null);
 
     if (password.length < 8) {

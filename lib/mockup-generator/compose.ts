@@ -36,7 +36,7 @@ export interface SlotFile {
 
 async function decodedSize(bytes: Buffer): Promise<{ width: number; height: number }> {
   try {
-    const meta = await sharp(bytes, { failOn: "none" }).rotate().metadata();
+    const meta = await sharp(bytes, { failOn: "error", limitInputPixels: 40_000_000 }).rotate().metadata();
     if (!meta.width || !meta.height) throw new Error("missing dimensions");
     return { width: meta.width, height: meta.height };
   } catch (err) {
@@ -57,7 +57,8 @@ async function toResizedPngDataUri(
 ): Promise<string> {
   const w = Math.max(1, Math.round(width));
   const h = Math.max(1, Math.round(height));
-  const buf = await sharp(bytes, { failOn: "none" })
+  if (w * h > 120_000_000) throw new MockupInputError("Scaled artwork exceeds 120 megapixels. Reduce zoom or DPI.");
+  const buf = await sharp(bytes, { failOn: "error", limitInputPixels: 40_000_000 })
     .rotate()
     .toColourspace("srgb")
     .resize(w, h, { fit: "fill" })

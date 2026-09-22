@@ -13,7 +13,14 @@
     "premade:sync:dry": "bun run --env-file=.env.local scripts/sync-premade-designs.ts --dry-run",
     "premade:sync:verify": "bun run --env-file=.env.local scripts/sync-premade-designs.ts --dry-run --verify-storage --no-cache",
     "client:create-marty": "node --env-file=.env.local scripts/create-marty-client.ts",
-    "admin:sync": "node --env-file=.env.local scripts/sync-workspace-admins.ts"
+    "admin:sync": "node --env-file=.env.local scripts/sync-workspace-admins.ts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:db": "tsx tests/database/run.mts",
+    "test:browser": "playwright test",
+    "build:test": "node scripts/safe-check.mjs npm run build",
+    "worker": "node --import=tsx worker/run.mts",
+    "assets:plan": "tsx scripts/gallery-assets.mts plan"
   },
   "dependencies": {
     "@developer-hub/liquid-glass": "^1.2.3",
@@ -32,7 +39,7 @@
     "jszip": "^3.10.1",
     "konva": "^10.3.0",
     "lucide-react": "^1.21.0",
-    "next": "16.3.1",
+    "next": "16.3.5",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
     "radix-ui": "^1.6.0",
@@ -42,29 +49,32 @@
     "react-konva": "^19.2.5",
     "react-social-icons": "^6.26.0",
     "resend": "^6.14.0",
+    "server-only": "^0.0.1",
     "shadcn": "^4.11.0",
-    "sharp": "^0.35.2",
+    "sharp": "0.35.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tw-animate-css": "^1.4.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "allowScripts": {
-    "sharp@0.34.5": true,
-    "sharp@0.35.2": true
+    "sharp@0.35.4": true
   },
   "optionalDependencies": {
-    "@next/swc-darwin-arm64": "16.3.1"
+    "@next/swc-darwin-arm64": "16.3.5"
   }
 }

@@ -66,6 +66,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       });
       setRole("portal");
     } else {
+      const { data: ownerId, error: ownerError } = await supabase.rpc("current_owner_id");
+      if (ownerError || !ownerId) {
+        setRoleError("This account does not have workspace or client portal access. Use the website for customer and partner access.");
+        return;
+      }
       setRole("admin");
     }
   }, []);

@@ -16,7 +16,7 @@ export const metadata = {
 // PUBLIC, no-auth tool. Each dropped image is rendered as a bag mockup
 // entirely in the browser (react canvas, same renderer as /tools/mockup-generator)
 // and arranged into a 4-column grid; nothing is uploaded until export, at
-// which point /api/bag-mockup-grid/generate composes the final grid
+// which point /api/bag-mockup-grid/generate queues the final grid for a bounded worker
 // server-side and streams it straight back. Nothing is persisted.
 export default function BagMockupGridPage() {
   return (
@@ -26,6 +26,7 @@ export default function BagMockupGridPage() {
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
           <HomeLogoLink />
           <h1 className="public-title font-bold tracking-tight text-white">Bag Mockup Grid</h1>
+          <p className="text-sm text-white/60">Private uploads. Maximum 40 megapixels per image, 80 MB per export, 120 MB output. Exports may take two minutes; temporary files expire after 24 hours. 30 exports per hour.</p>
           <p className="text-muted-foreground max-w-lg text-base leading-relaxed md:text-sm">
             Drag and drop any number of designs — each one becomes a finished bag mockup, laid
             out in a 4-column grid you can reorder and export as one image.

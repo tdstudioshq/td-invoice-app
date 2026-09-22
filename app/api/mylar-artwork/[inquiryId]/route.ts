@@ -1,4 +1,4 @@
-import { getUser, isAdminEmail } from "@/lib/auth";
+import { requireAdminApi } from "@/lib/auth";
 import { getMylarArtworkFile } from "@/lib/mylar-printing/queries";
 import { previewKind } from "@/lib/portal";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
@@ -27,9 +27,8 @@ export async function GET(
   req: Request,
   ctx: RouteContext<"/api/mylar-artwork/[inquiryId]">,
 ) {
-  const user = await getUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
-  if (!isAdminEmail(user.email)) return new Response("Not found", { status: 404 });
+  const user = await requireAdminApi();
+  if (user instanceof Response) return user;
   if (!isSupabaseAdminConfigured()) {
     return new Response("Not configured", { status: 500 });
   }

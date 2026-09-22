@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
+import { OWNER_RESOLVE_ERROR, currentOwnerId, requireAdmin } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { DEFAULT_QR_STYLE, parseQrStyle } from "@/lib/qr/style";
 import type { ActionState } from "@/app/actions/types";
@@ -126,6 +126,7 @@ export async function saveQrCodeAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = saveSchema.safeParse({
     name: formData.get("name"),
     destination: formData.get("destination"),
@@ -211,6 +212,7 @@ export async function updateQrCodeAction(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  await requireAdmin();
   const parsed = updateSchema.safeParse({
     name: formData.get("name"),
     destination: formData.get("destination"),
@@ -259,6 +261,7 @@ export async function updateQrCodeAction(
  * update to the caller's own rows.
  */
 export async function toggleQrCodeAction(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   const currentlyActive = String(formData.get("is_active") ?? "") === "true";
   if (!id || !isSupabaseConfigured()) return;
@@ -277,6 +280,7 @@ export async function toggleQrCodeAction(formData: FormData): Promise<void> {
  * short link stops resolving immediately.
  */
 export async function deleteQrCodeAction(formData: FormData): Promise<void> {
+  await requireAdmin();
   const id = String(formData.get("id") ?? "");
   if (!id || !isSupabaseConfigured()) return;
 

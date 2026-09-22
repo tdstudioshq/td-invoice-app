@@ -13,7 +13,7 @@ export const metadata = {
 
 // PUBLIC, no-auth tool. Anyone with the link can drop JPG/PNG designs and get
 // print-ready PDFs with the vector cut contour overlaid. Nothing is stored:
-// /api/cutline/generate composes each PDF in-request and streams it back.
+// /api/cutline/generate issues direct private uploads; a bounded worker renders the PDF.
 export default function PublicCutlineGeneratorPage() {
   return (
     <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
@@ -24,6 +24,7 @@ export default function PublicCutlineGeneratorPage() {
           <h1 className="public-title font-bold tracking-tight text-white">
             Cutline Generator
           </h1>
+          <p className="text-sm text-white/60">Private uploads. Maximum 40 megapixels per image, 80 MB per export, 120 MB output. Exports may take two minutes; temporary files expire after 24 hours. 30 exports per hour.</p>
           <p className="text-muted-foreground max-w-md text-base leading-relaxed md:text-sm">
             Drop 1200×1500 designs to get print-ready PDFs with the cut contour
             overlaid. Batch supported — nothing is stored.
