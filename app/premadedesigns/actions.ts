@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 
-import { hasPremadeDesignsAccess } from "@/app/premadedesigns/access";
 import {
   PREMADE_COLLECTIONS_PAGE_SIZE,
   PREMADE_DESIGNS_PAGE_SIZE,
@@ -44,10 +43,6 @@ const pathsSchema = z
 export async function getPremadeDesignUrlsAction(
   paths: string[],
 ): Promise<PremadeDesignUrlsState> {
-  if (!(await hasPremadeDesignsAccess())) {
-    return { urls: {}, expiresAt: 0, error: "Gallery access expired." };
-  }
-
   const parsed = pathsSchema.safeParse(paths);
   if (!parsed.success) {
     return { urls: {}, expiresAt: 0, error: "Invalid image request." };

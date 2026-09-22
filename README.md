@@ -161,7 +161,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/tools/bag-mockup-grid`        | Bag Mockup Grid (lineup)                        |
 | `/qr-generator`                 | Public QR generator (no saving)                 |
 | `/portfolio`                    | Portfolio gallery                               |
-| `/premadedesigns`               | Premade designs gallery (keypad-gated, DB manifest) |
+| `/premadedesigns`               | Premade designs gallery (public, DB manifest)   |
 | `/gso`                          | GSO gallery                                     |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
@@ -772,7 +772,7 @@ Supabase project with the anon key and existing RLS only. See
    | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | optional | email; degrades gracefully |
    | `NEXT_PUBLIC_SITE_URL` | optional | custom domain; otherwise `VERCEL_URL` is used |
    | `QR_SCAN_SALT` | optional | salts hashed IPs; a default is used when unset |
-   | `PREMADE_GALLERY_COOKIE_SECRET` | optional | signs the `/premadedesigns` keypad cookie; falls back to `SUPABASE_SECRET_KEY` |
+   | `PREMADE_GALLERY_COOKIE_SECRET` | optional | signs the `/newpremades` keypad cookie; falls back to `SUPABASE_SECRET_KEY` |
 
 5. **Partner subdomains (optional)** — to serve a print partner's portal on its
    own hostname, add the domain to this same Vercel project (Project → Settings →
