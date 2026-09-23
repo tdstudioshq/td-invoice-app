@@ -112,6 +112,7 @@ export const DESIGN_COUNT_CHOICES = [1, 2, 3, 4] as const;
 /** First design count that requires the "More than 4" numeric input. */
 export const DESIGN_COUNT_CUSTOM_MIN = 5;
 
+/** Hard ceiling on designs in one order; mirrors the DB check constraint. */
 export const MAX_DESIGN_COUNT = 500;
 
 // ---------------------------------------------------------------------------
@@ -164,9 +165,6 @@ export const ARTWORK_SIDES: readonly MylarArtworkSide[] = ["front", "back"];
 export function artworkSideLabel(side: MylarArtworkSide): string {
   return side === "front" ? "Front" : "Back";
 }
-
-/** Hard ceiling on designs in one order; mirrors the DB check constraint. */
-export const MAX_DESIGNS_PER_ORDER = MAX_DESIGN_COUNT;
 
 // ---------------------------------------------------------------------------
 // Contact preference

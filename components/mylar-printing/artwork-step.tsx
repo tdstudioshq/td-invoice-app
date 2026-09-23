@@ -19,7 +19,7 @@ import {
 } from "@/lib/mylar-printing/artwork";
 import { allocationError, totalAllocated } from "@/lib/mylar-printing/schema";
 import {
-  MAX_DESIGNS_PER_ORDER,
+  MAX_DESIGN_COUNT,
   type MylarArtworkFile,
   type MylarArtworkSide,
   type MylarDesignDraft,
@@ -183,7 +183,7 @@ export function ArtworkStep({
         ))}
       </div>
 
-      {designs.length < MAX_DESIGNS_PER_ORDER ? (
+      {designs.length < MAX_DESIGN_COUNT ? (
         <Button
           type="button"
           variant="outline"
