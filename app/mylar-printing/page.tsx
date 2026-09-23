@@ -21,8 +21,8 @@ const TEXT_HREF = "sms:+19297528373";
  * Public, no-auth Custom Mylar Printing quote wizard — the primary CTA on the
  * home "link in bio" card. Allow-listed in proxy.ts.
  *
- * Unlike the older Formspree forms (/custom-design-request,
- * /mylar-bag-printing), this one persists: the submission is stored in
+ * Unlike the older Formspree form at /custom-design-request, this one
+ * persists: the submission is stored in
  * mylar_printing_inquiries with its artwork in the private `mylar-artwork`
  * bucket, and TD Studios works it from /mylar-requests in the dashboard.
  */

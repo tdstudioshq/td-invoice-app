@@ -5,8 +5,7 @@ import {
 
 /**
  * Browser-side half of the public design-request upload pipeline, shared by
- * every anonymous form that accepts files (`/custom-design-request` and
- * `/how-to-order`).
+ * every anonymous form that accepts files (`/custom-design-request`).
  *
  * Files upload straight to the private `design-requests` Storage bucket via
  * server-minted signed upload URLs. The custom-design form persists the
@@ -82,7 +81,6 @@ export async function uploadDesignRequestAssets(
 }
 
 /** Formspree inbox used by the two remaining legacy public forms. */
-export const FORMSPREE_ENDPOINT = "https://formspree.io/f/movkvrpz";
 
 /** Shared input styling for the dark glass forms. */
 export const formFieldClass =

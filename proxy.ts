@@ -35,8 +35,6 @@ const PUBLIC_PATHS = new Set<string>([
   "/premadedesigns",
   "/newpremades",
   "/custom-design-request",
-  "/how-to-order",
-  "/mylar-bag-printing",
   "/mylar-printing",
   "/portfolio",
   // Public client proof gallery (White Ash Farms). Artwork is served from a

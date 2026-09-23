@@ -31,6 +31,18 @@ const nextConfig: NextConfig = {
         destination: "/premadedesigns",
         permanent: true,
       },
+      // Superseded by the persisting /mylar-printing wizard. Both were public
+      // URLs that may have been shared, so they redirect rather than 404.
+      {
+        source: "/how-to-order",
+        destination: "/mylar-printing",
+        permanent: true,
+      },
+      {
+        source: "/mylar-bag-printing",
+        destination: "/mylar-printing",
+        permanent: true,
+      },
     ];
   },
   outputFileTracingIncludes: {
