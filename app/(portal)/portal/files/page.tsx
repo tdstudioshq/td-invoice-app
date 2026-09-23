@@ -1,12 +1,8 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { FileBrowser } from "@/components/portal/file-browser";
 import { requirePortalUser } from "@/lib/auth";
-import {
-  getClientFiles,
-  getClientProjects,
-  getFavoriteFileIds,
-  getFileActivity,
-} from "@/lib/data";
+import { getClientFiles } from "@/lib/queries/portals";
+import { getClientProjects, getFavoriteFileIds, getFileActivity } from "@/lib/queries/projects";
 
 export const metadata = { title: "Files" };
 

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { QrCodeList } from "@/components/qr/qr-code-list";
 import { QrGenerator } from "@/components/qr/qr-generator";
 import { Button } from "@/components/ui/button";
-import { getQrCodes, getQrScanCounts } from "@/lib/data";
+import { getQrCodes, getQrScanCounts } from "@/lib/queries/qr";
 import { getSiteUrl } from "@/lib/email/client";
 
 export const metadata = { title: "QR Codes" };

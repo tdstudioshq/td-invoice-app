@@ -20,11 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  getQrCodeById,
-  getQrScansForQrCode,
-  getQrScanSummary,
-} from "@/lib/data";
+import { getQrCodeById, getQrScanSummary, getQrScansForQrCode } from "@/lib/queries/qr";
 import { getSiteUrl } from "@/lib/email/client";
 import { formatDateTime } from "@/lib/format";
 

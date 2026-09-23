@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireOwnedClient, toFieldErrors } from "@/lib/action-helpers";
-import { getCompanySettings } from "@/lib/data";
+import { getCompanySettings } from "@/lib/queries/settings";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { OWNER_RESOLVE_ERROR, currentOwnerId, requireAdmin } from "@/lib/auth";
 import {

@@ -31,10 +31,37 @@ const nextConfig: NextConfig = {
         destination: "/premadedesigns",
         permanent: true,
       },
+      // Superseded by the persisting /mylar-printing wizard. Both were public
+      // URLs that may have been shared, so they redirect rather than 404.
+      {
+        source: "/how-to-order",
+        destination: "/mylar-printing",
+        permanent: true,
+      },
+      {
+        source: "/mylar-bag-printing",
+        destination: "/mylar-printing",
+        permanent: true,
+      },
+      // /newpremades was a second premade catalog whose artwork lived in the
+      // repo. It was retired rather than merged into the Supabase catalog, so
+      // the URL now lands on the canonical gallery.
+      {
+        source: "/newpremades",
+        destination: "/premadedesigns",
+        permanent: true,
+      },
+      // /designs was the SAME public GSO bucket as /gso behind a keypad, so
+      // the gate only hid the listing while every object URL stayed public.
+      // /gso is the public-intent route; /designs redirects to it.
+      {
+        source: "/designs",
+        destination: "/gso",
+        permanent: true,
+      },
     ];
   },
   outputFileTracingIncludes: {
-    "/newpremades/image/*": ["./assets/newpremades/*.webp"],
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.

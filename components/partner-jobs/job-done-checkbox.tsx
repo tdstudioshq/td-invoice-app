@@ -4,7 +4,9 @@ import { useTransition } from "react";
 import { CheckCircleIcon, CircleIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
-import { setPartnerJobDoneAction } from "@/app/actions/partner-jobs";
+import {
+  setPartnerJobDoneAction,
+} from "@/app/actions/partner-job-edits";
 import { isJobDone, type DesignJobStatus } from "@/lib/partner-jobs/types";
 import { cn } from "@/lib/utils";
 

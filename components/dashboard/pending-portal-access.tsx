@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
-import type { PendingPortalSignup } from "@/lib/data";
+import type { PendingPortalSignup } from "@/lib/queries/portals";
 
 function ApproveButton() {
   const { pending } = useFormStatus();

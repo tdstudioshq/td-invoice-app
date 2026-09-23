@@ -5,7 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { ProjectDetailContent } from "@/components/portal/project-detail-content";
 import { Button } from "@/components/ui/button";
 import { requirePortalUser } from "@/lib/auth";
-import { getClientFiles, getClientProject } from "@/lib/data";
+import { getClientFiles } from "@/lib/queries/portals";
+import { getClientProject } from "@/lib/queries/projects";
 
 export async function generateMetadata(
   props: PageProps<"/portal/projects/[projectId]">,

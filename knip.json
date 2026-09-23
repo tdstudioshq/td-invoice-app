@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": ["mobile/**"],
+  "ignoreDependencies": ["server-only", "tailwindcss", "tw-animate-css", "shadcn"],
+  "ignoreBinaries": ["supabase", "bun"],
+  "entry": [
+    "proxy.ts",
+    "next.config.ts",
+    "app/**/access.ts",
+    "scripts/*.ts",
+    "scripts/**/*.test.ts"
+  ]
+}

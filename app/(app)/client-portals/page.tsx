@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getClientPortalSummaries } from "@/lib/data";
+import { getClientPortalSummaries } from "@/lib/queries/portals";
 
 export const metadata = { title: "Client Portals" };
 

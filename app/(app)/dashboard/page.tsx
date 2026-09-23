@@ -4,7 +4,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { PendingPortalAccess } from "@/components/dashboard/pending-portal-access";
 import { TaskManager } from "@/components/dashboard/task-manager";
-import { getClients, getPendingPortalSignups, getTasks } from "@/lib/data";
+import { getClients } from "@/lib/queries/clients";
+import { getPendingPortalSignups } from "@/lib/queries/portals";
+import { getTasks } from "@/lib/queries/tasks";
 import { isDueToday, isOverdue, todayISODate } from "@/lib/tasks";
 
 export const metadata = { title: "Dashboard" };

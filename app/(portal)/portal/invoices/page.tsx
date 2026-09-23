@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requirePortalUser } from "@/lib/auth";
-import { getInvoicesForClient } from "@/lib/data";
+import { getInvoicesForClient } from "@/lib/queries/invoices";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { effectiveStatus } from "@/lib/invoice";
 

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * Presentational primitives shared by every step of the mylar printing wizard.
  *
  * The visual language is the site's existing dark-glass public-page treatment
- * (see /custom-design-request and /mylar-bag-printing): white-alpha borders on
+ * (see /custom-design-request): white-alpha borders on
  * a blurred translucent panel, inset top highlight, white primary button.
  * The field class is redeclared here rather than imported from
  * lib/design-request-upload.ts on purpose — that module pulls in the Formspree

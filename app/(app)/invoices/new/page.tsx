@@ -5,7 +5,8 @@ import { createInvoiceAction } from "@/app/actions/invoices";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { getClients, getCompanySettings } from "@/lib/data";
+import { getClients } from "@/lib/queries/clients";
+import { getCompanySettings } from "@/lib/queries/settings";
 
 export const metadata = { title: "New invoice" };
 

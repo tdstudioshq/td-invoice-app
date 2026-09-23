@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getClients } from "@/lib/data";
+import { getClients } from "@/lib/queries/clients";
 
 export const metadata = { title: "Clients" };
 

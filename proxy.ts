@@ -33,10 +33,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/auth/callback",
   "/qr-generator",
   "/premadedesigns",
-  "/newpremades",
   "/custom-design-request",
-  "/how-to-order",
-  "/mylar-bag-printing",
   "/mylar-printing",
   "/portfolio",
   // Public client proof gallery (White Ash Farms). Artwork is served from a
@@ -44,7 +41,6 @@ const PUBLIC_PATHS = new Set<string>([
   "/whiteash",
   "/taste-budz",
   "/gso",
-  "/designs",
   "/martyig",
   "/mafiaterpz",
   "/tools/cutline-generator",
@@ -207,7 +203,7 @@ function finish(
   // --- Main site -----------------------------------------------------------
   // `/q/<slug>` is the public dynamic-QR redirect — it must be reachable
   // without a session.
-  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/") || pathname.startsWith("/newpremades/image/");
+  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/");
 
   if (!signedIn && !isPublic) {
     const loginUrl = new URL("/login", request.url);

@@ -7,7 +7,7 @@ import {
 } from "@/app/mafiaterpz/access";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
-import { getMafiaTerpzImages } from "@/lib/data";
+import { getMafiaTerpzImages } from "@/lib/queries/galleries";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/mafia-terpz-logo.png";

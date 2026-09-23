@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/layout/page-header";
 import { SettingsForm } from "@/components/settings/settings-form";
-import { getCompanySettings } from "@/lib/data";
+import { getCompanySettings } from "@/lib/queries/settings";
 
 export const metadata = { title: "Settings" };
 
