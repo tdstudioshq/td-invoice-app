@@ -153,7 +153,6 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/reset-password`               | Password recovery                               |
 | `/q/<slug>`                     | Dynamic QR redirect + scan logging              |
 | `/mylar-printing`               | Custom Mylar Printing quote wizard              |
-| `/mylar-bag-printing`           | Earlier mylar bag order form (Formspree)        |
 | `/custom-design-request`        | Custom design request form (stored)             |
 | `/tools/cutline-generator`      | Cutline Generator                               |
 | `/tools/mockup-generator`       | Mylar Bag Mockup Generator (single bag)         |
@@ -165,7 +164,6 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/gso`                          | GSO gallery                                     |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
-| `/how-to-order`                 | Ordering instructions                           |
 | `/mylar`                        | Static single-file mylar shop (`public/mylar/`) |
 
 Public paths are allow-listed in `proxy.ts`. That gate is optimistic — real
