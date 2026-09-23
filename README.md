@@ -743,6 +743,11 @@ Supabase project with the anon key and existing RLS only. See
 
 ## Deploy to Vercel
 
+> **Ongoing deploys come from `main`, and only from `main`.** A feature branch
+> that is committed, pushed and green is not live — merge it to `main` and push,
+> then verify against the production URL rather than the build log. The full rule,
+> including what to report, is the **Deployment workflow** section of `CLAUDE.md`.
+
 ### Deployment checklist
 
 1. **Database** — apply migrations to your Supabase project **in order** via the

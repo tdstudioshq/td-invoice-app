@@ -23,6 +23,7 @@ This project uses **Next.js 16.3.1** with **React 19**. The pinned guidance in `
 | Touching any owner-scoped RLS policy, or writing `owner_id` | **Workspace admin ownership** (this file) |
 | A new route that reads Supabase | **Routes & rendering** + **Data flow** (this file) |
 | Verifying a change by hand | **Verifying changes** (this file) |
+| Shipping anything to production | **Deployment workflow** (this file) |
 | Throwing, catching, or logging an error | **Error handling & reporting** (this file) |
 | A static site in `public/`, or a remote image | the `next.config.ts` bullet in **Conventions** |
 | Adding **any** image, or reaching for `next/image` | the image-optimizer bullet in **Conventions** (it returns 402 → blank) |
@@ -105,6 +106,23 @@ Not every row applies to every change — work the ones that do:
 ### Without Supabase configured
 
 Every read and write is guarded by `isSupabaseConfigured()` / `isSupabaseAdminConfigured()` / `isResendConfigured()`, so the app builds and renders empty states with no `.env.local` at all. That is a supported mode — check new data code still degrades instead of throwing.
+
+## Deployment workflow
+
+**Production (`tdstudiosny.com`) deploys from `main`, and only from `main`.** A feature branch that is committed, pushed, and green is still not live — Vercel never builds it. This section exists because that assumption shipped nothing for four days: five phone-facing commits sat on `mobile-optimization-pass` while `main` deployed unrelated work, so the site looked stale with no error anywhere to explain why.
+
+- **Never treat committed or pushed as live.** `git push origin <branch>` reaches GitHub, not production. The only evidence that something is live is the production URL serving it.
+- **Check the current branch before making changes** — `git branch --show-current`. It decides whether the work needs a merge to ship at all.
+- **When the task explicitly includes deployment**, the sequence from a feature branch is:
+  1. `npm run lint && npx tsc --noEmit && npm run build` — the whole gate from **Verifying changes**, run *before* anything is pushed. There is no test runner in this repo, so those three are the entire automated check.
+  2. Commit and push the feature branch.
+  3. Merge into `main`.
+  4. Push `main`.
+  5. Confirm the production deployment reached **Ready** (`vercel ls --prod`).
+- **Verify the change against the production URL, not the build log.** A green deploy only proves the bundle compiled — it does not prove the page changed. Fetch the page and grep for a marker unique to the new code (`curl -sL https://tdstudiosny.com | grep -c '<marker>'`); the apex 308-redirects to `www`, so `-L` is required. If the marker is absent while `x-vercel-cache: MISS` and `age: 0`, the origin genuinely lacks the code — a stale CDN is almost never the real cause.
+- **Report all six facts when the work is done:** branch used, commit SHA, whether it was merged to `main`, whether `main` was pushed, production deployment status, and what production verification was performed.
+- **Never leave deployment-requested work sitting on a feature branch without warning, in plain words, that it is NOT live.** Silence reads as shipped.
+
 
 ## Environment variables
 
