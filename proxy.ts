@@ -33,7 +33,6 @@ const PUBLIC_PATHS = new Set<string>([
   "/auth/callback",
   "/qr-generator",
   "/premadedesigns",
-  "/newpremades",
   "/custom-design-request",
   "/mylar-printing",
   "/portfolio",
@@ -205,7 +204,7 @@ function finish(
   // --- Main site -----------------------------------------------------------
   // `/q/<slug>` is the public dynamic-QR redirect — it must be reachable
   // without a session.
-  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/") || pathname.startsWith("/newpremades/image/");
+  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/");
 
   if (!signedIn && !isPublic) {
     const loginUrl = new URL("/login", request.url);

@@ -43,10 +43,17 @@ const nextConfig: NextConfig = {
         destination: "/mylar-printing",
         permanent: true,
       },
+      // /newpremades was a second premade catalog whose artwork lived in the
+      // repo. It was retired rather than merged into the Supabase catalog, so
+      // the URL now lands on the canonical gallery.
+      {
+        source: "/newpremades",
+        destination: "/premadedesigns",
+        permanent: true,
+      },
     ];
   },
   outputFileTracingIncludes: {
-    "/newpremades/image/*": ["./assets/newpremades/*.webp"],
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.

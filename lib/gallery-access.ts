@@ -146,7 +146,7 @@ async function attemptKey(label: string): Promise<string> {
 }
 
 /**
- * HMAC-signed gate: `/premadedesigns`, `/newpremades`. Fails closed when
+ * HMAC-signed gate: `/premadedesigns`. Fails closed when
  * neither `PREMADE_GALLERY_COOKIE_SECRET` nor `SUPABASE_SECRET_KEY` is set.
  * `attemptWindows` is per-gate, matching the previous per-module Maps.
  */
