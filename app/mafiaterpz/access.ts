@@ -23,7 +23,3 @@ export async function enterMafiaTerpzCodeAction(
 ): Promise<ActionState> {
   return gate.enter(previous, formData);
 }
-
-export async function lockMafiaTerpzAction(): Promise<void> {
-  return gate.lock();
-}

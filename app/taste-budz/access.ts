@@ -23,7 +23,3 @@ export async function enterTasteBudzCodeAction(
 ): Promise<ActionState> {
   return gate.enter(previous, formData);
 }
-
-export async function lockTasteBudzAction(): Promise<void> {
-  return gate.lock();
-}

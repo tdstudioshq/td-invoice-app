@@ -14,11 +14,13 @@ import {
 import { toast } from "sonner";
 
 import {
-  deletePartnerJobAction,
   discardPartnerJobFilesAction,
   submitPartnerJobAction,
-  updatePartnerJobAction,
 } from "@/app/actions/partner-jobs";
+import {
+  deletePartnerJobAction,
+  updatePartnerJobAction,
+} from "@/app/actions/partner-job-edits";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

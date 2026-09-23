@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { setPartnerJobStatusAction } from "@/app/actions/partner-jobs";
+import {
+  setPartnerJobStatusAction,
+} from "@/app/actions/partner-job-edits";
 import {
   Select,
   SelectContent,

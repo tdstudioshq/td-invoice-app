@@ -23,7 +23,3 @@ export async function enterMartyigCodeAction(
 ): Promise<ActionState> {
   return gate.enter(previous, formData);
 }
-
-export async function lockMartyigAction(): Promise<void> {
-  return gate.lock();
-}
