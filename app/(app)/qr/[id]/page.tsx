@@ -125,34 +125,60 @@ export default async function QrDetailPage({
                 description="Scans of this code's public link will appear here."
               />
             ) : (
-              <div className="border-border overflow-hidden border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>When</TableHead>
-                      <TableHead>Device</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>Referrer</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {scans.map((scan) => (
-                      <TableRow key={scan.id}>
-                        <TableCell className="whitespace-nowrap">
+              <>
+                {/* Card list below sm: four nowrap columns inside an already
+                    narrow card scrolled sideways on a phone. */}
+                <ul className="space-y-3 sm:hidden">
+                  {scans.map((scan) => (
+                    <li
+                      key={scan.id}
+                      className="border-border space-y-1 rounded-[8px] border p-3"
+                    >
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm font-medium">
                           {formatDateTime(scan.scanned_at)}
-                        </TableCell>
-                        <TableCell className="capitalize">
+                        </span>
+                        <span className="text-muted-foreground shrink-0 text-xs capitalize">
                           {scan.device ?? "—"}
-                        </TableCell>
-                        <TableCell>{scan.country ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground max-w-64 truncate">
-                          {scan.referrer ?? "Direct"}
-                        </TableCell>
+                          {scan.country ? ` · ${scan.country}` : ""}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground truncate text-xs">
+                        {scan.referrer ?? "Direct"}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="border-border hidden overflow-hidden border sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>When</TableHead>
+                        <TableHead>Device</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Referrer</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {scans.map((scan) => (
+                        <TableRow key={scan.id}>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDateTime(scan.scanned_at)}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {scan.device ?? "—"}
+                          </TableCell>
+                          <TableCell>{scan.country ?? "—"}</TableCell>
+                          <TableCell className="text-muted-foreground max-w-64 truncate">
+                            {scan.referrer ?? "Direct"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

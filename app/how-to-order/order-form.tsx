@@ -120,7 +120,7 @@ export function OrderForm() {
       <input type="hidden" name="_subject" value="New Order Request" />
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="notes" className="text-white">
+        <Label htmlFor="notes" className="text-base text-white md:text-sm">
           Additional notes
         </Label>
         <Textarea
@@ -133,7 +133,7 @@ export function OrderForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="assets" className="text-white">
+        <Label htmlFor="assets" className="text-base text-white md:text-sm">
           Upload your files
         </Label>
         <Input
@@ -152,7 +152,7 @@ export function OrderForm() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="name" className="text-white">
+          <Label htmlFor="name" className="text-base text-white md:text-sm">
             Name
           </Label>
           <Input
@@ -167,7 +167,7 @@ export function OrderForm() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="instagram" className="text-white">
+          <Label htmlFor="instagram" className="text-base text-white md:text-sm">
             Instagram name
           </Label>
           <Input
@@ -180,7 +180,7 @@ export function OrderForm() {
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="phone" className="text-white">
+          <Label htmlFor="phone" className="text-base text-white md:text-sm">
             Phone number
           </Label>
           <Input

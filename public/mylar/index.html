@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
 <title>TD STUDIOS — Custom Mylar Packaging · Open Late</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -576,6 +576,129 @@ button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px so
 }
 .form-success .big{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--green);text-shadow:0 0 16px rgba(61,255,122,0.4);}
 .form-success p{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;color:#D6D2C6;margin-top:10px;line-height:1.9;}
+/* =====================================================================
+   MOBILE HARDENING
+   ---------------------------------------------------------------------
+   Appended last on purpose: every rule below matches a selector that
+   already exists above at the same specificity, so source order is what
+   makes it win. Keep it as one block rather than editing the rules in
+   place — the desktop composition above is untouched and reviewable, and
+   everything that is here only because of a phone is in one place.
+   ===================================================================== */
+
+/* --- Safe areas. -----------------------------------------------------
+   The viewport meta now carries `viewport-fit=cover`, so on a notched
+   phone the layout viewport runs edge to edge and `env()` finally
+   reports real numbers. Without the insets below that means content
+   under the Dynamic Island at the top and under the notch rail in
+   landscape. `max()` rather than addition, so a device with no inset
+   keeps the intended 20px and never collapses to the screen edge. */
+.wrap{
+  padding-left:max(20px, env(safe-area-inset-left));
+  padding-right:max(20px, env(safe-area-inset-right));
+}
+/* Side effect worth stating: `.hero-grid` is a `.wrap` and its own
+   `padding:30px 0 0` shorthand was silently zeroing that gutter, so on a
+   phone the hero copy sat hard against the screen edge and the framed hero
+   photo lost the left and right sides of its own 1px border off-screen. A
+   longhand override restores the gutter the frame was drawn to sit in and
+   lines the headline up with every other section. */
+header{padding-top:env(safe-area-inset-top);}
+.nav-row{
+  padding-left:max(20px, env(safe-area-inset-left));
+  padding-right:max(20px, env(safe-area-inset-right));
+}
+/* The 44px controls below add ~21px to a header that is already fixed over
+   a fifth of a phone screen. Buy most of it back out of the padding, which
+   is the part nobody taps. */
+@media (max-width:767px), (hover:none) and (pointer:coarse) {
+  .nav-row{padding-top:8px;padding-bottom:8px;}
+  .mobile-nav{padding-top:7px;padding-bottom:7px;}
+}
+.mobile-nav{
+  padding-left:max(20px, env(safe-area-inset-left));
+  padding-right:max(20px, env(safe-area-inset-right));
+}
+.drawer{
+  padding-top:env(safe-area-inset-top);
+  padding-right:env(safe-area-inset-right);
+}
+.drawer-foot{padding-bottom:calc(24px + env(safe-area-inset-bottom));}
+/* The page's last control otherwise sits behind iOS Safari's floating
+   toolbar, which overlaps the bottom of the layout viewport. */
+.foot-row{padding-bottom:env(safe-area-inset-bottom);}
+
+/* --- The category scroller reads as a cut-off row, not a scrollable one.
+   It is a horizontal overflow strip whose last pill is sliced mid-word at
+   every phone width with nothing to say so. A right-edge fade is the
+   cheapest honest affordance; `scroll-padding-inline` keeps a snapped pill
+   clear of the gutters, and the mask lifts once the strip is scrolled to
+   the end so the last pill is not permanently dimmed. */
+.mobile-nav{
+  scroll-padding-inline:20px;
+  scroll-snap-type:x proximity;
+  -webkit-mask-image:linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent 100%);
+  mask-image:linear-gradient(to right, #000 0, #000 calc(100% - 34px), transparent 100%);
+}
+.mobile-nav.at-end{-webkit-mask-image:none;mask-image:none;}
+.mobile-nav button{scroll-snap-align:start;}
+
+/* --- Touch targets. --------------------------------------------------
+   Everything here measured under 44px in portrait: the two header icon
+   buttons (37px), the cart button and its trigger row, the category
+   pills (32px), the cart drawer's close control (34px) and the wordmark
+   that doubles as the home link. Grown with `min-height` / `min-width`
+   plus centring, so the printed size of each control is unchanged and
+   only its hit box moves.
+
+   Gated on `(hover:none) and (pointer:coarse)` as well as on a narrow
+   viewport, because the same phone turned sideways is 844px wide — a
+   width-only query would hand a landscape phone the mouse-sized controls
+   and every failure above would come straight back. A mouse still gets
+   the tighter header the desktop composition was drawn for. */
+@media (max-width:767px), (hover:none) and (pointer:coarse) {
+  .logo{min-height:44px;align-items:center;}
+  .icon-btn{width:44px;height:44px;}
+  /* The desktop text nav appears from 768px up, which a landscape phone is. */
+  .nav-links button{min-height:44px;display:inline-flex;align-items:center;}
+  .cart-btn{min-height:44px;}
+  .mobile-nav button{min-height:44px;display:inline-flex;align-items:center;}
+  .drawer-close{min-height:44px;min-width:56px;display:inline-flex;align-items:center;justify-content:center;}
+  .cart-meta .rm{font-size:11px;display:inline-block;padding:6px 0;}
+  .gal-card{min-height:44px;}
+}
+
+/* --- iOS zoom-on-focus. ----------------------------------------------
+   Mobile Safari zooms the whole page when a focused field's font-size is
+   under 16px, and then leaves the page zoomed — the single most jarring
+   thing that can happen in a checkout form. Every field on this page was
+   set at 12-14px. Raised only below the desktop breakpoint, so the
+   intended desktop type scale is untouched. */
+@media (max-width:767px), (hover:none) and (pointer:coarse) {
+  .field input[type=text],
+  .field input[type=tel],
+  .field input[type=email],
+  .field textarea{font-size:16px;}
+  .upload-box input{font-size:16px;}
+  .upload-box input::file-selector-button{font-size:13px;min-height:44px;padding:0 14px;}
+  .check{font-size:13px;}
+  .stepper .val{font-size:16px;}
+}
+
+/* --- Micro-print floor. ----------------------------------------------
+   A handful of mono labels were set at 9px, which is below what is
+   readable at arm's length on a phone whatever the family. 11px is still
+   unmistakably small print; the tracking is what carries that look, not
+   the size. */
+@media (max-width:767px), (hover:none) and (pointer:coarse) {
+  .hero-stats .lbl,
+  .gal-info .id,
+  .upload-note,
+  .wire-note,
+  .cart-meta .s{font-size:11px;}
+  .foot-row{font-size:11px;}
+  .ticker-track{font-size:11px;}
+}
 </style>
 </head>
 <body>
@@ -829,25 +952,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px so
       <div id="custom-form">
         <div class="field" id="f-name">
           <label>Name <span class="req">*</span></label>
-          <input type="text" id="cf-name" placeholder="YOUR NAME" autocomplete="name">
+          <input type="text" id="cf-name" placeholder="YOUR NAME" autocomplete="name" autocapitalize="words">
           <div class="err">NAME IS REQUIRED</div>
         </div>
 
         <div class="field" id="f-phone">
           <label>Phone Number <span class="req">*</span></label>
-          <input type="tel" id="cf-phone" placeholder="(555) 555-5555" autocomplete="tel">
+          <input type="tel" id="cf-phone" placeholder="(555) 555-5555" autocomplete="tel" inputmode="tel">
           <div class="err">ENTER A VALID PHONE NUMBER</div>
         </div>
 
         <div class="field" id="f-email">
           <label>Email <span class="req">*</span></label>
-          <input type="email" id="cf-email" placeholder="YOU@BRAND.COM" autocomplete="email">
+          <input type="email" id="cf-email" placeholder="YOU@BRAND.COM" autocomplete="email" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false">
           <div class="err">ENTER A VALID EMAIL</div>
         </div>
 
         <div class="field" id="f-ig">
           <label>Instagram Handle</label>
-          <input type="text" id="cf-ig" placeholder="@YOURBRAND">
+          <input type="text" id="cf-ig" placeholder="@YOURBRAND" autocapitalize="none" autocorrect="off" spellcheck="false">
         </div>
 
         <div class="field" id="f-products">
@@ -1071,6 +1194,29 @@ function sizeSpacer(){
     document.querySelector('header').offsetHeight + 'px';
 }
 window.addEventListener('resize', sizeSpacer);
+/* The header grows by the top safe-area inset on a notched phone, and that
+   inset changes on rotation, so the spacer has to be re-measured then too —
+   `resize` alone does not always fire for an orientation change in iOS
+   Safari. */
+window.addEventListener('orientationchange', () => setTimeout(sizeSpacer, 250));
+
+/* ---------- CATEGORY SCROLLER ----------
+   The pill row is a horizontal overflow strip. Its right-edge fade says so;
+   this drops the fade once the strip is scrolled to the end, so the last
+   pill is not left permanently dimmed. */
+function syncNavFade(){
+  const nav = document.querySelector('.mobile-nav');
+  if (!nav) return;
+  const atEnd = nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 2;
+  nav.classList.toggle('at-end', atEnd || nav.scrollWidth <= nav.clientWidth + 2);
+}
+(function initNavFade(){
+  const nav = document.querySelector('.mobile-nav');
+  if (!nav) return;
+  nav.addEventListener('scroll', syncNavFade, { passive: true });
+  window.addEventListener('resize', syncNavFade);
+  syncNavFade();
+})();
 
 /* ---------- SCROLL REVEAL ---------- */
 const io = new IntersectionObserver(entries=>{

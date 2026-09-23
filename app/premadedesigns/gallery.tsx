@@ -557,9 +557,9 @@ function DesignLightbox({
             else if (delta < -48) goNext();
             touchStartX.current = null;
           }}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl sm:p-8"
+          className="lightbox-shell fixed inset-0 z-[70] flex items-center justify-center bg-black/90 backdrop-blur-xl"
         >
-          <div className="absolute top-4 left-1/2 max-w-[65vw] -translate-x-1/2 text-center">
+          <div className="lb-badge absolute left-1/2 max-w-[65vw] -translate-x-1/2 text-center">
             <p className="truncate text-sm font-medium text-white">
               {current.title}
             </p>
@@ -572,7 +572,7 @@ function DesignLightbox({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-4 right-4 inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15 md:size-10"
+            className="lb-close absolute inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15 md:size-10"
           >
             <XIcon weight="bold" className="size-5" />
           </button>
@@ -586,7 +586,7 @@ function DesignLightbox({
                   goPrevious();
                 }}
                 aria-label="Previous image"
-                className="absolute top-1/2 left-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15 sm:left-6"
+                className="lb-prev absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15"
               >
                 <CaretLeftIcon weight="bold" className="size-5" />
               </button>
@@ -597,7 +597,7 @@ function DesignLightbox({
                   goNext();
                 }}
                 aria-label="Next image"
-                className="absolute top-1/2 right-3 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15 sm:right-6"
+                className="lb-next absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white backdrop-blur-md transition hover:bg-white/15"
               >
                 <CaretRightIcon weight="bold" className="size-5" />
               </button>

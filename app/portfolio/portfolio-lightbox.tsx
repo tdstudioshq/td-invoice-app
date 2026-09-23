@@ -87,10 +87,10 @@ export function PortfolioLightbox({
           onClick={onClose}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-xl sm:p-8"
+          className="lightbox-shell fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-xl"
         >
           {/* Counter */}
-          <div className="pointer-events-none absolute left-1/2 top-5 -translate-x-1/2 rounded-full border border-white/15 bg-black/35 px-3.5 py-1.5 text-sm font-medium tabular-nums text-white/90 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md">
+          <div className="lb-badge pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/35 px-3.5 py-1.5 text-sm font-medium tabular-nums text-white/90 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md">
             {index + 1} / {images.length}
           </div>
 
@@ -99,7 +99,7 @@ export function PortfolioLightbox({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="absolute right-4 top-4 inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14] md:size-10"
+            className="lb-close absolute inline-flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14] md:size-10"
           >
             <XIcon weight="bold" className="size-5" />
           </button>
@@ -114,7 +114,7 @@ export function PortfolioLightbox({
                   event.stopPropagation();
                   goPrev();
                 }}
-                className="absolute left-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14] sm:left-6"
+                className="lb-prev absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14]"
               >
                 <CaretLeftIcon weight="bold" className="size-5" />
               </button>
@@ -125,7 +125,7 @@ export function PortfolioLightbox({
                   event.stopPropagation();
                   goNext();
                 }}
-                className="absolute right-3 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14] sm:right-6"
+                className="lb-next absolute top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-colors hover:bg-white/[0.14]"
               >
                 <CaretRightIcon weight="bold" className="size-5" />
               </button>

@@ -88,14 +88,16 @@ export function JobsBrowser({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search jobs by name or number"
             aria-label="Search jobs"
-            className="border-glass-border bg-glass-highlight/5 placeholder:text-muted-foreground/70 focus-visible:ring-metal-platinum/50 h-10 w-full rounded-[8px] border pr-9 pl-9 text-sm focus-visible:ring-2 focus-visible:outline-none"
+            // text-base below md is not cosmetic: iOS Safari zooms the viewport
+            // on focus for any input under 16px, and the page never zooms back.
+            className="border-glass-border bg-glass-highlight/5 placeholder:text-muted-foreground/70 focus-visible:ring-metal-platinum/50 h-11 w-full rounded-[8px] border pr-11 pl-9 text-base focus-visible:ring-2 focus-visible:outline-none md:h-10 md:text-sm"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 p-1"
+              className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 flex size-9 -translate-y-1/2 items-center justify-center md:right-2 md:size-7"
             >
               <XIcon className="size-4" />
             </button>
@@ -114,7 +116,9 @@ export function JobsBrowser({
             id="jobs-sort"
             value={sort}
             onChange={(event) => setSort(event.target.value as PartnerJobSort)}
-            className="border-glass-border bg-glass-highlight/5 focus-visible:ring-metal-platinum/50 h-10 flex-1 rounded-[8px] border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none sm:flex-none"
+            // Same 16px floor as the search box — a native <select> under 16px
+            // zooms on iOS too.
+            className="border-glass-border bg-glass-highlight/5 focus-visible:ring-metal-platinum/50 h-11 flex-1 rounded-[8px] border px-3 text-base focus-visible:ring-2 focus-visible:outline-none sm:flex-none md:h-10 md:text-sm"
           >
             {PARTNER_JOB_SORTS.map((option) => (
               <option key={option.id} value={option.id}>
@@ -126,7 +130,7 @@ export function JobsBrowser({
           <div
             role="group"
             aria-label="View"
-            className="border-glass-border flex h-10 shrink-0 items-center gap-1 rounded-[8px] border p-1"
+            className="border-glass-border flex h-11 shrink-0 items-center gap-1 rounded-[8px] border p-1 md:h-10"
           >
             <ViewButton
               active={view === "grid"}
@@ -187,7 +191,7 @@ function ViewButton({
       aria-pressed={active}
       title={label}
       className={cn(
-        "flex size-7 items-center justify-center rounded-[6px] transition-colors",
+        "flex size-9 items-center justify-center rounded-[6px] transition-colors md:size-7",
         active
           ? "bg-glass-highlight/25 text-foreground"
           : "text-muted-foreground hover:text-foreground",

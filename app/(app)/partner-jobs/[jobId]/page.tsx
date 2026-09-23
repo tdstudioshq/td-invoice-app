@@ -59,7 +59,7 @@ export default async function PartnerJobDetailPage(
     <>
       <Link
         href="/partner-jobs"
-        className="text-muted-foreground hover:text-foreground mb-4 inline-flex min-h-9 items-center gap-1.5 text-sm transition-colors"
+        className="text-muted-foreground hover:text-foreground mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm transition-colors md:min-h-9"
       >
         <ArrowLeft className="size-4" />
         Partner jobs
@@ -87,10 +87,13 @@ export default async function PartnerJobDetailPage(
 
             {job.submitted_by_email ? (
               <div className="border-glass-border border-t pt-4">
-                <Button asChild variant="outline" size="sm">
+                {/* max-w-full + truncate: buttonVariants sets whitespace-nowrap,
+                    so a long address used to run past the card (which clips it
+                    with overflow-hidden) on a phone. */}
+                <Button asChild variant="outline" size="sm" className="max-w-full">
                   <a href={`mailto:${job.submitted_by_email}`}>
                     <Mail className="size-4" />
-                    {job.submitted_by_email}
+                    <span className="truncate">{job.submitted_by_email}</span>
                   </a>
                 </Button>
               </div>

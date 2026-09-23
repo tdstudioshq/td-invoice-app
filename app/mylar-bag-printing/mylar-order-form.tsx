@@ -228,7 +228,7 @@ export function MylarOrderForm() {
 
       {/* ---------- 2. Quantity ---------- */}
       <div className="space-y-2">
-        <Label htmlFor="quantity_amount" className="text-white">
+        <Label htmlFor="quantity_amount" className="text-base text-white md:text-sm">
           Quantity
         </Label>
         <div className="flex items-center gap-2">
@@ -292,7 +292,7 @@ export function MylarOrderForm() {
 
       {/* ---------- 3. Artwork ---------- */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="artwork" className="text-white">
+        <Label htmlFor="artwork" className="text-base text-white md:text-sm">
           Artwork
         </Label>
         <Input
@@ -312,7 +312,7 @@ export function MylarOrderForm() {
 
       {/* ---------- 4. Notes ---------- */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="notes" className="text-white">
+        <Label htmlFor="notes" className="text-base text-white md:text-sm">
           Notes
         </Label>
         <Textarea
@@ -329,7 +329,7 @@ export function MylarOrderForm() {
         <legend className="text-white">Contact information</legend>
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="name" className="text-white">
+            <Label htmlFor="name" className="text-base text-white md:text-sm">
               Name
             </Label>
             <Input
@@ -344,7 +344,7 @@ export function MylarOrderForm() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="phone" className="text-white">
+            <Label htmlFor="phone" className="text-base text-white md:text-sm">
               Phone number
             </Label>
             <Input
@@ -359,7 +359,7 @@ export function MylarOrderForm() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email" className="text-white">
+            <Label htmlFor="email" className="text-base text-white md:text-sm">
               Email{" "}
               <span className="text-muted-foreground text-[13px] md:text-[11px]">
                 (optional)
@@ -376,7 +376,7 @@ export function MylarOrderForm() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="instagram" className="text-white">
+            <Label htmlFor="instagram" className="text-base text-white md:text-sm">
               Instagram{" "}
               <span className="text-muted-foreground text-[13px] md:text-[11px]">
                 (optional)

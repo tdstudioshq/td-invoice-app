@@ -193,7 +193,7 @@ export function QrGenerator({
       <CardContent className="grid gap-6 md:grid-cols-2 md:gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="qr-content">URL</Label>
+            <Label htmlFor="qr-content" className="text-base md:text-sm">URL</Label>
             <Input
               id="qr-content"
               type="url"
@@ -221,7 +221,7 @@ export function QrGenerator({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="qr-instagram">Instagram username</Label>
+            <Label htmlFor="qr-instagram" className="text-base md:text-sm">Instagram username</Label>
             <div className="relative">
               <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-sm">
                 @
@@ -248,7 +248,7 @@ export function QrGenerator({
           </div>
 
           <div className="flex flex-col gap-3 border-t border-glass-border pt-4">
-            <Label>Export</Label>
+            <Label className="text-base md:text-sm">Export</Label>
             <div className="flex flex-wrap items-center gap-2">
               <QrExportButtons
                 value={content}
@@ -276,7 +276,7 @@ export function QrGenerator({
             >
               <input type="hidden" name="destination" value={content} />
               <input type="hidden" name="style" value={JSON.stringify(style)} />
-              <Label htmlFor="qr-name">Save as dynamic QR</Label>
+              <Label htmlFor="qr-name" className="text-base md:text-sm">Save as dynamic QR</Label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   id="qr-name"

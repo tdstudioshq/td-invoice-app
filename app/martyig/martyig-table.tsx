@@ -29,12 +29,24 @@ type Lead = { name: string; username: string };
 const LEADS = leadsData as Lead[];
 const PAGE_SIZE = 50;
 
-/** First two initials from the display name, falling back to the username. */
+/**
+ * First two initials from the display name, falling back to the username.
+ *
+ * Sliced by CODE POINT, not by UTF-16 unit. Plenty of these Instagram display
+ * names start with an emoji, and `"🎯x".slice(0, 2)` cuts a surrogate pair in
+ * half — a lone surrogate that the server serialised one way and the client
+ * re-parsed another, which is exactly the text mismatch that was throwing a
+ * hydration error and forcing React to regenerate this whole table on the
+ * client. `Array.from` iterates code points, so a pair is kept whole.
+ */
 function initialsFor(lead: Lead) {
   const base = (lead.name || lead.username).trim();
   const parts = base.split(/\s+/).filter(Boolean);
+  const firstOf = (word: string) => Array.from(word)[0] ?? "";
   const raw =
-    parts.length >= 2 ? parts[0][0] + parts[1][0] : base.slice(0, 2);
+    parts.length >= 2
+      ? firstOf(parts[0]) + firstOf(parts[1])
+      : Array.from(base).slice(0, 2).join("");
   return raw.toUpperCase();
 }
 
@@ -227,7 +239,7 @@ export function MartyigTable() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="size-10 md:size-8"
+                          className="size-11 md:size-8"
                           aria-label={`Copy @${lead.username}`}
                           onClick={() => copyUsername(lead.username)}
                         >
@@ -237,7 +249,7 @@ export function MartyigTable() {
                           asChild
                           variant="ghost"
                           size="icon"
-                          className="size-10 md:size-8"
+                          className="size-11 md:size-8"
                         >
                           <a
                             href={`https://instagram.com/${lead.username}`}

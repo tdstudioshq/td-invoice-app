@@ -47,7 +47,9 @@ export function AppShell({
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
-        <header className="glass sticky top-0 z-30 flex min-h-16 items-center gap-3 border-x-0 border-t-0 border-b border-glass-border px-4 pt-[env(safe-area-inset-top)] md:hidden print:hidden">
+        {/* Horizontal safe-area padding matches <main> below: in landscape on a
+            notched phone a bare px-4 puts the menu button under the notch rail. */}
+        <header className="glass sticky top-0 z-30 flex min-h-16 items-center gap-3 border-x-0 border-t-0 border-b border-glass-border pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] md:hidden print:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
@@ -64,8 +66,21 @@ export function AppShell({
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <Brand />
               </SheetHeader>
-              <div className="p-3">
+              {/* flex-1 + scroll: the nav is taller than a short/landscape
+                  viewport, and SheetContent is a flex column, so without this
+                  the last items are unreachable. */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
                 <MainNav onNavigate={() => setOpen(false)} />
+              </div>
+              {/* The desktop sidebar's footer is `hidden` below md, so without
+                  this there is no way to sign out on a phone at all. */}
+              <div className="border-glass-border mt-auto border-t px-5 py-4">
+                {userEmail ? (
+                  <p className="text-muted-foreground mb-2 truncate text-xs">
+                    {userEmail}
+                  </p>
+                ) : null}
+                <SignOutButton />
               </div>
             </SheetContent>
           </Sheet>

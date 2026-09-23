@@ -71,7 +71,7 @@ export function QuantityStep({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="quantity" className="text-white">
+        <Label htmlFor="quantity" className="text-base text-white md:text-sm">
           Custom Amount
         </Label>
         <div className="flex items-center gap-2">

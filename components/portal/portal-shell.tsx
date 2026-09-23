@@ -123,7 +123,9 @@ export function PortalShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="bg-background/80 border-border sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b px-4 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
+        {/* Horizontal safe-area padding matches <main> below: in landscape on a
+            notched phone a bare px-4 puts the menu button under the notch rail. */}
+        <header className="bg-background/80 border-border sticky top-0 z-30 flex min-h-16 items-center gap-3 border-b pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
@@ -140,8 +142,20 @@ export function PortalShell({
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
                 <PortalBrand companyName={companyName} />
               </SheetHeader>
-              <div className="p-3">
+              {/* flex-1 + scroll: SheetContent is a flex column, so a nav taller
+                  than a short/landscape viewport would otherwise be cut off. */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
                 <PortalNav onNavigate={() => setOpen(false)} />
+              </div>
+              {/* The desktop sidebar's footer is `hidden` below md, so without
+                  this a portal user on a phone has no way to sign out. */}
+              <div className="border-border mt-auto border-t px-5 py-4">
+                {userEmail ? (
+                  <p className="text-muted-foreground mb-2 truncate text-xs">
+                    {userEmail}
+                  </p>
+                ) : null}
+                <SignOutButton />
               </div>
             </SheetContent>
           </Sheet>

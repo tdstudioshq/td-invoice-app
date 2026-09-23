@@ -28,10 +28,8 @@ import { cn } from "@/lib/utils";
  * scrolls out of view. It is a flag rather than a second hardcoded href so the
  * two can never drift apart.
  *
- * The card is deliberately down to a SINGLE call to action: the secondary tile
- * grid and the social badges were removed, so this is the only thing a visitor
- * can press. `tier` is kept so a tile can be added back without reshaping the
- * array, but nothing renders `tile` today.
+ * This array owns the order CTA. A separate mobile contact button sits above
+ * it. `tier` is kept for the former tile grid; nothing renders `tile` today.
  */
 const BIO_LINKS: {
   label: string;
@@ -82,14 +80,17 @@ const SHOWCASE_IMAGES: {
   /** `cover` fills and crops (right for photos); `contain` fits a whole mark in. */
   fit?: "cover" | "contain";
 }[] = [
-  // Premade mylar designs, 720x900 (4:5) to match the box — so `cover` fills it
-  // with no crop. Pre-sized and re-encoded from the 1200x1500 masters, because
-  // the optimizer is out of the delivery path and whatever ships here is what
-  // the browser downloads.
-  { src: "/showcase/mike-ike-french-toast.jpg", alt: "Mike and Ike French Toast premade mylar design" },
-  { src: "/showcase/hersheys-cookies-n-creme-cheesecake.jpg", alt: "Hershey's Cookies 'n' Creme Cheesecake premade mylar design" },
-  { src: "/showcase/rainbow-apple-jacks.jpg", alt: "Rainbow Apple Jacks premade mylar design" },
-  { src: "/showcase/nesquik-cinnamon-toast-crunch.jpg", alt: "Nesquik Cinnamon Toast Crunch premade mylar design" },
+  // WebP photos, pre-sized to 840px wide and listed in upload order.
+  { src: "/showcase/img-8952.webp", alt: "Hand holding a circular silver printed package" },
+  { src: "/showcase/img-8936.webp", alt: "Colorful custom printed mylar bags arranged in rows" },
+  { src: "/showcase/img-8965.webp", alt: "Fruit cereal and chocolate cupcake themed mylar bags" },
+  { src: "/showcase/img-8836.webp", alt: "Black, white, and colorful custom packaging designs" },
+  { src: "/showcase/img-8913.webp", alt: "Hand holding a stack of black wallet shaped printed bags" },
+  { src: "/showcase/img-9069.webp", alt: "Rows of orange and blue cereal themed mylar bags", fit: "contain" },
+  { src: "/showcase/img-9176.webp", alt: "Red and green fruit themed printed packaging in rows" },
+  { src: "/showcase/img-8802.webp", alt: "Hand holding colorful scratch card shaped packaging" },
+  { src: "/showcase/img-9064.webp", alt: "Monochrome rectangular and red circular printed packages" },
+  { src: "/showcase/img-8828.webp", alt: "Pink candy themed mylar packaging arranged in rows" },
 ];
 
 /** How long each image holds before the crossfade to the next one starts. */
@@ -235,7 +236,7 @@ function ShowcaseSlideshow() {
           fill
           sizes="(max-width: 767px) 92vw, 420px"
           unoptimized
-          priority={index === 0}
+          preload={index === 0}
           // Only the visible slide is announced; the rest are still in the DOM
           // purely so the crossfade has something to fade to.
           aria-hidden={index === active ? undefined : true}
@@ -391,7 +392,22 @@ export function HomeCard({
             <div className="home-card-links flex flex-col gap-3">
               {/* The tear line. Everything above it is who this is; everything
                   below it is what you can do. */}
-              <div aria-hidden className="tk-perforation mx-1 mb-1" />
+              <div aria-hidden className="tk-perforation mx-1 mb-1 hidden md:block" />
+
+              <a
+                href="sms:+19297528373"
+                className={cn(
+                  buttonBase,
+                  "tk-tile flex-col items-center justify-center gap-1 px-4 py-4 text-center text-white md:hidden",
+                )}
+                onPointerDown={beginSweep}
+                onAnimationEnd={endSweep}
+              >
+                <span className="tk-prize">GET IN TOUCH</span>
+                <span className="tk-micro !text-white leading-snug">
+                  CUSTOM DESIGNS INQUIRY/QUESTIONS
+                </span>
+              </a>
 
               {PRIZE_LINK ? (
                 <a
