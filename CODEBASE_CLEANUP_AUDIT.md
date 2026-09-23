@@ -255,3 +255,79 @@ npm cannot run the test suite.
 - `mobile/**` — separate workspace, invisible to static analysis
 - `assets/newpremades` 18 MB consolidation — §9, needs credentials + verification
 - `/gso` vs `/designs` resolution — §4b, product decision
+
+---
+
+# Phase 2 — Final report
+
+Branch `refactor/codebase-cleanup`, 9 commits, **not merged and not deployed**.
+
+## Metrics
+
+| | Before | After | Δ |
+| --- | --- | --- | --- |
+| Tracked files | 549 | 547 | −2 |
+| Tracked content | 30,816 KB | 30,148 KB | **−668 KB** |
+| Production routes | 73 | 71 | −2 |
+| Dependencies | 32 | 29 | −3 |
+| devDependencies | 9 | 10 | +1 (`shadcn` moved) |
+| knip unused deps | 3 | **0** | −3 |
+| knip duplicate exports | 1 | **0** | −1 |
+| Gallery gate implementations | 6 | **1** (2 factories) | −5 |
+
+Net diff vs `main`: 80 files changed, 1,919 insertions, 2,251 deletions.
+
+The file count barely moves because 12 new modules were added while 15 were
+deleted — the split traded one 731-line catch-all for nine focused ones.
+
+## Deleted files (15)
+
+`CLAUDE_SESSION_HANDOFF.md` · `lib/data.ts` ·
+`app/how-to-order/{page,order-form}.tsx` ·
+`app/mylar-bag-printing/{page,mylar-order-form,bag-types}.tsx|ts` ·
+`public/{next,vercel,file,globe,window}.svg` · `public/premade-watermark.png` ·
+`assets/newpremades/9c021318be11b914-{preview,thumb}.webp`
+
+## Deleted dependencies (3)
+
+`react-hook-form` · `@hookform/resolvers` · `react-social-icons`
+
+Also: `server-only` **added** (imported by 15 files, previously undeclared);
+`shadcn` moved from `dependencies` to `devDependencies`.
+
+## Deleted / redirected routes (2)
+
+| Route | Now |
+| --- | --- |
+| `/how-to-order` | 308 → `/mylar-printing` |
+| `/mylar-bag-printing` | 308 → `/mylar-printing` |
+
+Both verified by smoke check, including the `Location` header.
+
+## Validation — all passing from a clean tree (`rm -rf .next`)
+
+| Command | Result |
+| --- | --- |
+| `npm run lint` | exit 0 |
+| `npm run build` | exit 0 |
+| `npx tsc --noEmit` | exit 0 |
+| `npm run test` | 3 pass, 0 fail |
+| `npm run smoke:routes` | **24/24 passed** |
+
+Run after every batch, not only at the end.
+
+## Retained cleanup candidates
+
+| Candidate | Why it stayed |
+| --- | --- |
+| `assets/newpremades` (18 MB, 58% of the repo) | Highest-value item left. Consolidating into the Supabase premade catalog needs credentials, a manifest migration and per-image verification — deleting committed artwork before confirming upload is the wrong order. |
+| `/gso` vs `/designs` | Product decision, deferred by you. The GSO bucket is **public**, so `/designs`' keypad only hides the listing; gating `/gso` alone would be theater. |
+| The 4 unsigned gallery gates | Bypassable by sending the cookie directly. Upgrading to the signed variant invalidates live unlocks — a deliberate change, not a refactor side effect. |
+| `components/ui/dropdown-menu.tsx` | Unused, but hand-swapped to Phosphor icons; regenerating would silently restore lucide. |
+| `requireUser()` | Never called, but it is the documented generic auth guard. Docs corrected instead. |
+| `scripts/create-marty-client.ts` | Working, documented, idempotent ops tooling. "Superseded by the UI" ≠ never needed again. |
+| 82 unused exports / 26 unused types | Deliberate API surface in `lib/*/types.ts` and shadcn primitives. |
+| `/mylar` static shop | In-progress, not dead. |
+| Oversized components (`new-job-form` 1102, `file-browser` 847, wizard 755, `home-card` 742) | Real split candidates, but each is a behavioral component with no test coverage. Splitting them blind is how a working form breaks. |
+| `app/twitter-image.png` = `opengraph-image.png` (816 KB each) | Both paths required by Next's metadata convention; recompression is the fix, and it is an asset task rather than a code one. |
+| `bun` as test/script runtime | Legitimate; needs declaring, not replacing. |
