@@ -331,3 +331,65 @@ Run after every batch, not only at the end.
 | Oversized components (`new-job-form` 1102, `file-browser` 847, wizard 755, `home-card` 742) | Real split candidates, but each is a behavioral component with no test coverage. Splitting them blind is how a working form breaks. |
 | `app/twitter-image.png` = `opengraph-image.png` (816 KB each) | Both paths required by Next's metadata convention; recompression is the fix, and it is an asset task rather than a code one. |
 | `bun` as test/script runtime | Legitimate; needs declaring, not replacing. |
+
+---
+
+# Phase 3 — consolidation, gallery security, final
+
+## Corrected premise: `/newpremades` was never a duplicate
+
+Phase 1 assumed the two premade catalogs held overlapping artwork. Checked
+against Supabase before touching anything:
+
+- 41 of 42 `/newpremades` titles have **no counterpart** among the 2,259 catalog rows
+- **zero** local files' SHA-256 matched any catalog `content_hash`
+- best fuzzy title matches were 33–67% against clearly different products
+- the local files are derived WebP renditions (preview + thumb), with no
+  originals and no collection metadata
+
+So the galleries duplicated **architecture, not artwork**. "Consolidating" would
+have meant *adding* 41 low-fidelity renditions to a live customer-facing catalog
+under no collection — not removing duplicates. The route was retired instead, a
+deliberate choice to drop those designs from the site.
+
+## Gallery access posture — before and after
+
+| Gallery | Bucket | Before | After |
+| --- | --- | --- | --- |
+| `/taste-budz` | `TASTE BUDZ` | public bucket + literal `granted` cookie | **private bucket + signed URLs + HMAC gate** |
+| `/mafiaterpz` | *(never created)* | public-bucket read + literal cookie | signed-URL read + HMAC gate (still renders empty) |
+| `/martyig` | `leads.json` | literal `granted` cookie | **HMAC gate** |
+| `/premadedesigns` | `premade-designs` | private + HMAC | unchanged (already correct) |
+| `/designs` | `GSO` (public) | gated — fake security over the same bucket as open `/gso` | **retired, 308 → `/gso`** |
+| `/gso`, `/portfolio` | public | open | unchanged (public by intent) |
+
+Verified on the live project: `TASTE BUDZ` public URL now returns **400**, its
+signed URL **200**. The access code moved to `GALLERY_ACCESS_CODE` with **no
+source fallback** — unset fails closed. Set in Vercel Production before deploy.
+
+## Final metrics
+
+| | Phase 1 start | Final | Δ |
+| --- | --- | --- | --- |
+| Tracked files | 549 | **458** | −91 |
+| Tracked content | 30,816 KB | **12,592 KB** | **−18,224 KB (−59%)** |
+| Production routes | 73 | **68** | −5 |
+| Dependencies | 32 | 29 | −3 |
+| knip unused deps | 3 | **0** | −3 |
+| Gate implementations | 6 | **1** | −5 |
+
+12 commits · 173 files changed · +2,530 / −3,131.
+
+## Retained, with reasons
+
+| Candidate | Why |
+| --- | --- |
+| `components/ui/dropdown-menu.tsx` | Hand-swapped to Phosphor icons; regenerating restores lucide |
+| `scripts/premade-sync/core.ts`, `scripts/smoke-routes.mjs` | knip `--production` false positives — used by a script and an npm script |
+| `requireUser()` | Documented generic auth guard; docs corrected instead |
+| `scripts/create-marty-client.ts` | Working, documented, idempotent ops tooling |
+| `/mylar` static shop | In progress |
+| `/mafiaterpz` | Placeholder for a bucket never created; documented rather than deleted |
+| 81 unused exports / 25 types | Deliberate API surface in `lib/*/types.ts` + shadcn primitives |
+| `new-job-form.tsx` (1102), `file-browser.tsx` (847), wizard (755), `home-card.tsx` (742), `globals.css` (1244) | Behavioral UI with **zero test coverage**; the whole automated gate cannot execute a Server Action or render a page with data. Splitting them blind is how a working form breaks. `app/actions/partner-jobs.ts` was split because its seam was compile-verifiable; these are not. |
+| `assets/newpremades` upload path | Superseded — route retired instead |
