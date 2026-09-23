@@ -9,7 +9,14 @@ import {
 } from "@/lib/portfolio";
 
 /**
- * Public gallery reads, backed by public Supabase Storage buckets.
+ * Gallery reads, backed by Supabase Storage.
+ *
+ * Two postures, and the difference is load-bearing. `listPublicBucketImages()`
+ * resolves permanent public URLs and is only for galleries that are genuinely
+ * public (`/portfolio`, `/gso`). `listPrivateBucketImages()` mints short-lived
+ * signed URLs and is what a keypad-gated gallery must use -- a page gate over a
+ * public bucket hides the listing while every object URL stays permanently
+ * reachable, which is not protection.
  *
  * Split out of the former lib/data.ts, which had grown to hold nine
  * unrelated domains in one module.
@@ -42,7 +49,7 @@ export const TASTE_BUDZ_BUCKET = "TASTE BUDZ";
 export const TASTE_BUDZ_LOGO_FILE = "TASTE BUDS READY LOGO.png";
 
 export async function getTasteBudzImages(): Promise<PortfolioImage[]> {
-  const images = await listPublicBucketImages(TASTE_BUDZ_BUCKET);
+  const images = await listPrivateBucketImages(TASTE_BUDZ_BUCKET);
   return images.filter((image) => image.name !== TASTE_BUDZ_LOGO_FILE);
 }
 
@@ -64,7 +71,7 @@ export async function getGsoImages(): Promise<PortfolioImage[]> {
 export const MAFIA_TERPZ_BUCKET = "MAFIA terpz";
 
 export async function getMafiaTerpzImages(): Promise<PortfolioImage[]> {
-  return listPublicBucketImages(MAFIA_TERPZ_BUCKET);
+  return listPrivateBucketImages(MAFIA_TERPZ_BUCKET);
 }
 
 async function listPublicBucketImages(
@@ -109,5 +116,70 @@ async function listPublicBucketImages(
     if (data.length < pageSize) break;
   }
 
+  return images;
+}
+
+/** How long a gated gallery's image URLs stay valid. */
+const SIGNED_URL_LIFETIME_SECONDS = 60 * 10;
+
+/**
+ * List a PRIVATE bucket and resolve each object to a short-lived signed URL.
+ * Used by the keypad-gated galleries, whose buckets carry no public access, so
+ * an image URL is useless once it expires and useless without passing the gate
+ * that produced it.
+ */
+async function listPrivateBucketImages(
+  bucket: string,
+): Promise<PortfolioImage[]> {
+  const storage = isSupabaseAdminConfigured()
+    ? createAdminClient().storage
+    : isSupabaseConfigured()
+      ? (await createClient()).storage
+      : null;
+  if (!storage) return [];
+
+  const paths: string[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await storage.from(bucket).list("", {
+      limit: pageSize,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error) {
+      console.error(`listPrivateBucketImages(${bucket})`, error.message);
+      break;
+    }
+    if (!data || data.length === 0) break;
+    for (const object of data) {
+      if (!object.id || !isImageFile(object.name)) continue;
+      paths.push(object.name);
+    }
+    if (data.length < pageSize) break;
+  }
+
+  if (paths.length === 0) return [];
+
+  const { data: signed, error } = await storage
+    .from(bucket)
+    .createSignedUrls(paths, SIGNED_URL_LIFETIME_SECONDS);
+  if (error) {
+    console.error(`createSignedUrls(${bucket})`, error.message);
+    return [];
+  }
+
+  const images: PortfolioImage[] = [];
+  paths.forEach((path, index) => {
+    const url = signed?.[index]?.signedUrl;
+    if (!url) return;
+    images.push({
+      id: path,
+      name: path,
+      title: prettifyName(path),
+      path,
+      url,
+      category: categorizeImage(path),
+    });
+  });
   return images;
 }

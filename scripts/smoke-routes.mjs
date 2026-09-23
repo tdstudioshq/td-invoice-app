@@ -25,6 +25,7 @@ const CHECKS = [
   ["/mylar-bag-printing", 308, "/mylar-printing"],
   ["/qr-generator/designs", 308, "/premadedesigns"],
   ["/newpremades", 308, "/premadedesigns"],
+  ["/designs", 308, "/gso"],
 
   // The route they were superseded by, plus the static shop rewrite.
   ["/mylar-printing", 200],
@@ -36,7 +37,6 @@ const CHECKS = [
   ["/gso", 200],
   ["/premadedesigns", 200],
   ["/taste-budz", 200],
-  ["/designs", 200],
   ["/mafiaterpz", 200],
   ["/martyig", 200],
   ["/whiteash", 200],

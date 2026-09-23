@@ -152,7 +152,7 @@ Every read and write is guarded by `isSupabaseConfigured()` / `isSupabaseAdminCo
 | `QR_SCAN_SALT` | `app/q/[slug]/page.tsx`, `lib/mylar-printing/abuse.ts` | Optional (defaults to a built-in salt); salts the hashed IP behind QR scan logging **and** the mylar-printing submission rate limit. |
 | `ZAZA_PORTAL_EMAIL` / `ZAZA_PORTAL_PASSWORD` | `app/(partner)/partner/[slug]/access.ts` | Server-only. The shared Supabase account the Zaza keypad code signs in as — the gate **fails closed** without them. See `.claude/docs/print-partner-portals.md`. |
 | `PREMADE_GALLERY_COOKIE_SECRET` | `app/premadedesigns/access.ts` | Optional; HMAC key for the `/premadedesigns` keypad cookie. **Falls back to `SUPABASE_SECRET_KEY`**, so the gate fails closed only when neither is set. Rotating it invalidates every existing unlock. |
-| `GALLERY_ACCESS_CODE` | `lib/gallery-access.ts` | Optional; the shared keypad code for all six gated galleries. Falls back to the previous built-in value, so unset changes nothing. |
+| `GALLERY_ACCESS_CODE` | `lib/gallery-access.ts` | **Required.** The shared keypad code for the four gated galleries. No source fallback — unset fails closed and every gate refuses entry. |
 
 ## Conventions
 
@@ -162,18 +162,19 @@ App Router project. `app/layout.tsx` is the root layout. **Global font is Bebas 
 - **Styling:** Tailwind CSS **v4** — there is no `tailwind.config.*`. Configuration and theme tokens live in `app/globals.css` via CSS (`@theme`/CSS variables); PostCSS is wired in `postcss.config.mjs` with `@tailwindcss/postcss`.
 - **UI components:** shadcn/ui (`components.json`), style `radix-lyra`, base color `neutral`, RSC enabled. Generated primitives live in `components/ui/`. Add components with the `shadcn` CLI rather than hand-writing primitives. Non-shadcn UI dependencies, all deliberately scoped: `GlassCard` from `@developer-hub/liquid-glass` powers the glassy card on the public home card and login panel (`app/home-card.tsx`, `app/login/login-panel.tsx`); **`react-social-icons` was removed** along with the home card's social row — don't read its absence as an invitation to add social marks back; **`react-konva`/`konva`** and **`@dnd-kit/*`** exist only for the mockup tools (`app/tools/8pc-mockup-generator/`, `app/tools/bag-mockup-grid/`) — don't reach for either elsewhere.
 - **Icons — two libraries, split by area; match the file you're editing.** **Phosphor** (`@phosphor-icons/react`) is the choice for **new code**: every public/standalone page uses it (`portfolio`, `taste-budz`, `gso`, `designs`, `mafiaterpz`, `martyig`, `tools/*`, `qr-generator`, `custom-design-request`, `sign-up`, `home-card`, `login`), as does the newest admin work (`components/dashboard/task-manager.tsx`, `components/portal/file-browser.tsx`, `app/(app)/qr/page.tsx`, `(customer)/account`) and four hand-swapped shadcn primitives (`dialog`, `dropdown-menu`, `select`, `sheet`). **`lucide-react` is still the icon set across the older admin `(app)` pages and most of `components/portal/`** — including `components/layout/nav-config.ts`, `app-shell.tsx`, and `components/dashboard/stat-card.tsx` — plus the remaining shadcn primitives. Don't mix both in one file: when editing existing code, use whichever that file already imports.
-- **Gallery keypad gates share one module.** `lib/gallery-access.ts` exports
-  `createSimpleGalleryGate()` (plain cookie: `/taste-budz`, `/designs`,
-  `/mafiaterpz`, `/martyig`) and `createSignedGalleryGate()` (HMAC-signed:
-  `/premadedesigns`). Each route's `access.ts` is a thin
+- **Gallery keypad gates share one module, and the gate must match the bucket.**
+  `lib/gallery-access.ts` exports a single `createSignedGalleryGate()` (HMAC
+  cookie, rate limited, fails closed). Each route's `access.ts` is a thin
   `"use server"` wrapper, because that file format may only export async
-  functions — the factories cannot live there. **The two shapes are deliberately
-  not merged:** the signed gate uses a different cookie format and `sameSite`, so
-  folding the plain four onto it would invalidate every live unlock and force
-  visitors to re-enter the code. The code itself is one constant, overridable via
-  `GALLERY_ACCESS_CODE`. Note the plain four are bypassable by sending the cookie
-  directly (`curl -H 'Cookie: tb_access=granted'`) — they hide a listing, they do
-  not authenticate anyone.
+  functions. There used to be a second, plain-cookie factory whose value was the
+  literal `granted` — bypassable with `curl -H 'Cookie: tb_access=granted'` — and
+  it is gone. **A page gate over a PUBLIC bucket is not protection**: it hides
+  the listing while every object URL stays permanently reachable. So the gated
+  galleries read through `listPrivateBucketImages()` (short-lived signed URLs,
+  private bucket) and the open ones through `listPublicBucketImages()`. Current
+  posture: `TASTE BUDZ` and `premade-designs` private + gated; `custom-work`
+  (`/portfolio`) and `GSO` (`/gso`) public + open. The code lives only in
+  `GALLERY_ACCESS_CODE`.
 - **`cn()` helper:** `lib/utils.ts` merges classes with `clsx` + `tailwind-merge`; use it for conditional classNames.
 - **Public pages share a CSS layer, not a utility string — use it on any new standalone route.** Four classes in `app/globals.css` replace what used to be copy-pasted into a dozen `<main>` tags, and each encodes a decision worth not re-litigating: **`.public-page`** is the shell padding (`max()`-based `env(safe-area-inset-*)` so landscape content clears the notch rail and the last control clears iOS Safari's floating toolbar; a smaller top pad on phones, resolving to the desktop 24/48px frame from `sm` up) — **do not go back to a bare `px-4 py-12`**; **`.public-title`** is the h1 scale (a `clamp()` rather than a breakpoint pair, because the interesting range is 320→430px and lives *inside* Tailwind's first breakpoint); **`.on-glass`** lifts muted text inside a tinted panel; and **`.text-on-photo`** is for text with no panel between it and the backdrop — it pairs a lifted tone with a two-layer per-glyph `text-shadow`, the one case here where a text-shadow is the right tool, since centred headers land on the brightest part of the image where even pure white is ~1.1:1. All four are **scoped to public routes**; the admin/portal shells keep their zinc palette untouched.
 - **Two shared marks on public pages:** `HomeLogoLink` (`components/layout/home-logo.tsx`) at the top and `BackToStudiosLink` (`components/layout/public-page-link.tsx`) at the bottom — the latter is on 19 public routes, so add it to a new one rather than hand-rolling a back link.

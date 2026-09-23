@@ -51,6 +51,14 @@ const nextConfig: NextConfig = {
         destination: "/premadedesigns",
         permanent: true,
       },
+      // /designs was the SAME public GSO bucket as /gso behind a keypad, so
+      // the gate only hid the listing while every object URL stayed public.
+      // /gso is the public-intent route; /designs redirects to it.
+      {
+        source: "/designs",
+        destination: "/gso",
+        permanent: true,
+      },
     ];
   },
   outputFileTracingIncludes: {

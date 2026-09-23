@@ -163,7 +163,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/premadedesigns`               | Premade designs gallery (keypad-gated, DB manifest) |
 | `/gso`                          | GSO gallery                                     |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
-| `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig` | Keypad-gated pages         |
+| `/taste-budz`, `/mafiaterpz`, `/martyig` | Keypad-gated pages (signed cookie, private buckets) |
 | `/mylar`                        | Static single-file mylar shop (`public/mylar/`) |
 
 Public paths are allow-listed in `proxy.ts`. That gate is optimistic — real

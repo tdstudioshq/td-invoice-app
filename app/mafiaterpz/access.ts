@@ -1,13 +1,16 @@
 "use server";
 
-import { createSimpleGalleryGate } from "@/lib/gallery-access";
+import { createSignedGalleryGate } from "@/lib/gallery-access";
 import type { ActionState } from "@/app/actions/types";
 
-// Shared-passcode gate — implementation in `lib/gallery-access.ts`.
-// A "use server" file may only export async functions, so this stays a wrapper.
-const gate = createSimpleGalleryGate({
+// HMAC-signed shared-passcode gate — implementation in
+// `lib/gallery-access.ts`. A "use server" file may only export async
+// functions, so this stays a wrapper.
+const gate = createSignedGalleryGate({
   cookieName: "mafiaterpz_access",
+  cookieVersion: "mafiaterpz-v2",
   path: "/mafiaterpz",
+  rateLimitLabel: "mafiaterpz",
 });
 
 export async function hasMafiaTerpzAccess(): Promise<boolean> {
@@ -19,4 +22,8 @@ export async function enterMafiaTerpzCodeAction(
   formData: FormData,
 ): Promise<ActionState> {
   return gate.enter(previous, formData);
+}
+
+export async function lockMafiaTerpzAction(): Promise<void> {
+  return gate.lock();
 }

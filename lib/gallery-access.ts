@@ -9,71 +9,37 @@ import type { ActionState } from "@/app/actions/types";
 /**
  * Shared keypad gate for the semi-private galleries.
  *
- * Six routes had copy-pasted this in two shapes — four with a plain
- * `granted` cookie and two with an HMAC-signed one — differing only in cookie
- * name, path and function names. Both shapes live here now, and each route's
- * `access.ts` is a thin `"use server"` wrapper (that file format may only
- * export async functions, so the factories cannot live there).
+ * Six routes had copy-pasted this in two shapes — four with a literal
+ * `granted` cookie and two HMAC-signed. The plain four were bypassable by
+ * simply sending the cookie (`curl -H 'Cookie: tb_access=granted'`), so they
+ * were folded onto the signed implementation; only this one remains. Each
+ * route's `access.ts` is a thin `"use server"` wrapper, because that file
+ * format may only export async functions.
  *
- * The two shapes are deliberately NOT merged into one: the signed gate sets a
- * different cookie format and `sameSite`, so folding the plain four onto it
- * would invalidate every live unlock cookie and force visitors to re-enter the
- * code. Upgrading them is a behavior change to make on purpose, not a
- * side effect of deduplication.
+ * The cookie NAMES are unchanged but their version strings were bumped, so
+ * every pre-existing unlock is invalidated on purpose -- an old literal cookie
+ * must not validate against the signed format.
  *
  * This is a shared-passcode vibe lock, not account auth. Real enforcement for
  * anything sensitive is Postgres RLS plus the `require*()` helpers.
  */
 
-/** One code across every gallery, as before — now rotatable without a deploy. */
-const ACCESS_CODE = process.env.GALLERY_ACCESS_CODE ?? "0420";
+/**
+ * The one code across every gallery. Server-only env, no source fallback:
+ * a gate whose secret is committed protects nothing, so an unset variable
+ * fails closed rather than silently reverting to a published default.
+ */
+function accessCode(): string | null {
+  const code = process.env.GALLERY_ACCESS_CODE?.trim();
+  return code ? code : null;
+}
 
-const COOKIE_VALUE = "granted";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-export interface SimpleGate {
+export interface SignedGate {
   has(): Promise<boolean>;
   enter(previous: ActionState, formData: FormData): Promise<ActionState>;
-}
-
-export interface SignedGate extends SimpleGate {
   lock(): Promise<void>;
-}
-
-/**
- * Plain-cookie gate: `/taste-budz`, `/designs`, `/mafiaterpz`, `/martyig`.
- * The cookie value is a literal, so it hides the listing rather than
- * authenticating anyone.
- */
-export function createSimpleGalleryGate(config: {
-  cookieName: string;
-  path: string;
-}): SimpleGate {
-  const { cookieName, path } = config;
-
-  return {
-    async has() {
-      const store = await cookies();
-      return store.get(cookieName)?.value === COOKIE_VALUE;
-    },
-
-    async enter(_previous: ActionState, formData: FormData) {
-      const code = String(formData.get("code") ?? "").trim();
-      if (code !== ACCESS_CODE) {
-        return { error: "Wrong code. Try again." };
-      }
-      const store = await cookies();
-      store.set(cookieName, COOKIE_VALUE, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path,
-        maxAge: COOKIE_MAX_AGE,
-      });
-      revalidatePath(path);
-      return { success: true };
-    },
-  };
 }
 
 // --- signed variant -------------------------------------------------------
@@ -191,8 +157,11 @@ export function createSignedGalleryGate(config: {
         return { error: "Too many attempts. Try again in a few minutes." };
       }
 
+      const expected = accessCode();
+      if (!expected) return { error: "Gallery access is not configured." };
+
       const code = String(formData.get("code") ?? "").trim();
-      if (code !== ACCESS_CODE) return { error: "Wrong code. Try again." };
+      if (code !== expected) return { error: "Wrong code. Try again." };
 
       const secret = cookieSecret();
       if (!secret) return { error: "Gallery access is not configured." };
