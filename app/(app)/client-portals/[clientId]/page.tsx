@@ -20,14 +20,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getClient,
-  getClientFiles,
-  getClientFolders,
-  getClientProjects,
-  getPortalUserForClient,
-  getProjectFileCounts,
-} from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getClientFiles, getPortalUserForClient } from "@/lib/queries/portals";
+import { getClientFolders, getClientProjects, getProjectFileCounts } from "@/lib/queries/projects";
 import { CATEGORY_DESCRIPTION, CATEGORY_LABEL, FILE_CATEGORIES } from "@/lib/portal";
 import { formatDate } from "@/lib/format";
 

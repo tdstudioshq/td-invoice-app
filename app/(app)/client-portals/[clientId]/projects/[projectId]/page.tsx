@@ -18,13 +18,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  getClient,
-  getClientFiles,
-  getClientFolders,
-  getClientProject,
-  getClientProjects,
-} from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getClientFiles } from "@/lib/queries/portals";
+import { getClientFolders, getClientProject, getClientProjects } from "@/lib/queries/projects";
 
 export async function generateMetadata(
   props: PageProps<"/client-portals/[clientId]/projects/[projectId]">,

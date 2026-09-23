@@ -2,13 +2,10 @@ import { notFound } from "next/navigation";
 
 import { PortalOverviewContent } from "@/components/portal/portal-overview-content";
 import { PreviewBanner } from "@/components/portal/preview-banner";
-import {
-  getClient,
-  getClientFiles,
-  getClientProjects,
-  getInvoicesForClient,
-  getProjectFileCounts,
-} from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getInvoicesForClient } from "@/lib/queries/invoices";
+import { getClientFiles } from "@/lib/queries/portals";
+import { getClientProjects, getProjectFileCounts } from "@/lib/queries/projects";
 import { effectiveStatus } from "@/lib/invoice";
 
 // Admin "view as client" — no impersonation, no RLS bypass. The page runs on

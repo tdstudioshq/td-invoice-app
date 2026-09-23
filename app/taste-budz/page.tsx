@@ -4,7 +4,7 @@ import { AnimatedBackground } from "@/app/login/animated-background";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { hasTasteBudzAccess } from "@/app/taste-budz/access";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
-import { getTasteBudzImages } from "@/lib/data";
+import { getTasteBudzImages } from "@/lib/queries/galleries";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 // Self-hosted copy of the bucket logo: social crawlers get a stable

@@ -4,7 +4,7 @@ import { AnimatedBackground } from "@/app/login/animated-background";
 import { enterDesignsCodeAction, hasDesignsAccess } from "@/app/designs/access";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
-import { getGsoImages } from "@/lib/data";
+import { getGsoImages } from "@/lib/queries/galleries";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 const LOGO = "/logo.png";

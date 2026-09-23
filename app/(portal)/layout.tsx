@@ -1,7 +1,7 @@
 import { MustChangePasswordBanner } from "@/components/portal/must-change-password-banner";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { requirePortalUser } from "@/lib/auth";
-import { getClient } from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
 
 // Every portal page reads the signed-in client's data per request.
 export const dynamic = "force-dynamic";

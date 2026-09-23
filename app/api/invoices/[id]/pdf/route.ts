@@ -1,4 +1,5 @@
-import { getCompanySettings, getInvoice } from "@/lib/data";
+import { getInvoice } from "@/lib/queries/invoices";
+import { getCompanySettings } from "@/lib/queries/settings";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { buildInvoicePdfData } from "@/lib/pdf/invoice-pdf-data";
 import { renderInvoicePdf } from "@/lib/pdf/invoice-pdf";

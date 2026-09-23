@@ -12,7 +12,8 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InvoicesTable } from "@/components/invoices/invoices-table";
 import { Button } from "@/components/ui/button";
-import { getDashboardStats, getInvoices } from "@/lib/data";
+import { getDashboardStats } from "@/lib/queries/dashboard";
+import { getInvoices } from "@/lib/queries/invoices";
 import { formatCurrency } from "@/lib/format";
 
 export const metadata = { title: "Invoices" };

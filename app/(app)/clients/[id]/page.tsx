@@ -15,7 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getClient, getInvoicesForClient } from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getInvoicesForClient } from "@/lib/queries/invoices";
 
 export async function generateMetadata(props: PageProps<"/clients/[id]">) {
   const { id } = await props.params;

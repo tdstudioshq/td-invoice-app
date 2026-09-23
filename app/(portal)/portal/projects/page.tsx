@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ProjectList } from "@/components/portal/project-list";
 import { EmptyState } from "@/components/shared/empty-state";
 import { requirePortalUser } from "@/lib/auth";
-import { getClientProjects, getProjectFileCounts } from "@/lib/data";
+import { getClientProjects, getProjectFileCounts } from "@/lib/queries/projects";
 import { isPortalVisibleProject } from "@/lib/projects";
 
 export const metadata = { title: "Projects" };

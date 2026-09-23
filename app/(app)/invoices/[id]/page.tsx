@@ -31,11 +31,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  getClients,
-  getCompanySettings,
-  getInvoice,
-} from "@/lib/data";
+import { getClients } from "@/lib/queries/clients";
+import { getInvoice } from "@/lib/queries/invoices";
+import { getCompanySettings } from "@/lib/queries/settings";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import { effectiveStatus } from "@/lib/invoice";
 

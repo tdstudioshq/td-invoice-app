@@ -5,7 +5,9 @@ import { ArrowLeft } from "lucide-react";
 import { PreviewBanner } from "@/components/portal/preview-banner";
 import { ProjectDetailContent } from "@/components/portal/project-detail-content";
 import { Button } from "@/components/ui/button";
-import { getClient, getClientFiles, getClientProject } from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getClientFiles } from "@/lib/queries/portals";
+import { getClientProject } from "@/lib/queries/projects";
 import { isPortalVisibleProject } from "@/lib/projects";
 
 // Admin "view as client" project detail. A draft/archived project 404s here

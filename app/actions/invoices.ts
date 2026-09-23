@@ -6,7 +6,8 @@ import { z } from "zod";
 
 import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getCompanySettings, getInvoice } from "@/lib/data";
+import { getInvoice } from "@/lib/queries/invoices";
+import { getCompanySettings } from "@/lib/queries/settings";
 import { buildInvoicePdfData } from "@/lib/pdf/invoice-pdf-data";
 import { renderInvoicePdf } from "@/lib/pdf/invoice-pdf";
 import { EMAIL_FROM, getResend, isResendConfigured } from "@/lib/email/client";

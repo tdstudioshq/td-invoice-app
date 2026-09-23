@@ -5,11 +5,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PreviewBanner } from "@/components/portal/preview-banner";
 import { ProjectList } from "@/components/portal/project-list";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  getClient,
-  getClientProjects,
-  getProjectFileCounts,
-} from "@/lib/data";
+import { getClient } from "@/lib/queries/clients";
+import { getClientProjects, getProjectFileCounts } from "@/lib/queries/projects";
 
 // Admin "view as client" project list — same visibility filters the portal
 // RLS applies (see the preview overview page for the security note).

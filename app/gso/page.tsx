@@ -1,7 +1,7 @@
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { PortfolioGallery } from "@/app/portfolio/portfolio-gallery";
 import { HomeLogoLink } from "@/components/layout/home-logo";
-import { getGsoImages } from "@/lib/data";
+import { getGsoImages } from "@/lib/queries/galleries";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
 
 export const metadata = {
