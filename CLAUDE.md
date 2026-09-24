@@ -178,8 +178,13 @@ App Router project. `app/layout.tsx` is the root layout. **Global font is Bebas 
   the listing while every object URL stays permanently reachable. So the gated
   galleries read through `listPrivateBucketImages()` (short-lived signed URLs,
   private bucket) and the open ones through `listPublicBucketImages()`. Current
-  posture: `TASTE BUDZ` and `premade-designs` private + gated; `custom-work`
-  (`/portfolio`) and `GSO` (`/gso`) public + open. The code lives only in
+  posture, all four gates: `TASTE BUDZ` (`/taste-budz`), `MAFIA terpz`
+  (`/mafiaterpz` — the bucket does not exist in Supabase yet, so the page
+  renders its empty state) and `premade-designs` (`/premadedesigns`) private +
+  gated, plus `/martyig`, which is gated but backed by a committed
+  `leads.json` rather than a bucket; `custom-work` (`/portfolio`) and `GSO`
+  (`/gso`) public + open. `/designs` was a fifth gate over the *public* `GSO`
+  and is retired — see **Routes & rendering**. The code lives only in
   `GALLERY_ACCESS_CODE`.
 - **`cn()` helper:** `lib/utils.ts` merges classes with `clsx` + `tailwind-merge`; use it for conditional classNames.
 - **Public pages share a CSS layer, not a utility string — use it on any new standalone route.** Four classes in `app/globals.css` replace what used to be copy-pasted into a dozen `<main>` tags, and each encodes a decision worth not re-litigating: **`.public-page`** is the shell padding (`max()`-based `env(safe-area-inset-*)` so landscape content clears the notch rail and the last control clears iOS Safari's floating toolbar; a smaller top pad on phones, resolving to the desktop 24/48px frame from `sm` up) — **do not go back to a bare `px-4 py-12`**; **`.public-title`** is the h1 scale (a `clamp()` rather than a breakpoint pair, because the interesting range is 320→430px and lives *inside* Tailwind's first breakpoint); **`.on-glass`** lifts muted text inside a tinted panel; and **`.text-on-photo`** is for text with no panel between it and the backdrop — it pairs a lifted tone with a two-layer per-glyph `text-shadow`, the one case here where a text-shadow is the right tool, since centred headers land on the brightest part of the image where even pure white is ~1.1:1. All four are **scoped to public routes**; the admin/portal shells keep their zinc palette untouched.
