@@ -23,6 +23,7 @@ This project uses **Next.js 16.3.1** with **React 19**. The pinned guidance in `
 | Touching any owner-scoped RLS policy, or writing `owner_id` | **Workspace admin ownership** (this file) |
 | A new route that reads Supabase | **Routes & rendering** + **Data flow** (this file) |
 | Verifying a change by hand | **Verifying changes** (this file) |
+| Deleting a file, or acting on `npx knip` output | `CODEBASE_CLEANUP_AUDIT.md` (root) — the knip calibration in §0, and the risk rubric |
 | Shipping anything to production | **Deployment workflow** (this file) |
 | Throwing, catching, or logging an error | **Error handling & reporting** (this file) |
 | A static site in `public/`, or a remote image | the `next.config.ts` bullet in **Conventions** |
@@ -39,6 +40,9 @@ npm run start    # serve the production build
 npm run lint     # bare eslint over the project (flat config: eslint.config.mjs)
 npm run typecheck # tsc --noEmit
 npm run test     # bun test (the premade-sync unit tests are the only suite)
+bun test scripts/premade-sync/core.test.ts   # one file
+bun test -t "content-hash deduplication"     # one describe/test by name
+npx knip         # unreferenced files/exports/deps (config: knip.json; NOT in the gate — read the calibration note first)
 
 npm run premade:sync:dry      # reconcile the master folder / Storage / manifest, no writes
 npm run premade:sync          # upload only new SHA-256 designs (see Premade catalog ingestion)
@@ -53,6 +57,8 @@ supabase migration new <name>     # new timestamped file (the current naming sch
 supabase migration list --linked  # local files vs. remote history
 supabase db push --linked         # apply ONLY the pending ones
 ```
+
+**`npx knip` is not part of the gate and its raw output must not be trusted.** There is no npm script on purpose. `knip.json` carries `entry` overrides (`proxy.ts`, `next.config.ts`, `app/**/access.ts`, `scripts/*.ts`) because without them knip cannot see how this repo is entered, and it is **wrong in both directions** even with them — `CODEBASE_CLEANUP_AUDIT.md` §0 records the calibration and which claims were false. Read that before acting on a single line of its output; a file knip calls unused may be a docs contract, ops tooling or an externally-shared URL.
 
 `next lint` was **removed in Next 16** — use `npm run lint`. There is no `lint:fix` script; run `eslint --fix` directly. `npm run typecheck` is a thin alias for `tsc --noEmit`, and `npm run test` runs `bun test` — the premade-sync pure helpers in `scripts/premade-sync/core.test.ts` are the only tests in the repo, so a green `test` still proves nothing about a route, an action or an RLS policy.
 
@@ -160,7 +166,7 @@ App Router project. `app/layout.tsx` is the root layout. **Global font is Bebas 
 
 - **Import alias:** `@/*` maps to the repo root (e.g. `@/lib/utils`, `@/components/ui/button`).
 - **Styling:** Tailwind CSS **v4** — there is no `tailwind.config.*`. Configuration and theme tokens live in `app/globals.css` via CSS (`@theme`/CSS variables); PostCSS is wired in `postcss.config.mjs` with `@tailwindcss/postcss`.
-- **UI components:** shadcn/ui (`components.json`), style `radix-lyra`, base color `neutral`, RSC enabled. Generated primitives live in `components/ui/`. Add components with the `shadcn` CLI rather than hand-writing primitives. Non-shadcn UI dependencies, all deliberately scoped: `GlassCard` from `@developer-hub/liquid-glass` powers the glassy card on the public home card and login panel (`app/home-card.tsx`, `app/login/login-panel.tsx`); **`react-social-icons` was removed** along with the home card's social row — don't read its absence as an invitation to add social marks back; **`react-konva`/`konva`** and **`@dnd-kit/*`** exist only for the mockup tools (`app/tools/8pc-mockup-generator/`, `app/tools/bag-mockup-grid/`) — don't reach for either elsewhere.
+- **UI components:** shadcn/ui (`components.json`), style `radix-lyra`, base color `neutral`, RSC enabled. Generated primitives live in `components/ui/`. Add components with the `shadcn` CLI rather than hand-writing primitives. Non-shadcn UI dependencies, all deliberately scoped: `GlassCard` from `@developer-hub/liquid-glass` powers the glassy card on the public home card and login panel (`app/home-card.tsx`, `app/login/login-panel.tsx`); **`react-social-icons` was removed** along with the home card's social row — don't read its absence as an invitation to add social marks back; **`react-konva`/`konva`** and **`@dnd-kit/*`** exist only for the mockup tools (`app/tools/8pc-mockup-generator/`, `app/tools/bag-mockup-grid/`) — don't reach for either elsewhere. Three more, each scoped and each easy to reach for wrongly: **`framer-motion`** is in exactly six files (`app/home-card.tsx`, `app/premadedesigns/gallery.tsx`, `app/portfolio/portfolio-lightbox.tsx`, `components/portal/file-browser.tsx`, `components/mylar-printing/{wizard-progress,mylar-printing-wizard}.tsx`) — note the home card is on that list *only* for below-the-fold work, since its entrance animation is deliberately hand-written CSS so the landing page doesn't wait on hydration (see the ticket-visuals bullet in **Routes & rendering**); **`sharp`** is **server-only and native**, used by the three compose libs (`lib/{mockup-generator,cutline,bag-mockup-grid}/compose.ts`) plus `scripts/sync-premade-designs.ts`, and is why each `app/api/*/generate/route.ts` pins `export const runtime = "nodejs"` — never import it into anything that can reach the client; **`jszip`** does browser-side bulk download in three places (`app/tools/{mockup-generator,cutline-generator}`, `components/partner-jobs/download-all-files-button.tsx`), and the compression setting differs on purpose — the two tools `DEFLATE` at level 6 (their output is freshly generated PNG/PDF), the partner button uses `STORE` because press sources are already compressed and its job is bundling, not squeezing. The shared point is that **no file bytes are proxied through a Vercel function**, so don't replace one with a server-side zip route.
 - **Icons — two libraries, split by area; match the file you're editing.** **Phosphor** (`@phosphor-icons/react`) is the choice for **new code**: every public/standalone page uses it (`portfolio`, `taste-budz`, `gso`, `designs`, `mafiaterpz`, `martyig`, `tools/*`, `qr-generator`, `custom-design-request`, `sign-up`, `home-card`, `login`), as does the newest admin work (`components/dashboard/task-manager.tsx`, `components/portal/file-browser.tsx`, `app/(app)/qr/page.tsx`, `(customer)/account`) and four hand-swapped shadcn primitives (`dialog`, `dropdown-menu`, `select`, `sheet`). **`lucide-react` is still the icon set across the older admin `(app)` pages and most of `components/portal/`** — including `components/layout/nav-config.ts`, `app-shell.tsx`, and `components/dashboard/stat-card.tsx` — plus the remaining shadcn primitives. Don't mix both in one file: when editing existing code, use whichever that file already imports.
 - **Gallery keypad gates share one module, and the gate must match the bucket.**
   `lib/gallery-access.ts` exports a single `createSignedGalleryGate()` (HMAC
