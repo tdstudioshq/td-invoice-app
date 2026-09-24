@@ -238,8 +238,12 @@ The migrations also create most of the Storage buckets the app needs, all
 private: `client-files` (25 MB/file), `design-requests`, and `mylar-artwork`
 (50 MB/file). The gallery buckets are **not** created by any migration and must
 be added by hand in the Supabase dashboard: the public ones (`custom-work`,
-`GSO`, `TASTE BUDZ`, `MAFIA terpz`) and the **private `premade-designs`** bucket
-that `/premadedesigns` reads through its database manifest RPC. A gallery whose
+`GSO`) and the **private** ones — `TASTE BUDZ`, `MAFIA terpz` and
+`premade-designs` — which their keypad-gated pages read through short-lived
+signed URLs (`/premadedesigns` additionally goes through a database manifest
+RPC). **The bucket's access must match the page's gate:** a keypad over a
+public bucket hides only the listing while every object URL stays reachable,
+which is why `/designs` was retired in favor of the open `/gso`. A gallery whose
 bucket is missing renders its empty state rather than erroring.
 
 The premade catalog is synchronized from the local master folder with:
@@ -268,10 +272,18 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run build`               | Production build                               |
 | `npm run start`               | Serve the production build                     |
 | `npm run lint`                | Run ESLint (flat config, `eslint.config.mjs`)  |
-| `npx tsc --noEmit`            | Typecheck (no dedicated script)                |
+| `npm run typecheck`           | `tsc --noEmit`                                 |
+| `npm run test`                | `bun test` — the premade-sync helpers only      |
+| `npm run smoke:routes`        | 24 route assertions; needs a running server     |
+| `npm run premade:sync:dry`    | Reconcile catalog / Storage / manifest, no writes |
+| `npm run premade:sync`        | Upload only new SHA-256 designs                 |
+| `npm run premade:sync:verify` | Dry run that re-hashes every Storage object     |
+| `npm run admin:sync`          | Audit `workspace_admins` against `ADMIN_EMAILS` (read-only; `-- --adopt --prune` to write) |
 | `npm run client:create-marty` | Idempotent portal-client bootstrap             |
 
-`next lint` was removed in Next 16 — use `npm run lint`. There is no test setup.
+`next lint` was removed in Next 16 — use `npm run lint`.
+
+The automated gate is `npm run lint && npm run build && npx tsc --noEmit && npm run test && npm run smoke:routes`, **in that order** — Next 16 generates the global `PageProps`/`RouteContext` types during the build, so a typecheck on a cold `.next` fails before it. `npm run test` runs `bun test` and the pure premade-sync helpers in `scripts/premade-sync/core.test.ts` are the **only** suite in the repo, so a green run proves nothing about a route, a Server Action or an RLS policy; `npm run smoke:routes` is the only step that issues a request and needs a dev server (or `BASE=<url>`). Everything behavioral still has to be checked in a browser — see `CLAUDE.md`.
 
 ## Project structure
 
