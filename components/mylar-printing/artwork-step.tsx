@@ -77,6 +77,27 @@ export function ArtworkStep({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* The opt-out comes first so a customer without files ready sees it
+          before scrolling past upload slots that don't apply to them. */}
+      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-base leading-snug text-white transition-colors hover:bg-black/25 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70 md:min-h-0 md:text-sm">
+        <input
+          type="checkbox"
+          checked={comingLater}
+          onChange={(event) => onComingLaterChange(event.target.checked)}
+          className="border-input accent-foreground size-5 shrink-0 md:size-4"
+        />
+        I&apos;ll send my artwork later
+      </label>
+
+      <div
+        role="separator"
+        className="flex items-center gap-3 text-xs tracking-[0.2em] text-white/50 uppercase"
+      >
+        <span className="h-px flex-1 bg-white/15" />
+        Or
+        <span className="h-px flex-1 bg-white/15" />
+      </div>
+
       <StepHeading
         title="Upload your artwork"
         subtitle={
@@ -199,16 +220,6 @@ export function ArtworkStep({
         {ARTWORK_TYPES_LABEL} · up to {formatArtworkBytes(MAX_ARTWORK_BYTES)} per
         file. Print-ready files are best, but we can work from what you have.
       </p>
-
-      <label className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border border-white/15 bg-black/40 px-4 py-3.5 text-base leading-snug text-white transition-colors hover:bg-black/25 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-white/70 md:min-h-0 md:text-sm">
-        <input
-          type="checkbox"
-          checked={comingLater}
-          onChange={(event) => onComingLaterChange(event.target.checked)}
-          className="border-input accent-foreground size-5 shrink-0 md:size-4"
-        />
-        I&apos;ll send my artwork later
-      </label>
     </div>
   );
 }

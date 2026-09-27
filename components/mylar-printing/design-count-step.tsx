@@ -62,7 +62,7 @@ export function DesignCountStep({
     <div className="flex flex-col gap-6">
       <StepHeading
         title="How many different designs are you printing?"
-        subtitle="Let us know how many different bag designs are included in this order."
+        subtitle="Select the amount of designs included with your order."
       />
 
       <div
