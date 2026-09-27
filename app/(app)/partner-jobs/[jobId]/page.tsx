@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, Pencil, Plus, Unlink } from "lucide-react";
+
+import { unlinkInvoiceFromJobAction } from "@/app/actions/partner-job-invoices";
+import { AdminLinkInvoiceForm } from "@/components/partner-jobs/admin-link-invoice-form";
+import { JobInvoiceList } from "@/components/partner-jobs/job-invoice-list";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
@@ -23,6 +27,7 @@ import {
   getAdminPartnerJob,
   getAdminPartnerJobEvents,
 } from "@/lib/partner-jobs/queries";
+import { getInvoicesForClient, getInvoicesForJob } from "@/lib/queries/invoices";
 
 export const metadata = { title: "Partner Job" };
 
@@ -51,7 +56,15 @@ export default async function PartnerJobDetailPage(
   const job = await getAdminPartnerJob(jobId);
   if (!job) notFound();
 
-  const events = await getAdminPartnerJobEvents(jobId);
+  const invoiced = Boolean(job.company?.invoices_enabled);
+  const clientId = job.company?.client_id ?? null;
+  const [events, invoices, clientInvoices] = await Promise.all([
+    getAdminPartnerJobEvents(jobId),
+    invoiced ? getInvoicesForJob(jobId) : Promise.resolve([]),
+    invoiced && clientId ? getInvoicesForClient(clientId) : Promise.resolve([]),
+  ]);
+  // Only the company's invoices that bill no job yet can be attached here.
+  const linkable = clientInvoices.filter((invoice) => !invoice.design_job_id);
 
   const jobLevelFiles = job.files.filter((file) => !file.item_id);
 
@@ -66,7 +79,13 @@ export default async function PartnerJobDetailPage(
       </Link>
 
       <PageHeader title={job.job_number} description={job.job_name}>
-        <JobStatusBadge status={job.status} className="h-7 self-start" />
+        <JobStatusBadge status={job.status} className="h-7 self-start sm:self-center" />
+        <Button asChild variant="outline">
+          <Link href={`/partner-jobs/${job.id}/edit`}>
+            <Pencil className="size-4" />
+            Edit job &amp; files
+          </Link>
+        </Button>
       </PageHeader>
 
       <div className="space-y-5">
@@ -109,6 +128,49 @@ export default async function PartnerJobDetailPage(
             <PartnerJobStatusForm id={job.id} status={job.status} />
           </CardContent>
         </Card>
+
+        {invoiced ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Invoice
+                <span className="text-muted-foreground ml-2 font-normal">
+                  {invoices.length}
+                </span>
+              </CardTitle>
+              <CardAction>
+                <Button asChild size="sm">
+                  <Link href={`/invoices/new?job=${job.id}`}>
+                    <Plus className="size-4" />
+                    New invoice
+                  </Link>
+                </Button>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <JobInvoiceList
+                invoices={invoices}
+                invoiceHref="/invoices"
+                emptyNote={`No invoice yet. Create one, then record deposits and payments on it — ${job.company?.name ?? "the partner"} sees it once it's no longer a draft.`}
+                rowAction={(invoice) => (
+                  <form action={unlinkInvoiceFromJobAction}>
+                    <input type="hidden" name="job_id" value={job.id} />
+                    <input type="hidden" name="invoice_id" value={invoice.id} />
+                    <Button type="submit" variant="ghost" size="sm" title="Detach from this job">
+                      <Unlink className="size-4" />
+                      <span className="sr-only sm:not-sr-only">Detach</span>
+                    </Button>
+                  </form>
+                )}
+              />
+              {linkable.length > 0 ? (
+                <div className="border-glass-border border-t pt-4">
+                  <AdminLinkInvoiceForm jobId={job.id} invoices={linkable} />
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/*
           The same rows the notification emails are dispatched from — every

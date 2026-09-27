@@ -58,6 +58,7 @@ export function InvoiceForm({
   defaultClientName = "",
   defaultTaxRate = 0,
   submitLabel = "Create invoice",
+  designJob,
 }: {
   action: FormAction;
   clients: Client[];
@@ -65,7 +66,12 @@ export function InvoiceForm({
   defaultClientName?: string;
   defaultTaxRate?: number;
   submitLabel?: string;
+  /** Creating an invoice for a partner job: it bills that job's company. */
+  designJob?: { id: string; label: string };
 }) {
+  // A job-linked invoice bills the job's company — the server forces that on
+  // create, and an edit must not retype it onto a different client.
+  const clientLocked = Boolean(designJob || invoice?.design_job_id);
   const [state, formAction] = useActionState(action, initialActionState);
 
   useEffect(() => {
@@ -150,6 +156,9 @@ export function InvoiceForm({
       <input type="hidden" name="discount_rate" value={discountRate} />
       <input type="hidden" name="notes" value={notes} />
       <input type="hidden" name="items" value={itemsJson} />
+      {designJob ? (
+        <input type="hidden" name="design_job_id" value={designJob.id} />
+      ) : null}
 
       {state.error ? (
         <p className="bg-destructive/10 text-destructive border-destructive/30 border px-3 py-2 text-sm">
@@ -177,6 +186,7 @@ export function InvoiceForm({
                   placeholder="Type a client name"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
+                  readOnly={clientLocked}
                   aria-invalid={Boolean(state.fieldErrors?.client_name)}
                 />
                 <datalist id="client-options">
@@ -185,8 +195,11 @@ export function InvoiceForm({
                   ))}
                 </datalist>
                 <p className="text-muted-foreground text-sm leading-relaxed md:text-xs">
-                  Pick an existing client or type a new name — it’ll be saved
-                  automatically.
+                  {designJob
+                    ? `Billing job ${designJob.label}. The client is the partner company.`
+                    : clientLocked
+                      ? "This invoice bills a partner job, so its client is fixed."
+                      : "Pick an existing client or type a new name — it’ll be saved automatically."}
                 </p>
                 {state.fieldErrors?.client_name ? (
                   <p className="text-destructive text-sm md:text-xs">

@@ -29,6 +29,7 @@ export const PARTNER_ROUTE_ROOT = "/partner";
  */
 export const PARTNER_SUBDOMAINS: Record<string, string> = {
   zazaorders: "zaza",
+  tnt: "tnt",
 };
 
 /**
@@ -38,6 +39,7 @@ export const PARTNER_SUBDOMAINS: Record<string, string> = {
  */
 export const PARTNER_PATH_ALIASES: Record<string, string> = {
   "/zaza-orders": "zaza",
+  "/tnt-orders": "tnt",
 };
 
 /** Slug shape accepted on the internal `/partner/<slug>` path. Mirrors the SQL check. */

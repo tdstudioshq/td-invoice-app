@@ -238,8 +238,12 @@ The migrations also create most of the Storage buckets the app needs, all
 private: `client-files` (25 MB/file), `design-requests`, and `mylar-artwork`
 (50 MB/file). The gallery buckets are **not** created by any migration and must
 be added by hand in the Supabase dashboard: the public ones (`custom-work`,
-`GSO`, `TASTE BUDZ`, `MAFIA terpz`) and the **private `premade-designs`** bucket
-that `/premadedesigns` reads through its database manifest RPC. A gallery whose
+`GSO`) and the **private** ones — `TASTE BUDZ`, `MAFIA terpz` and
+`premade-designs` — which their keypad-gated pages read through short-lived
+signed URLs (`/premadedesigns` additionally goes through a database manifest
+RPC). **The bucket's access must match the page's gate:** a keypad over a
+public bucket hides only the listing while every object URL stays reachable,
+which is why `/designs` was retired in favor of the open `/gso`. A gallery whose
 bucket is missing renders its empty state rather than erroring.
 
 The premade catalog is synchronized from the local master folder with:
@@ -268,10 +272,18 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run build`               | Production build                               |
 | `npm run start`               | Serve the production build                     |
 | `npm run lint`                | Run ESLint (flat config, `eslint.config.mjs`)  |
-| `npx tsc --noEmit`            | Typecheck (no dedicated script)                |
+| `npm run typecheck`           | `tsc --noEmit`                                 |
+| `npm run test`                | `bun test` — the premade-sync helpers only      |
+| `npm run smoke:routes`        | 24 route assertions; needs a running server     |
+| `npm run premade:sync:dry`    | Reconcile catalog / Storage / manifest, no writes |
+| `npm run premade:sync`        | Upload only new SHA-256 designs                 |
+| `npm run premade:sync:verify` | Dry run that re-hashes every Storage object     |
+| `npm run admin:sync`          | Audit `workspace_admins` against `ADMIN_EMAILS` (read-only; `-- --adopt --prune` to write) |
 | `npm run client:create-marty` | Idempotent portal-client bootstrap             |
 
-`next lint` was removed in Next 16 — use `npm run lint`. There is no test setup.
+`next lint` was removed in Next 16 — use `npm run lint`.
+
+The automated gate is `npm run lint && npm run build && npx tsc --noEmit && npm run test && npm run smoke:routes`, **in that order** — Next 16 generates the global `PageProps`/`RouteContext` types during the build, so a typecheck on a cold `.next` fails before it. `npm run test` runs `bun test` and the pure premade-sync helpers in `scripts/premade-sync/core.test.ts` are the **only** suite in the repo, so a green run proves nothing about a route, a Server Action or an RLS policy; `npm run smoke:routes` is the only step that issues a request and needs a dev server (or `BASE=<url>`). Everything behavioral still has to be checked in a browser — see `CLAUDE.md`.
 
 ## Project structure
 
@@ -495,8 +507,9 @@ invoices, without touching the admin app.
 ## Print-partner portals
 
 A private ordering portal for print companies, replacing the group chat a sales
-rep used to send design jobs through. V1 serves one company, **Zaza**, at
-`zazaorders.tdstudiosny.com`.
+rep used to send design jobs through. Two companies: **Zaza** at
+`zazaorders.tdstudiosny.com`, and **TNT** at `tnt.tdstudiosny.com` — TNT's portal
+also has an **Invoices** section (see [Invoices on partner jobs](#invoices-on-partner-jobs)).
 
 ### What a rep can do
 
@@ -504,8 +517,8 @@ Sign in, file a design job (a job name, then one or more products — each with 
 finish, a quantity, its own notes and its own artwork), edit or delete it, and
 watch its status — **New → In Progress → Completed**. Artwork and notes attach to
 a *product*, not to the job, so the studio never has to work out which file goes
-with which item. That's the whole surface: no messaging, quoting, invoicing,
-approvals or revisions.
+with which item. That's the whole surface: no messaging, quoting, approvals or revisions —
+and invoicing only for a company that has it turned on (TNT).
 
 Status is the one field a rep cannot touch: a database trigger forces it back on
 any rep-side write, so it changes only from the admin side.
@@ -513,7 +526,21 @@ any rep-side write, so it changes only from the admin side.
 ### What TD Studios can do
 
 `/partner-jobs` lists every job from every partner; `/partner-jobs/[id]` shows
-the full submission and is the **only** place a status changes.
+the full submission and is the **only** place a status changes. The studio can
+also file a job for a partner (`/partner-jobs/new`) and edit any job, including
+uploading or removing its files (`/partner-jobs/[id]/edit`) — the same form the
+rep uses.
+
+### Invoices on partner jobs
+
+For a company with `invoices_enabled` (TNT), each job has an **Invoice** card.
+On the studio side: **New invoice** creates a regular `TD-INV` invoice billed to
+the partner company and linked to the job, or attach an existing one; deposits
+and payments are recorded on the invoice with **Record payment** (type
+*Deposit* or *Payment*). The partner sees the job's invoice, a portal-wide
+**Invoices** list with the balance due, each invoice's line items and payment
+history, and the PDF — read-only, and never drafts. A job with an invoice
+attached can't be deleted until the invoice is detached.
 
 ### Hostname routing
 
@@ -555,6 +582,7 @@ Two server-only env vars hold that account:
 | --- | --- |
 | `ZAZA_PORTAL_EMAIL` | the shared Supabase account for the Zaza portal |
 | `ZAZA_PORTAL_PASSWORD` | its password — never sent to the browser |
+| `TNT_PORTAL_EMAIL` / `TNT_PORTAL_PASSWORD` | the same pair for the TNT portal (code **`0420`**) |
 
 Missing either one fails closed with "This portal isn't set up yet."
 
@@ -577,8 +605,10 @@ change its password in Supabase and update the env var.
 | --- | --- | --- |
 | See their own company's jobs | ✅ | ✅ (all companies) |
 | See another company's jobs | ❌ RLS | ✅ |
-| File a job | ✅ (own company only) | — |
-| Edit / delete their own job | ✅ (`20260826000000`) | — |
+| File a job | ✅ (own company only) | ✅ for any company (`20260926120000`) |
+| Edit / delete their own job | ✅ (`20260826000000`) | ✅ any job |
+| See invoices on their jobs | ✅ read-only, non-draft, invoiced companies only | ✅ |
+| Create invoices / record payments | ❌ **a trigger refuses the write** | ✅ |
 | Change job **status** | ❌ **a trigger forces it back** | ✅ |
 | Mark a job **complete** | ✅ shared field — `-> completed` / `completed -> in_progress` only | ✅ (any status) |
 | Download job files | ✅ own company only | ✅ |

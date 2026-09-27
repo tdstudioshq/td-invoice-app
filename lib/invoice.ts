@@ -1,6 +1,11 @@
 import { isBefore, parseISO, startOfDay } from "date-fns";
 
-import type { Invoice, InvoiceStatus } from "@/lib/types/database";
+import type {
+  Invoice,
+  InvoiceStatus,
+  Payment,
+  PaymentKind,
+} from "@/lib/types/database";
 
 export interface LineItemInput {
   description: string;
@@ -77,3 +82,38 @@ export const STATUS_LABEL: Record<InvoiceStatus, string> = {
   paid: "Paid",
   overdue: "Overdue",
 };
+
+export const PAYMENT_KINDS: PaymentKind[] = ["deposit", "payment"];
+
+export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = {
+  deposit: "Deposit",
+  payment: "Payment",
+};
+
+export interface PaymentSummary {
+  deposits: number;
+  payments: number;
+  /** Deposits and payments together — both reduce the balance alike. */
+  paid: number;
+  balance: number;
+}
+
+/** Money in against one invoice, split by kind. */
+export function summarizePayments(
+  total: number,
+  payments: Pick<Payment, "amount" | "kind">[],
+): PaymentSummary {
+  let deposits = 0;
+  let paymentsTotal = 0;
+  for (const payment of payments) {
+    if (payment.kind === "deposit") deposits += Number(payment.amount);
+    else paymentsTotal += Number(payment.amount);
+  }
+  const paid = round2(deposits + paymentsTotal);
+  return {
+    deposits: round2(deposits),
+    payments: round2(paymentsTotal),
+    paid,
+    balance: round2(Number(total) - paid),
+  };
+}

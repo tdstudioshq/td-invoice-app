@@ -314,6 +314,11 @@ export async function deletePartnerJobAction(
     .eq("id", jobId)
     .select("id, job_number, job_name");
   if (error) {
+    // invoices.design_job_id is `on delete restrict` (20260926120000): a job
+    // the studio has invoiced keeps its record until the studio detaches it.
+    if (error.code === "23503") {
+      return { error: "This job has an invoice attached, so it can't be deleted. Text TD Studios." };
+    }
     console.error("deletePartnerJobAction", error.message);
     return { error: "We couldn't delete that job. Try again." };
   }

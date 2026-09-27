@@ -7,6 +7,7 @@ import { isPreviewableImage } from "@/lib/partner-jobs/uploads";
 import type {
   AdminDesignJobDetail,
   AdminDesignJobListItem,
+  DesignJob,
   DesignJobFile,
   DesignJobItem,
   DesignJobListItem,
@@ -231,9 +232,97 @@ export async function getPartnerTeamNames(): Promise<Map<string, string>> {
   return names;
 }
 
+/**
+ * Job number and name for a set of job ids, keyed by id — how the portal's
+ * invoice list names the job each invoice bills. RLS scopes it to the rep's
+ * own company, like every other read in this section.
+ */
+export async function getPartnerJobLabels(
+  jobIds: string[],
+): Promise<Map<string, Pick<DesignJob, "id" | "job_number" | "job_name">>> {
+  const labels = new Map<string, Pick<DesignJob, "id" | "job_number" | "job_name">>();
+  if (!isSupabaseConfigured() || jobIds.length === 0) return labels;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("design_jobs")
+      .select("id, job_number, job_name")
+      .in("id", jobIds);
+    if (error) {
+      console.error("getPartnerJobLabels", error.message);
+      return labels;
+    }
+    for (const row of data ?? []) labels.set(row.id, row);
+  } catch (error) {
+    console.error("getPartnerJobLabels", error);
+  }
+  return labels;
+}
+
 // ---------------------------------------------------------------------------
 // Admin-side reads (service-role; every caller re-asserts requireAdmin())
 // ---------------------------------------------------------------------------
+
+/** Every active partner company, for the studio's "file a job for…" choice. */
+export async function getPartnerCompanies(): Promise<
+  Pick<PartnerCompany, "id" | "name" | "slug" | "invoices_enabled">[]
+> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("partner_companies")
+      .select("id, name, slug, invoices_enabled")
+      .eq("active", true)
+      .order("name", { ascending: true });
+    if (error) {
+      console.error("getPartnerCompanies", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error("getPartnerCompanies", error);
+    return [];
+  }
+}
+
+export interface PartnerJobInvoiceContext {
+  job: Pick<DesignJob, "id" | "job_number" | "job_name" | "company_id">;
+  company: Pick<
+    PartnerCompany,
+    "id" | "name" | "slug" | "invoices_enabled" | "client_id"
+  >;
+}
+
+/**
+ * A job and the company it belongs to — the two facts every invoice-linking
+ * decision needs (is the company invoiced, and as which client). Service-role;
+ * callers re-assert requireAdmin().
+ */
+export async function getPartnerJobInvoiceContext(
+  jobId: string,
+): Promise<PartnerJobInvoiceContext | null> {
+  if (!isSupabaseAdminConfigured()) return null;
+  try {
+    const supabase = createAdminClient();
+    const { data: job, error } = await supabase
+      .from("design_jobs")
+      .select("id, job_number, job_name, company_id")
+      .eq("id", jobId)
+      .maybeSingle();
+    if (error || !job) return null;
+    const { data: company } = await supabase
+      .from("partner_companies")
+      .select("id, name, slug, invoices_enabled, client_id")
+      .eq("id", job.company_id)
+      .maybeSingle();
+    if (!company) return null;
+    return { job, company };
+  } catch (error) {
+    console.error("getPartnerJobInvoiceContext", error);
+    return null;
+  }
+}
 
 /** Every partner job across every company, newest first. */
 export async function getAllPartnerJobs(): Promise<AdminDesignJobListItem[]> {

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Factory } from "lucide-react";
+import { Factory, Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { AdminJobCompleteCheckbox } from "@/components/partner-jobs/admin-job-complete-checkbox";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import { EmptyState } from "@/components/shared/empty-state";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -51,7 +52,14 @@ export default async function PartnerJobsPage() {
       <PageHeader
         title="Partner Jobs"
         description="Design jobs submitted by print partners, newest first."
-      />
+      >
+        <Button asChild>
+          <Link href="/partner-jobs/new">
+            <Plus className="size-4" />
+            New job
+          </Link>
+        </Button>
+      </PageHeader>
 
       {jobs.length === 0 ? (
         <EmptyState

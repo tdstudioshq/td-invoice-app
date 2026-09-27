@@ -56,6 +56,11 @@ const PORTAL_ACCESS: Record<string, PortalAccess> = {
     emailEnv: "ZAZA_PORTAL_EMAIL",
     passwordEnv: "ZAZA_PORTAL_PASSWORD",
   },
+  tnt: {
+    code: "0420",
+    emailEnv: "TNT_PORTAL_EMAIL",
+    passwordEnv: "TNT_PORTAL_PASSWORD",
+  },
 };
 
 /** Whether this portal is reachable by keypad at all. */
