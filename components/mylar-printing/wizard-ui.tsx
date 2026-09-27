@@ -48,8 +48,8 @@ export const metaLabelClass =
   "text-muted-foreground text-xs tracking-[0.16em] uppercase md:text-[11px]";
 
 /**
- * Question + one-line explainer at the top of each step, plus an optional
- * spec note.
+ * Question + optional one-line explainer at the top of each step, plus an
+ * optional spec note.
  *
  * `note` exists because step 1's subtitle was carrying two unrelated
  * sentences — an instruction and a material spec — concatenated with no
@@ -64,7 +64,7 @@ export function StepHeading({
   note,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   note?: string;
 }) {
   return (
@@ -78,9 +78,11 @@ export function StepHeading({
       {/* 24px on a phone — up from 20px, and now matching the desktop size
           instead of sitting a step under it. */}
       <h2 className="text-2xl leading-tight text-white">{title}</h2>
-      <p className="text-muted-foreground text-base leading-relaxed md:text-sm">
-        {subtitle}
-      </p>
+      {subtitle ? (
+        <p className="text-muted-foreground text-base leading-relaxed md:text-sm">
+          {subtitle}
+        </p>
+      ) : null}
       {note ? (
         <span className="mt-0.5 inline-flex w-fit items-center rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs leading-none tracking-[0.14em] text-white/80 uppercase md:text-[11px]">
           {note}

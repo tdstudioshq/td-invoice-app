@@ -38,10 +38,6 @@ export default function MylarPrintingPage() {
           <h1 className="public-title font-bold tracking-tight text-white">
             Custom Mylar Printing
           </h1>
-          <p className="text-muted-foreground max-w-md text-base leading-relaxed md:text-sm">
-            Pick your bag, tell us how many, send your artwork — we&apos;ll come
-            back with pricing and a proof.
-          </p>
         </header>
 
         <MylarPrintingWizard />
