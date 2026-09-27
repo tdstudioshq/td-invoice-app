@@ -1,12 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircleIcon } from "@phosphor-icons/react";
+import { ChatCircleTextIcon, CheckCircleIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { InquirySummary } from "@/components/mylar-printing/inquiry-summary";
 import { primaryButtonClass } from "@/components/mylar-printing/wizard-ui";
 import type { MylarPrintingDraft } from "@/lib/mylar-printing/types";
+
+/** The same number as the page's CLICK TO TEXT button. */
+const TEXT_NUMBER = "+19297528373";
+
+/**
+ * An sms: link with the reference prefilled. `?&body=` is the one spelling
+ * that both iOS (which wants `&body=`) and Android (which wants `?body=`)
+ * accept. Same tab, like every other sms: handoff here — the OS takes the
+ * navigation, so `target="_blank"` would strand an empty tab.
+ */
+function textHref(referenceNumber: string) {
+  const body = `Hi TD Studios, I just submitted a custom Mylar printing request. My reference number is ${referenceNumber}.`;
+  return `sms:${TEXT_NUMBER}?&body=${encodeURIComponent(body)}`;
+}
 
 /**
  * Confirmation screen — replaces the wizard once the inquiry is stored.
@@ -46,6 +60,17 @@ export function InquirySuccess({
             {referenceNumber}
           </p>
         </div>
+
+        <Button
+          asChild
+          variant="outline"
+          className="h-12 gap-2 border-white/15 bg-black/35 px-6 text-base text-white hover:bg-black/25 md:h-11 md:px-6 md:text-sm"
+        >
+          <a href={textHref(referenceNumber)}>
+            <ChatCircleTextIcon weight="bold" className="size-5 shrink-0 md:size-4" />
+            Send a text
+          </a>
+        </Button>
       </div>
 
       <InquirySummary draft={draft} />
