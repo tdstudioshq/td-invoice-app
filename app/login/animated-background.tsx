@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image, { type StaticImageData } from "next/image";
 
 import diamonds from "@/public/login-diamonds.webp";
 
@@ -15,7 +15,14 @@ import diamonds from "@/public/login-diamonds.webp";
  * Rendered as `absolute inset-0` inside a `relative` container (the login
  * `<main>`) so it sits above the opaque body background but behind the card.
  */
-export function AnimatedBackground({ dimmed = true }: { dimmed?: boolean }) {
+export function AnimatedBackground({
+  dimmed = true,
+  image = diamonds,
+}: {
+  dimmed?: boolean;
+  /** The base photo. Every page but the homepage keeps the diamonds. */
+  image?: StaticImageData;
+}) {
   return (
     <div
       aria-hidden="true"
@@ -43,7 +50,7 @@ export function AnimatedBackground({ dimmed = true }: { dimmed?: boolean }) {
         produced from the static import at build time, not by the optimizer.
       */}
       <Image
-        src={diamonds}
+        src={image}
         alt=""
         fill
         priority

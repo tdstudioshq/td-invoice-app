@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AnimatedBackground } from "@/app/login/animated-background";
 import { HomeCard } from "@/app/home-card";
 import { HomeMobileBackground } from "@/app/home-mobile-background";
+import iceeDesktop from "@/public/home-bg-desktop.webp";
 
 export const metadata = { title: "TD Studios" };
 
@@ -31,10 +32,11 @@ export default async function Home(props: PageProps<"/">) {
     // shell simply scrolls. `.home-shell` supplies the padding — safe-area aware
     // on phones, the original `px-4 py-12` box from `md` up.
     <main className="on-glass home-shell relative flex min-h-svh flex-col items-center justify-center overflow-hidden">
-      {/* Mobile gets the scratch-off ticket art; md+ keeps the animated diamonds. */}
+      {/* The ICEE print sheet on both: a phone crop below md, a 16:10 crop
+          under the animated glows from md up. */}
       <HomeMobileBackground />
       <div className="absolute inset-0 hidden md:block">
-        <AnimatedBackground dimmed={false} />
+        <AnimatedBackground dimmed={false} image={iceeDesktop} />
       </div>
       <div className="home-card-slot relative z-10 w-full max-w-[26rem] md:max-w-sm">
         <HomeCard redirectTo={target} justReset={justReset} />
