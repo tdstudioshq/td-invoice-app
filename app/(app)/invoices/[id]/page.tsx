@@ -35,7 +35,8 @@ import { getClients } from "@/lib/queries/clients";
 import { getInvoice } from "@/lib/queries/invoices";
 import { getCompanySettings } from "@/lib/queries/settings";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
-import { effectiveStatus } from "@/lib/invoice";
+import { PAYMENT_KIND_LABEL, effectiveStatus } from "@/lib/invoice";
+import { getPartnerJobInvoiceContext } from "@/lib/partner-jobs/queries";
 
 export async function generateMetadata(props: PageProps<"/invoices/[id]">) {
   const { id } = await props.params;
@@ -83,7 +84,12 @@ export default async function InvoiceDetailPage(
     );
   }
 
-  const settings = await getCompanySettings();
+  const [settings, jobContext] = await Promise.all([
+    getCompanySettings(),
+    invoice.design_job_id
+      ? getPartnerJobInvoiceContext(invoice.design_job_id)
+      : Promise.resolve(null),
+  ]);
   const companyName = settings?.company_name ?? "TD Studios";
   const status = effectiveStatus(invoice);
   const items = invoice.invoice_items
@@ -105,6 +111,13 @@ export default async function InvoiceDetailPage(
             Back to invoices
           </Link>
         </Button>
+        {jobContext ? (
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/partner-jobs/${jobContext.job.id}`}>
+              {jobContext.company.name} job {jobContext.job.job_number}
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-2 print:hidden">
@@ -380,7 +393,7 @@ export default async function InvoiceDetailPage(
       {/* Payments log — management only, never printed */}
       <Card className="mt-6 print:hidden">
         <CardHeader className="border-b border-glass-border">
-          <CardTitle>Payments</CardTitle>
+          <CardTitle>Deposits &amp; payments</CardTitle>
         </CardHeader>
         <CardContent>
           {invoice.payments.length === 0 ? (
@@ -398,6 +411,7 @@ export default async function InvoiceDetailPage(
                   >
                     <div className="min-w-0">
                       <p className="text-sm">
+                        {PAYMENT_KIND_LABEL[payment.kind]} ·{" "}
                         {formatDate(payment.payment_date)}
                       </p>
                       <p className="text-muted-foreground truncate text-sm">
@@ -416,6 +430,7 @@ export default async function InvoiceDetailPage(
                   <TableHeader>
                     <TableRow>
                       <TableHead>Date</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Method</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
@@ -424,6 +439,7 @@ export default async function InvoiceDetailPage(
                     {invoice.payments.map((payment) => (
                       <TableRow key={payment.id}>
                         <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                        <TableCell>{PAYMENT_KIND_LABEL[payment.kind]}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {payment.method ?? "—"}
                         </TableCell>

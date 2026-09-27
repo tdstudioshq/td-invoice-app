@@ -1,6 +1,6 @@
-import {
-  createPartnerJobUploadTicketsAction,
-  type PartnerUploadTicket,
+import type {
+  MintPartnerUploadsResult,
+  PartnerUploadTicket,
 } from "@/app/actions/partner-jobs";
 import { validatePartnerUploadFile } from "@/lib/partner-jobs/uploads";
 
@@ -15,6 +15,17 @@ import { validatePartnerUploadFile } from "@/lib/partner-jobs/uploads";
  * the path. Progress comes from XMLHttpRequest, which (unlike fetch) exposes
  * upload progress events.
  */
+
+/**
+ * Mints the signed upload URLs. Passed in rather than imported so the same
+ * uploader serves the rep (createPartnerJobUploadTicketsAction) and the studio
+ * (adminCreatePartnerJobUploadTicketsAction) without either bundle referencing
+ * the other's endpoint.
+ */
+export type MintJobUploadTickets = (input: {
+  jobId: string | null;
+  files: { name: string; size: number; type: string | null }[];
+}) => Promise<MintPartnerUploadsResult>;
 
 export interface UploadedJobFile {
   path: string;
@@ -96,6 +107,7 @@ export async function uploadJobFiles(params: {
   files: File[];
   alreadyUploaded?: UploadedJobFile[];
   onProgress: (index: number, percent: number) => void;
+  mintTickets: MintJobUploadTickets;
   signal?: AbortSignal;
 }): Promise<UploadJobFilesResult> {
   const { files, alreadyUploaded = [], onProgress, signal } = params;
@@ -117,7 +129,7 @@ export async function uploadJobFiles(params: {
     }
   }
 
-  const minted = await createPartnerJobUploadTicketsAction({
+  const minted = await params.mintTickets({
     jobId: params.jobId,
     files: files.map((file) => ({
       name: file.name,

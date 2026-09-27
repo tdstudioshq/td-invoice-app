@@ -13,14 +13,11 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
-import {
-  discardPartnerJobFilesAction,
-  submitPartnerJobAction,
+import type {
+  DiscardPartnerUploadsResult,
+  SubmitPartnerJobResult,
 } from "@/app/actions/partner-jobs";
-import {
-  deletePartnerJobAction,
-  updatePartnerJobAction,
-} from "@/app/actions/partner-job-edits";
+import type { EditPartnerJobResult } from "@/app/actions/partner-job-edits";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,6 +54,7 @@ import {
 } from "@/lib/partner-jobs/types";
 import {
   uploadJobFiles,
+  type MintJobUploadTickets,
   type UploadedJobFile,
 } from "@/lib/partner-jobs/upload-client";
 import {
@@ -154,6 +152,21 @@ function emptyItem(): ItemRow {
   };
 }
 
+/**
+ * The five server actions behind the form. Handed in by the page rather than
+ * imported, because the form serves two callers with different authorization:
+ * a rep's pages pass the partner actions (cookie-scoped, RLS-bound), the
+ * studio's pages pass the admin ones (requireAdmin + service role) bound to a
+ * company. Neither bundle then references the other's endpoints.
+ */
+export interface JobFormActions {
+  mintTickets: MintJobUploadTickets;
+  submit: (input: unknown) => Promise<SubmitPartnerJobResult>;
+  update: (input: unknown) => Promise<EditPartnerJobResult>;
+  remove: (input: unknown) => Promise<{ error: string } | { deleted: true }>;
+  discard: (input: { jobId: string; paths: string[] }) => Promise<DiscardPartnerUploadsResult>;
+}
+
 export interface EditableJob {
   id: string;
   jobName: string;
@@ -236,10 +249,13 @@ function StoredFileRow({
 }
 
 export function NewJobForm({
-  basePath,
+  jobsPath,
+  actions,
   job,
 }: {
-  basePath: string;
+  /** Where the jobs list lives, in external terms; a job is `${jobsPath}/<id>`. */
+  jobsPath: string;
+  actions: JobFormActions;
   /** Present in edit mode; absent when filing a new job. */
   job?: EditableJob;
 }) {
@@ -356,7 +372,7 @@ export function NewJobForm({
     uploadedRef.current = [];
     jobIdRef.current = null;
     if (jobId && stranded.length > 0) {
-      void discardPartnerJobFilesAction({
+      void actions.discard({
         jobId,
         paths: stranded.map((file) => file.path),
       }).then((result) => {
@@ -372,7 +388,7 @@ export function NewJobForm({
         }
       });
     }
-  }, []);
+  }, [actions]);
 
   const removeItem = useCallback(
     (id: string) => {
@@ -627,6 +643,7 @@ export function NewJobForm({
         jobId,
         files: outstanding.map((entry) => entry.row.file),
         alreadyUploaded: uploaded,
+        mintTickets: actions.mintTickets,
         onProgress: (index, percent) => {
           const target = outstanding[index];
           if (!target) return;
@@ -669,7 +686,7 @@ export function NewJobForm({
 
     setPhase("saving");
     const result = editing
-      ? await updatePartnerJobAction({
+      ? await actions.update({
           jobId: job!.id,
           jobName: jobName.trim(),
           notes: notes.trim(),
@@ -677,7 +694,7 @@ export function NewJobForm({
           addFiles: filesWithOwner,
           removeFileIds: removedFileIds,
         })
-      : await submitPartnerJobAction({
+      : await actions.submit({
           jobId,
           jobName: jobName.trim(),
           notes: notes.trim(),
@@ -712,21 +729,21 @@ export function NewJobForm({
     toast.success(
       editing ? `Job ${result.jobNumber} updated` : `Job ${result.jobNumber} submitted`,
     );
-    router.push(`${basePath}/jobs/${result.jobId}`);
+    router.push(`${jobsPath}/${result.jobId}`);
     router.refresh();
   }
 
   async function onDelete() {
     if (!job || busy || deleting) return;
     setDeleting(true);
-    const result = await deletePartnerJobAction({ jobId: job.id });
+    const result = await actions.remove({ jobId: job.id });
     if ("error" in result) {
       setDeleting(false);
       toast.error(result.error);
       return;
     }
     toast.success("Job deleted");
-    router.push(`${basePath}/jobs`);
+    router.push(jobsPath);
     router.refresh();
   }
 

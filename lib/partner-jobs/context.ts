@@ -64,16 +64,20 @@ export async function partnerBasePath(companySlug: string): Promise<string> {
  * Reads through the SERVICE-ROLE client because the login page has no session
  * and `partner_companies` is readable under RLS only by a member of that
  * company — a signed-out visitor would otherwise get nothing and the portal
- * could not render its own name. Only the four branding fields are returned,
+ * could not render its own name. Only the branding fields are returned,
  * and only for an ACTIVE company, so this exposes no more than the login screen
- * already shows to anyone who knows the URL.
+ * already shows to anyone who knows the URL (plus whether the portal has an
+ * Invoices section, which decides the navigation it draws).
  *
  * Degrades to the cookie-scoped client when service-role credentials are absent
  * (a signed-in rep still gets their own company), and to null beyond that.
  */
 export async function getPartnerCompanyBySlug(
   slug: string,
-): Promise<Pick<PartnerCompany, "id" | "name" | "slug" | "active"> | null> {
+): Promise<Pick<
+  PartnerCompany,
+  "id" | "name" | "slug" | "active" | "invoices_enabled"
+> | null> {
   if (!isSupabaseConfigured()) return null;
   try {
     const supabase = isSupabaseAdminConfigured()
@@ -81,7 +85,7 @@ export async function getPartnerCompanyBySlug(
       : await createClient();
     const { data, error } = await supabase
       .from("partner_companies")
-      .select("id, name, slug, active")
+      .select("id, name, slug, active, invoices_enabled")
       .eq("slug", slug)
       .maybeSingle();
     if (error) {

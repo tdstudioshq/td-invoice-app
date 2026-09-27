@@ -19,8 +19,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { todayISO } from "@/lib/format";
+import { PAYMENT_KINDS, PAYMENT_KIND_LABEL } from "@/lib/invoice";
+import type { PaymentKind } from "@/lib/types/database";
 
 export function RecordPaymentDialog({
   invoiceId,
@@ -30,6 +39,7 @@ export function RecordPaymentDialog({
   balanceDue: number;
 }) {
   const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<PaymentKind>("payment");
   const [state, formAction] = useActionState(
     addPaymentAction,
     initialActionState,
@@ -58,11 +68,29 @@ export function RecordPaymentDialog({
         <DialogHeader>
           <DialogTitle>Record payment</DialogTitle>
           <DialogDescription>
-            Log a payment received against this invoice.
+            Log a deposit or payment received against this invoice. Both
+            reduce the balance due.
           </DialogDescription>
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="invoice_id" value={invoiceId} />
+          <input type="hidden" name="kind" value={kind} />
+
+          <div className="space-y-2">
+            <Label htmlFor="payment_kind">Type</Label>
+            <Select value={kind} onValueChange={(value) => setKind(value as PaymentKind)}>
+              <SelectTrigger id="payment_kind" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_KINDS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {PAYMENT_KIND_LABEL[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

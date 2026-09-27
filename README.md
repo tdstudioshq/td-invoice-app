@@ -507,8 +507,9 @@ invoices, without touching the admin app.
 ## Print-partner portals
 
 A private ordering portal for print companies, replacing the group chat a sales
-rep used to send design jobs through. V1 serves one company, **Zaza**, at
-`zazaorders.tdstudiosny.com`.
+rep used to send design jobs through. Two companies: **Zaza** at
+`zazaorders.tdstudiosny.com`, and **TNT** at `tnt.tdstudiosny.com` — TNT's portal
+also has an **Invoices** section (see [Invoices on partner jobs](#invoices-on-partner-jobs)).
 
 ### What a rep can do
 
@@ -516,8 +517,8 @@ Sign in, file a design job (a job name, then one or more products — each with 
 finish, a quantity, its own notes and its own artwork), edit or delete it, and
 watch its status — **New → In Progress → Completed**. Artwork and notes attach to
 a *product*, not to the job, so the studio never has to work out which file goes
-with which item. That's the whole surface: no messaging, quoting, invoicing,
-approvals or revisions.
+with which item. That's the whole surface: no messaging, quoting, approvals or revisions —
+and invoicing only for a company that has it turned on (TNT).
 
 Status is the one field a rep cannot touch: a database trigger forces it back on
 any rep-side write, so it changes only from the admin side.
@@ -525,7 +526,21 @@ any rep-side write, so it changes only from the admin side.
 ### What TD Studios can do
 
 `/partner-jobs` lists every job from every partner; `/partner-jobs/[id]` shows
-the full submission and is the **only** place a status changes.
+the full submission and is the **only** place a status changes. The studio can
+also file a job for a partner (`/partner-jobs/new`) and edit any job, including
+uploading or removing its files (`/partner-jobs/[id]/edit`) — the same form the
+rep uses.
+
+### Invoices on partner jobs
+
+For a company with `invoices_enabled` (TNT), each job has an **Invoice** card.
+On the studio side: **New invoice** creates a regular `TD-INV` invoice billed to
+the partner company and linked to the job, or attach an existing one; deposits
+and payments are recorded on the invoice with **Record payment** (type
+*Deposit* or *Payment*). The partner sees the job's invoice, a portal-wide
+**Invoices** list with the balance due, each invoice's line items and payment
+history, and the PDF — read-only, and never drafts. A job with an invoice
+attached can't be deleted until the invoice is detached.
 
 ### Hostname routing
 
@@ -567,6 +582,7 @@ Two server-only env vars hold that account:
 | --- | --- |
 | `ZAZA_PORTAL_EMAIL` | the shared Supabase account for the Zaza portal |
 | `ZAZA_PORTAL_PASSWORD` | its password — never sent to the browser |
+| `TNT_PORTAL_EMAIL` / `TNT_PORTAL_PASSWORD` | the same pair for the TNT portal (code **`0420`**) |
 
 Missing either one fails closed with "This portal isn't set up yet."
 
@@ -589,8 +605,10 @@ change its password in Supabase and update the env var.
 | --- | --- | --- |
 | See their own company's jobs | ✅ | ✅ (all companies) |
 | See another company's jobs | ❌ RLS | ✅ |
-| File a job | ✅ (own company only) | — |
-| Edit / delete their own job | ✅ (`20260826000000`) | — |
+| File a job | ✅ (own company only) | ✅ for any company (`20260926120000`) |
+| Edit / delete their own job | ✅ (`20260826000000`) | ✅ any job |
+| See invoices on their jobs | ✅ read-only, non-draft, invoiced companies only | ✅ |
+| Create invoices / record payments | ❌ **a trigger refuses the write** | ✅ |
 | Change job **status** | ❌ **a trigger forces it back** | ✅ |
 | Mark a job **complete** | ✅ shared field — `-> completed` / `completed -> in_progress` only | ✅ (any status) |
 | Download job files | ✅ own company only | ✅ |

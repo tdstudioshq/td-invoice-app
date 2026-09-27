@@ -36,6 +36,7 @@ export default async function PartnerPortalLayout({
       basePath={basePath}
       userEmail={signedIn ? partner?.email : null}
       signedIn={signedIn}
+      invoicesEnabled={company.invoices_enabled}
     >
       {children}
     </PartnerShell>

@@ -8,6 +8,7 @@ import { JobDoneCheckbox } from "@/components/partner-jobs/job-done-checkbox";
 import { JobActivity } from "@/components/partner-jobs/job-activity";
 import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
+import { JobInvoiceList } from "@/components/partner-jobs/job-invoice-list";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import {
@@ -19,10 +20,12 @@ import {
 } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
 import {
+  getPartnerCompanyBySlug,
   partnerBasePath,
   partnerHref,
   requirePartnerSession,
 } from "@/lib/partner-jobs/context";
+import { getInvoicesForJob } from "@/lib/queries/invoices";
 import {
   getPartnerJob,
   getPartnerJobEvents,
@@ -56,11 +59,18 @@ export default async function PartnerJobDetailPage({
 
   const jobLevelFiles = job.files.filter((file) => !file.item_id);
 
-  const events = await getPartnerJobEvents(jobId);
-  const teamNames = await getPartnerTeamNames();
+  const [events, teamNames, company] = await Promise.all([
+    getPartnerJobEvents(jobId),
+    getPartnerTeamNames(),
+    getPartnerCompanyBySlug(slug),
+  ]);
+  const invoices = company?.invoices_enabled ? await getInvoicesForJob(jobId) : [];
+  // A submitter who is not on the company's team is the studio, which can file
+  // jobs for the company too (admin_create_design_job).
   const submittedBy =
     (job.submitted_by ? teamNames.get(job.submitted_by) : null) ??
     (job.submitted_by === partner.userId ? (partner.displayName ?? partner.email) : null) ??
+    (job.submitted_by ? "TD Studios" : null) ??
     "—";
 
   return (
@@ -159,6 +169,26 @@ export default async function PartnerJobDetailPage({
             </CardHeader>
             <CardContent>
               <JobFileList files={jobLevelFiles} jobNumber={job.job_number} />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {company?.invoices_enabled ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Invoice
+                <span className="text-muted-foreground ml-2 font-normal">
+                  {invoices.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobInvoiceList
+                invoices={invoices}
+                invoiceHref={partnerHref(basePath, "/invoices")}
+                emptyNote="No invoice on this job yet."
+              />
             </CardContent>
           </Card>
         ) : null}

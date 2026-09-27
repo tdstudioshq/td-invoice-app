@@ -5,6 +5,8 @@
 //   supabase gen types typescript --local > lib/types/database.ts
 
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+// payments.kind (migration 20260926120000). Both reduce the balance alike.
+export type PaymentKind = "deposit" | "payment";
 
 // Maps to the three private-storage prefixes (uploads/, final-files/, invoices/).
 export type FileCategory = "uploads" | "final_files" | "invoices";
@@ -267,6 +269,8 @@ export interface Database {
           discount_amount: number;
           tax_amount: number;
           total: number;
+          // The partner job this invoice bills (20260926120000). on delete restrict.
+          design_job_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -285,6 +289,7 @@ export interface Database {
           discount_amount?: number;
           tax_amount?: number;
           total?: number;
+          design_job_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -294,6 +299,12 @@ export interface Database {
             foreignKeyName: "invoices_client_id_fkey";
             columns: ["client_id"];
             referencedRelation: "clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invoices_design_job_id_fkey";
+            columns: ["design_job_id"];
+            referencedRelation: "design_jobs";
             referencedColumns: ["id"];
           },
         ];
@@ -340,6 +351,7 @@ export interface Database {
           payment_date: string;
           method: string | null;
           notes: string | null;
+          kind: PaymentKind;
           created_at: string;
         };
         Insert: {
@@ -350,6 +362,7 @@ export interface Database {
           payment_date?: string;
           method?: string | null;
           notes?: string | null;
+          kind?: PaymentKind;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
@@ -937,6 +950,9 @@ export interface Database {
           job_prefix: string;
           next_job_number: number;
           active: boolean;
+          // Invoicing on partner jobs (20260926120000).
+          invoices_enabled: boolean;
+          client_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -947,6 +963,8 @@ export interface Database {
           job_prefix: string;
           next_job_number?: number;
           active?: boolean;
+          invoices_enabled?: boolean;
+          client_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1237,6 +1255,39 @@ export interface Database {
         };
         Returns: { job_id: string; job_number: string }[];
       };
+      // The studio's pair (20260926120000): the company is passed explicitly
+      // because partner_company_id() is null for the service role. service_role
+      // only.
+      admin_create_design_job: {
+        Args: {
+          p_company_id: string;
+          p_job_id: string;
+          p_job_name: string;
+          p_notes: string | null;
+          p_items: Json;
+          p_files: Json;
+          p_actor: string | null;
+        };
+        Returns: { job_id: string; job_number: string }[];
+      };
+      admin_update_design_job: {
+        Args: {
+          p_company_id: string;
+          p_job_id: string;
+          p_job_name: string;
+          p_notes: string | null;
+          p_items: Json;
+        };
+        Returns: { job_id: string; job_number: string }[];
+      };
+      partner_can_view_invoice: {
+        Args: { p_invoice_id: string };
+        Returns: boolean;
+      };
+      partner_invoice_client_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
       is_portal_user: {
         Args: Record<string, never>;
         Returns: boolean;
@@ -1342,6 +1393,11 @@ export type TaskWithClient = Task & {
 };
 export type InvoiceWithClient = Invoice & {
   client: Pick<Client, "id" | "company_name" | "contact_name" | "email"> | null;
+};
+
+/** An invoice with just enough of its payments to show paid / balance. */
+export type InvoiceWithPayments = Invoice & {
+  payments: Pick<Payment, "id" | "amount" | "kind" | "payment_date">[];
 };
 
 export type InvoiceWithRelations = Invoice & {

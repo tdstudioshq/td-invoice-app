@@ -4,6 +4,7 @@ import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { NewJobForm } from "@/components/partner-jobs/new-job-form";
+import { PARTNER_JOB_FORM_ACTIONS } from "@/components/partner-jobs/partner-job-form-actions";
 import {
   partnerBasePath,
   partnerHref,
@@ -49,7 +50,8 @@ export default async function EditPartnerJobPage({
       />
 
       <NewJobForm
-        basePath={basePath}
+        jobsPath={partnerHref(basePath, "/jobs")}
+        actions={PARTNER_JOB_FORM_ACTIONS}
         job={{
           id: job.id,
           jobName: job.job_name,

@@ -7,8 +7,8 @@ import { SignOutButton } from "@/components/layout/sign-out-button";
  * Chrome for a print-partner portal.
  *
  * Deliberately NOT the AppShell or the PortalShell: this is a focused
- * single-purpose workspace with two destinations, so a sidebar would be mostly
- * empty. A slim header, the company's own name, and nothing from the TD Studios
+ * workspace with at most two sections (Jobs, and Invoices for a company that is
+ * invoiced), so a sidebar would be mostly empty. A slim header, the company's own name, and nothing from the TD Studios
  * marketing site.
  *
  * Server component — it holds no state, and keeping it one means the login
@@ -19,6 +19,7 @@ export function PartnerShell({
   basePath,
   userEmail,
   signedIn = false,
+  invoicesEnabled = false,
   children,
 }: {
   companyName: string;
@@ -26,6 +27,8 @@ export function PartnerShell({
   basePath: string;
   userEmail?: string | null;
   signedIn?: boolean;
+  /** Draws the Jobs / Invoices navigation (partner_companies.invoices_enabled). */
+  invoicesEnabled?: boolean;
   children: React.ReactNode;
 }) {
   const home = signedIn ? `${basePath}/jobs` : `${basePath}/login`;
@@ -67,6 +70,25 @@ export function PartnerShell({
             </div>
           ) : null}
         </div>
+        {signedIn && invoicesEnabled ? (
+          <nav
+            aria-label="Portal sections"
+            className="mx-auto flex w-full max-w-5xl gap-1 pb-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]"
+          >
+            <Link
+              href={`${basePath}/jobs`}
+              className="text-muted-foreground hover:text-foreground hover:bg-glass-highlight/10 inline-flex min-h-11 items-center rounded-[6px] px-3 text-sm transition-colors md:min-h-9"
+            >
+              Jobs
+            </Link>
+            <Link
+              href={`${basePath}/invoices`}
+              className="text-muted-foreground hover:text-foreground hover:bg-glass-highlight/10 inline-flex min-h-11 items-center rounded-[6px] px-3 text-sm transition-colors md:min-h-9"
+            >
+              Invoices
+            </Link>
+          </nav>
+        ) : null}
       </header>
 
       <main className="min-w-0 flex-1 py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(env(safe-area-inset-bottom)_+_2rem)] md:px-8 md:py-10">

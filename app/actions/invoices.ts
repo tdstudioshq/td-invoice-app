@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { OWNER_RESOLVE_ERROR, currentOwnerId } from "@/lib/auth";
+import { OWNER_RESOLVE_ERROR, currentOwnerId, isAdminEmail } from "@/lib/auth";
+import { ensurePartnerCompanyClient } from "@/lib/partner-jobs/invoicing";
+import { getPartnerJobInvoiceContext } from "@/lib/partner-jobs/queries";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getInvoice } from "@/lib/queries/invoices";
 import { getCompanySettings } from "@/lib/queries/settings";
@@ -14,7 +16,8 @@ import { EMAIL_FROM, getResend, isResendConfigured } from "@/lib/email/client";
 import { invoiceEmail } from "@/lib/email/templates";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { ActionState } from "@/app/actions/types";
-import type { InvoiceStatus } from "@/lib/types/database";
+import { PAYMENT_KINDS } from "@/lib/invoice";
+import type { InvoiceStatus, PaymentKind } from "@/lib/types/database";
 
 const itemSchema = z.object({
   description: z.string().trim().default(""),
@@ -150,12 +153,37 @@ export async function createInvoiceAction(
   const ownerId = await currentOwnerId(supabase);
   if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
-  if (client.error) return { error: client.error };
+  // An invoice started from a partner job bills that job's COMPANY, whatever
+  // name was typed — the portal finds its invoices through this link, so a
+  // mistyped client would bill the right job to the wrong account.
+  const jobId = String(formData.get("design_job_id") ?? "").trim();
+  let clientId: string | null;
+  let designJobId: string | null = null;
+  if (jobId) {
+    // Reading the job needs the service role (partner tables have no admin
+    // policy), so this branch is admin-only in the app as well as by RLS.
+    if (!isAdminEmail(user.email)) return { error: "You must be an admin." };
+    const context = await getPartnerJobInvoiceContext(jobId);
+    if (!context) return { error: "That job no longer exists." };
+    if (!context.company.invoices_enabled) {
+      return { error: `Invoices aren't turned on for ${context.company.name}.` };
+    }
+    const resolved = await ensurePartnerCompanyClient(context, supabase, ownerId);
+    if ("error" in resolved) return { error: resolved.error };
+    clientId = resolved.clientId;
+    designJobId = context.job.id;
+  } else {
+    const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
+    if (client.error) return { error: client.error };
+    clientId = client.id;
+  }
 
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
-    .insert(buildInvoiceRow(parsed.data, client.id, ownerId))
+    .insert({
+      ...buildInvoiceRow(parsed.data, clientId, ownerId),
+      design_job_id: designJobId,
+    })
     .select("id")
     .single();
 
@@ -173,6 +201,7 @@ export async function createInvoiceAction(
 
   revalidatePath("/invoices");
   revalidatePath("/dashboard");
+  if (designJobId) revalidatePath(`/partner-jobs/${designJobId}`);
   redirect(`/invoices/${invoice.id}`);
 }
 
@@ -263,6 +292,7 @@ const paymentSchema = z.object({
   payment_date: z.string().min(1, "Date is required"),
   method: z.string().trim().optional().or(z.literal("")),
   notes: z.string().trim().optional().or(z.literal("")),
+  kind: z.enum(PAYMENT_KINDS as [PaymentKind, ...PaymentKind[]]).default("payment"),
 });
 
 // Record a payment against an invoice. When total payments cover the invoice
@@ -277,6 +307,7 @@ export async function addPaymentAction(
     payment_date: formData.get("payment_date"),
     method: formData.get("method"),
     notes: formData.get("notes"),
+    kind: formData.get("kind") || undefined,
   });
   if (!parsed.success) {
     return { fieldErrors: toFieldErrors(parsed.error) };
@@ -303,12 +334,17 @@ export async function addPaymentAction(
     payment_date: parsed.data.payment_date,
     method: parsed.data.method ? parsed.data.method.trim() : null,
     notes: parsed.data.notes ? parsed.data.notes.trim() : null,
+    kind: parsed.data.kind,
   });
   if (error) return { error: error.message };
 
   // Auto-mark the invoice paid once payments cover the total.
   const [{ data: invoice }, { data: payments }] = await Promise.all([
-    supabase.from("invoices").select("total, status").eq("id", invoice_id).single(),
+    supabase
+      .from("invoices")
+      .select("total, status, design_job_id")
+      .eq("id", invoice_id)
+      .single(),
     supabase.from("payments").select("amount").eq("invoice_id", invoice_id),
   ]);
   const totalPaid = (payments ?? []).reduce(
@@ -322,6 +358,9 @@ export async function addPaymentAction(
   revalidatePath(`/invoices/${invoice_id}`);
   revalidatePath("/invoices");
   revalidatePath("/dashboard");
+  if (invoice?.design_job_id) {
+    revalidatePath(`/partner-jobs/${invoice.design_job_id}`);
+  }
   return { success: true };
 }
 
