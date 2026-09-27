@@ -227,13 +227,27 @@ export async function updateInvoiceAction(
   const ownerId = await currentOwnerId(supabase);
   if (!ownerId) return { error: OWNER_RESOLVE_ERROR };
 
-  const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
-  if (client.error) return { error: client.error };
+  // A job-linked invoice keeps the client it bills (the partner company).
+  // Re-resolving the typed name could land on a different client that merely
+  // shares the name, and the portal would lose the bill-to it can read.
+  const { data: current } = await supabase
+    .from("invoices")
+    .select("client_id, design_job_id")
+    .eq("id", id)
+    .maybeSingle();
+  let clientId: string | null;
+  if (current?.design_job_id) {
+    clientId = current.client_id;
+  } else {
+    const client = await resolveClientId(supabase, parsed.data.client_name, ownerId);
+    if (client.error) return { error: client.error };
+    clientId = client.id;
+  }
 
   // owner_id intentionally omitted on update; RLS scopes this to the workspace.
   const { error: invoiceError } = await supabase
     .from("invoices")
-    .update(buildInvoiceRow(parsed.data, client.id))
+    .update(buildInvoiceRow(parsed.data, clientId))
     .eq("id", id);
   if (invoiceError) return { error: invoiceError.message };
 
@@ -255,6 +269,7 @@ export async function updateInvoiceAction(
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/dashboard");
+  if (current?.design_job_id) revalidatePath(`/partner-jobs/${current.design_job_id}`);
   redirect(`/invoices/${id}`);
 }
 

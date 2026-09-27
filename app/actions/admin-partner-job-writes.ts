@@ -55,6 +55,7 @@ import type { EditPartnerJobResult } from "@/app/actions/partner-job-edits";
  */
 
 const NOT_CONFIGURED = "Supabase admin access is not configured.";
+const NO_COMPANY = "That partner company couldn't be found, or it's inactive.";
 const STUDIO = "TD Studios";
 
 interface Company {
@@ -153,7 +154,7 @@ export async function adminCreatePartnerJobUploadTicketsAction(
 ): Promise<MintPartnerUploadsResult> {
   await requireAdmin();
   const company = await loadCompany(companyId);
-  if (!company) return { error: NOT_CONFIGURED };
+  if (!company) return { error: isSupabaseAdminConfigured() ? NO_COMPANY : NOT_CONFIGURED };
 
   const parsed = mintPartnerUploadsSchema.safeParse(input);
   if (!parsed.success) {
@@ -200,7 +201,7 @@ export async function adminSubmitPartnerJobAction(
 ): Promise<SubmitPartnerJobResult> {
   const user = await requireAdmin();
   const company = await loadCompany(companyId);
-  if (!company) return { error: NOT_CONFIGURED };
+  if (!company) return { error: isSupabaseAdminConfigured() ? NO_COMPANY : NOT_CONFIGURED };
 
   const parsed = partnerJobSubmissionSchema.safeParse(input);
   if (!parsed.success) {
@@ -283,7 +284,7 @@ export async function adminUpdatePartnerJobAction(
 ): Promise<EditPartnerJobResult> {
   const user = await requireAdmin();
   const company = await loadCompany(companyId);
-  if (!company) return { error: NOT_CONFIGURED };
+  if (!company) return { error: isSupabaseAdminConfigured() ? NO_COMPANY : NOT_CONFIGURED };
 
   const parsed = partnerJobEditSchema.safeParse(input);
   if (!parsed.success) {
@@ -419,7 +420,7 @@ export async function adminDeletePartnerJobAction(
 ): Promise<{ error: string } | { deleted: true }> {
   await requireAdmin();
   const company = await loadCompany(companyId);
-  if (!company) return { error: NOT_CONFIGURED };
+  if (!company) return { error: isSupabaseAdminConfigured() ? NO_COMPANY : NOT_CONFIGURED };
 
   const parsed = deletePartnerJobSchema.safeParse(input);
   if (!parsed.success) return { error: "That job couldn't be found." };

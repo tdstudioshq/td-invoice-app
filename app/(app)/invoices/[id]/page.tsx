@@ -36,6 +36,7 @@ import { getInvoice } from "@/lib/queries/invoices";
 import { getCompanySettings } from "@/lib/queries/settings";
 import { formatCurrency, formatDate, formatPercent } from "@/lib/format";
 import { PAYMENT_KIND_LABEL, effectiveStatus } from "@/lib/invoice";
+import { requireAdmin } from "@/lib/auth";
 import { getPartnerJobInvoiceContext } from "@/lib/partner-jobs/queries";
 
 export async function generateMetadata(props: PageProps<"/invoices/[id]">) {
@@ -84,6 +85,9 @@ export default async function InvoiceDetailPage(
     );
   }
 
+  // The job read goes through the service role, so its caller re-asserts
+  // requireAdmin() itself rather than leaning on the (app) layout.
+  if (invoice.design_job_id) await requireAdmin();
   const [settings, jobContext] = await Promise.all([
     getCompanySettings(),
     invoice.design_job_id
