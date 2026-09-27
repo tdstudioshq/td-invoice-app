@@ -5,22 +5,31 @@ import icee from "@/public/home-bg-mobile.webp";
  *
  * The ICEE Dunny print sheet (`public/home-bg-mobile.webp`, a 900x1600
  * phone-shaped crop, pre-sized because the image optimizer is out of the
- * delivery path) is `cover`-fit for a full-bleed background. It is rendered as
- * one background layer on the homepage shell.
+ * delivery path) is `cover`-fit for a full-bleed background.
  *
  * Hidden from `md` up, where `AnimatedBackground` takes over.
  *
- * A plain CSS background is deliberate. Mobile Safari can discard a fixed,
- * GPU-promoted image layer when it sits beneath a live backdrop-filter, which
- * reveals the black fallback after a few seconds. Painting the imported,
- * build-hashed asset directly onto this non-transformed layer avoids that
- * compositor path and avoids the project's exhausted image optimizer.
+ * FIXED, so the card scrolls over a still backdrop — but only in this exact
+ * shape, and the shape is the point. An earlier version was also fixed and
+ * mobile Safari dropped it to black a few seconds in: that one was a fixed
+ * wrapper holding a `next/image` inside a `will-change: transform` layer that a
+ * scroll parallax translated, i.e. a GPU-promoted image layer under a live
+ * `backdrop-filter`, which WebKit is known to discard. This is a single plain
+ * element with a CSS `background-image` from a build-hashed static import: no
+ * <img>, no transform, no `will-change`, no parallax. Keep it that way — adding
+ * any of those back reintroduces the promoted layer.
+ *
+ * `h-lvh` (the LARGE viewport height), not `inset-0`: a fixed box pinned to all
+ * four edges resizes as Safari's toolbar collapses, and `bg-cover` would
+ * rescale the artwork mid-scroll. Sized to the largest viewport it never
+ * changes height, so the image stays put. `background-attachment: fixed` is not
+ * an option — iOS Safari ignores it.
  */
 export function HomeMobileBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 z-0 bg-black bg-cover bg-center bg-no-repeat md:hidden"
+      className="pointer-events-none fixed inset-x-0 top-0 z-0 h-lvh bg-black bg-cover bg-center bg-no-repeat md:hidden"
       style={{ backgroundImage: `url(${icee.src})` }}
     />
   );
