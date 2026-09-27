@@ -4,6 +4,8 @@ import { AnimatedBackground } from "@/app/login/animated-background";
 import { HomeLogoLink } from "@/components/layout/home-logo";
 import { MylarPrintingWizard } from "@/components/mylar-printing/mylar-printing-wizard";
 import { BackToStudiosLink } from "@/components/layout/public-page-link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 // The root layout's title template appends " · TD Studios", so this renders as
 // "Custom Mylar Printing · TD Studios".
@@ -42,13 +44,16 @@ export default function MylarPrintingPage() {
 
         <MylarPrintingWizard />
 
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-3">
           <a
             href={TEXT_HREF}
-            className="text-on-photo text-muted-foreground hover:text-foreground -mx-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none md:text-xs"
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-12 gap-2 border-white/15 bg-black/35 px-6 text-base text-white hover:bg-black/25 md:h-11 md:px-6 md:text-sm",
+            )}
           >
-            <ChatCircleTextIcon weight="bold" className="size-4 shrink-0 md:size-3.5" />
-            Rather just text us? Tap here.
+            <ChatCircleTextIcon weight="bold" className="size-5 shrink-0 md:size-4" />
+            Click to text
           </a>
           <BackToStudiosLink />
         </div>
