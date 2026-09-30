@@ -110,6 +110,7 @@ export function MylarPrintingWizard() {
   const reduceMotion = useReducedMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const stepPanelRef = useRef<HTMLDivElement>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
   const hydrated = useRef(false);
   // Stamped in the mount effect rather than during render: Date.now() is
   // impure, and a value that shifts between renders would make the "filled too
@@ -208,6 +209,31 @@ export function MylarPrintingWizard() {
       setStep(Math.min(STEP_COUNT - 1, Math.max(0, next)));
     },
     [step],
+  );
+
+  // Step 1 on a phone: the product cards fill the screen and Continue sits
+  // below the fold, so picking one scrolls Continue into view. Phone widths
+  // only (below `sm`), and only when it is actually off-screen. Deferred a
+  // frame so the button has re-rendered as enabled before it is revealed.
+  const handleBagTypeChange = useCallback(
+    (bagType: MylarPrintingDraft["bagType"]) => {
+      patch({ bagType });
+      if (typeof window === "undefined") return;
+      if (!window.matchMedia?.("(max-width: 639px)").matches) return;
+      window.requestAnimationFrame(() => {
+        const button = continueRef.current;
+        if (!button) return;
+        const { top, bottom } = button.getBoundingClientRect();
+        if (top >= 0 && bottom <= window.innerHeight) return;
+        // "center", not "end": iOS Safari's floating toolbar covers the
+        // bottom edge of the layout viewport.
+        button.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "center",
+        });
+      });
+    },
+    [patch, reduceMotion],
   );
 
   const goToStepId = useCallback(
@@ -654,7 +680,7 @@ export function MylarPrintingWizard() {
             {WIZARD_STEPS[step].id === "bag-type" ? (
               <BagTypeStep
                 value={draft.bagType}
-                onChange={(bagType) => patch({ bagType })}
+                onChange={handleBagTypeChange}
               />
             ) : null}
 
@@ -730,6 +756,7 @@ export function MylarPrintingWizard() {
         ) : (
           <>
             <Button
+              ref={continueRef}
               type="button"
               onClick={() => goTo(step + 1)}
               disabled={!canContinue}
