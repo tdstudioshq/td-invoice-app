@@ -15,6 +15,7 @@
 import { revalidatePath } from "next/cache";
 import { getPartnerContext, partnerHomePath } from "@/lib/auth";
 import { recordPartnerJobEvent } from "@/lib/partner-jobs/events";
+import { renderPartnerPreviewsAfterResponse } from "@/lib/partner-jobs/previews";
 import {
   deletePartnerJobSchema,
   partnerJobEditSchema,
@@ -32,6 +33,7 @@ import {
   isAllowedPartnerExtension,
   isOwnPartnerJobFilePath,
   partnerExtensionOf,
+  withPartnerPreviewPaths,
   resolvePartnerContentType,
 } from "@/lib/partner-jobs/uploads";
 
@@ -235,7 +237,9 @@ export async function updatePartnerJobAction(
   // inside the RPC above — only their objects are left).
   const orphanedPaths = [...removePaths, ...cascadePaths];
   if (orphanedPaths.length > 0) {
-    const { error: objError } = await supabase.storage.from(BUCKET).remove(orphanedPaths);
+    const { error: objError } = await supabase.storage
+      .from(BUCKET)
+      .remove(withPartnerPreviewPaths(orphanedPaths));
     if (objError) console.error("updatePartnerJobAction storage remove", objError.message);
   }
 
@@ -271,6 +275,8 @@ export async function updatePartnerJobAction(
       products: edit.items.length,
     },
   });
+
+  renderPartnerPreviewsAfterResponse(verified.map((file) => file.storage_path));
 
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath(`${partnerHomePath(partner.companySlug)}/${edit.jobId}`);
@@ -314,10 +320,11 @@ export async function deletePartnerJobAction(
     .eq("id", jobId)
     .select("id, job_number, job_name");
   if (error) {
-    // invoices.design_job_id is `on delete restrict` (20260926120000): a job
-    // the studio has invoiced keeps its record until the studio detaches it.
+    // invoices.design_job_id (20260926120000) and design_job_payments.job_id
+    // (20260930024624) are both `on delete restrict`: a job with money on it
+    // keeps its record.
     if (error.code === "23503") {
-      return { error: "This job has an invoice attached, so it can't be deleted. Text TD Studios." };
+      return { error: "This job has an invoice or payments recorded on it, so it can't be deleted. Text TD Studios." };
     }
     console.error("deletePartnerJobAction", error.message);
     return { error: "We couldn't delete that job. Try again." };
@@ -328,7 +335,9 @@ export async function deletePartnerJobAction(
   }
 
   if (paths.length > 0) {
-    const { error: objError } = await supabase.storage.from(BUCKET).remove(paths);
+    const { error: objError } = await supabase.storage
+      .from(BUCKET)
+      .remove(withPartnerPreviewPaths(paths));
     if (objError) console.error("deletePartnerJobAction storage", objError.message);
   }
 

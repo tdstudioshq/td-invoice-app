@@ -2,12 +2,15 @@ import { z } from "zod";
 
 import {
   DESIGN_JOB_STATUSES,
+  JOB_PAYMENT_METHODS,
   MAX_ITEM_NOTES_LENGTH,
   MAX_ITEM_QUANTITY,
   MAX_JOB_FILES,
   MAX_JOB_ITEMS,
   MAX_JOB_NAME_LENGTH,
   MAX_JOB_NOTES_LENGTH,
+  MAX_JOB_PAYMENT_AMOUNT,
+  MAX_JOB_PAYMENT_NOTE_LENGTH,
   PARTNER_PRODUCT_FINISHES,
   PARTNER_PRODUCT_TYPES,
   type DesignJobStatus,
@@ -179,4 +182,48 @@ export const setPartnerJobDoneSchema = z.object({
 export const setPartnerJobStatusSchema = z.object({
   jobId: z.string().uuid(),
   status: z.enum(STATUS_IDS),
+});
+
+// ---------------------------------------------------------------------------
+// Job payments — one schema for the rep's and the studio's form.
+// ---------------------------------------------------------------------------
+
+const PAYMENT_METHOD_IDS = JOB_PAYMENT_METHODS as unknown as [
+  (typeof JOB_PAYMENT_METHODS)[number],
+  ...(typeof JOB_PAYMENT_METHODS)[number][],
+];
+
+/** FormData in, typed payment out. Amount arrives as text ("$1,250.50"). */
+export const jobPaymentSchema = z.object({
+  jobId: z.string().uuid("That job couldn't be found."),
+  amount: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/[$,\s]/g, ""))
+    .pipe(
+      z
+        .string()
+        .regex(/^\d+(\.\d{1,2})?$/, "Enter an amount like 250 or 250.50.")
+        .transform(Number)
+        .pipe(
+          z
+            .number()
+            .positive("Enter an amount above $0.")
+            .max(MAX_JOB_PAYMENT_AMOUNT, "That amount is too large."),
+        ),
+    ),
+  paidOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Pick the date it was paid."),
+  method: z.enum(PAYMENT_METHOD_IDS, { message: "Choose how it was paid." }),
+  note: z
+    .string()
+    .trim()
+    .max(MAX_JOB_PAYMENT_NOTE_LENGTH, "That note is too long.")
+    .transform((value) => value || null),
+});
+
+export const deleteJobPaymentSchema = z.object({
+  jobId: z.string().uuid(),
+  paymentId: z.string().uuid(),
 });

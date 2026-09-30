@@ -2,9 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, Pencil, Plus, Unlink } from "lucide-react";
 
+import {
+  deleteStudioJobPaymentAction,
+  recordStudioJobPaymentAction,
+} from "@/app/actions/admin-partner-job-payments";
 import { unlinkInvoiceFromJobAction } from "@/app/actions/partner-job-invoices";
 import { AdminLinkInvoiceForm } from "@/components/partner-jobs/admin-link-invoice-form";
 import { JobInvoiceList } from "@/components/partner-jobs/job-invoice-list";
+import { JobPayments } from "@/components/partner-jobs/job-payments";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
@@ -26,6 +31,7 @@ import { formatDateTime } from "@/lib/format";
 import {
   getAdminPartnerJob,
   getAdminPartnerJobEvents,
+  getAdminPartnerJobPayments,
 } from "@/lib/partner-jobs/queries";
 import { getInvoicesForClient, getInvoicesForJob } from "@/lib/queries/invoices";
 
@@ -58,10 +64,11 @@ export default async function PartnerJobDetailPage(
 
   const invoiced = Boolean(job.company?.invoices_enabled);
   const clientId = job.company?.client_id ?? null;
-  const [events, invoices, clientInvoices] = await Promise.all([
+  const [events, invoices, clientInvoices, payments] = await Promise.all([
     getAdminPartnerJobEvents(jobId),
     invoiced ? getInvoicesForJob(jobId) : Promise.resolve([]),
     invoiced && clientId ? getInvoicesForClient(clientId) : Promise.resolve([]),
+    invoiced ? getAdminPartnerJobPayments(jobId) : Promise.resolve([]),
   ]);
   // Only the company's invoices that bill no job yet can be attached here.
   const linkable = clientInvoices.filter((invoice) => !invoice.design_job_id);
@@ -168,6 +175,34 @@ export default async function PartnerJobDetailPage(
                   <AdminLinkInvoiceForm jobId={job.id} invoices={linkable} />
                 </div>
               ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {/*
+          The job payment log (20260930024624) — the same list the partner sees
+          on their job page, and either side can add to it. Separate from the
+          invoice's own payments above, which stay the studio's ledger.
+        */}
+        {invoiced ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Payments
+                <span className="text-muted-foreground ml-2 font-normal">
+                  {payments.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobPayments
+                jobId={job.id}
+                payments={payments}
+                viewer="studio"
+                companyName={job.company?.name ?? "Partner"}
+                recordAction={recordStudioJobPaymentAction}
+                deleteAction={deleteStudioJobPaymentAction}
+              />
             </CardContent>
           </Card>
         ) : null}

@@ -3,7 +3,7 @@ import "server-only";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { PREVIEWS_PER_JOB } from "@/lib/partner-jobs/types";
-import { isPreviewableImage } from "@/lib/partner-jobs/uploads";
+import { hasPartnerWebPreview } from "@/lib/partner-jobs/uploads";
 import type {
   AdminDesignJobDetail,
   AdminDesignJobListItem,
@@ -11,6 +11,7 @@ import type {
   DesignJobFile,
   DesignJobItem,
   DesignJobListItem,
+  DesignJobPayment,
   DesignJobPreview,
   DesignJobWithDetail,
   PartnerCompany,
@@ -72,9 +73,10 @@ type FileSummaryRow = {
  *
  * Two things are deliberately capped here rather than in the UI. `previews` is
  * sliced to PREVIEWS_PER_JOB, so a job with twenty files can never turn into
- * twenty image requests; and only RASTER files qualify — a PDF/AI/PSD/EPS has
- * nothing a browser can draw, and an SVG is excluded for the same reason
- * previewKind() excludes it (an inline SVG can carry script).
+ * twenty image requests; and only files with a web-sized rendition qualify —
+ * raster images and PDFs (whose first page is rendered once on the server, see
+ * lib/partner-jobs/previews.ts). AI/PSD/EPS have nothing to draw, and an SVG is
+ * excluded for the same reason previewKind() excludes it (it can carry script).
  *
  * The result carries ids and names, never URLs: bytes are reached through
  * /api/partner-job-files/[id]?thumb=1, which is where authorization lives.
@@ -92,10 +94,7 @@ function summarizeJobFiles(
     entry.file_count += 1;
     if (
       entry.previews.length < PREVIEWS_PER_JOB &&
-      isPreviewableImage(row.original_filename) &&
-      // A stored type that actively contradicts the extension is not drawn.
-      // Null is tolerated: it predates the upload path setting one.
-      (!row.mime_type || row.mime_type.toLowerCase().startsWith("image/"))
+      hasPartnerWebPreview(row.original_filename, row.mime_type)
     ) {
       entry.previews.push({ id: row.id, name: row.original_filename });
     }
@@ -537,6 +536,62 @@ export async function getAdminPartnerJobEvents(
     return data ?? [];
   } catch (error) {
     console.error("getAdminPartnerJobEvents", error);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Job payments (20260930024624)
+// ---------------------------------------------------------------------------
+
+/**
+ * Payments recorded on one job, as the REP sees them — oldest first, so the
+ * list reads as a ledger. Cookie-scoped: `design_job_payments_partner_select`
+ * is the whole filter, so another company's job id yields [].
+ */
+export async function getPartnerJobPayments(
+  jobId: string,
+): Promise<DesignJobPayment[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("design_job_payments")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("paid_on", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("getPartnerJobPayments", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error("getPartnerJobPayments", error);
+    return [];
+  }
+}
+
+/** The same list for the STUDIO — service role; callers re-assert requireAdmin(). */
+export async function getAdminPartnerJobPayments(
+  jobId: string,
+): Promise<DesignJobPayment[]> {
+  if (!isSupabaseAdminConfigured()) return [];
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("design_job_payments")
+      .select("*")
+      .eq("job_id", jobId)
+      .order("paid_on", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("getAdminPartnerJobPayments", error.message);
+      return [];
+    }
+    return data ?? [];
+  } catch (error) {
+    console.error("getAdminPartnerJobPayments", error);
     return [];
   }
 }

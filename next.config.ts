@@ -61,7 +61,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // PDF previews for the partner portals (lib/partner-jobs/previews.ts) render
+  // with pdf.js on @napi-rs/canvas. Both are loaded from node_modules at
+  // runtime rather than bundled: the canvas is a native binary, and pdf.js
+  // resolves its worker and font data by path.
+  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas"],
   outputFileTracingIncludes: {
+    // Fonts a PDF names but does not embed — read by pdf.js with fs. Every
+    // route that can render a preview: the file route (lazily) and the job
+    // pages whose save actions render in after().
+    "/api/partner-job-files/\\[fileId\\]": ["./node_modules/pdfjs-dist/standard_fonts/**/*"],
+    "/partner/**": ["./node_modules/pdfjs-dist/standard_fonts/**/*"],
+    "/partner-jobs/**": ["./node_modules/pdfjs-dist/standard_fonts/**/*"],
     "/api/invoices/\\[id\\]/pdf": ["./public/invoice-logo.png"],
     // Bundle the cutline overlay PDF into the function (it is read with fs at
     // runtime, not served statically). Add new preset assets here too.

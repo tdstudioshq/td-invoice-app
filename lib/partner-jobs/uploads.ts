@@ -219,6 +219,41 @@ export function isPreviewableImage(name: string): boolean {
 }
 
 /**
+ * Whether this file has a web-sized IMAGE preview — raster files through
+ * Supabase's image transform, PDFs through a first-page WebP rendered once on
+ * the server (lib/partner-jobs/previews.ts). Wider than isPreviewableImage(),
+ * which answers "can the browser draw the file itself", and is what the grid
+ * and the file tiles ask. A stored type that contradicts the extension is not
+ * drawn; null is tolerated, since it predates the upload path setting one.
+ */
+export function hasPartnerWebPreview(name: string, mime: string | null): boolean {
+  const type = mime?.toLowerCase() ?? null;
+  if (isPreviewableImage(name)) return !type || type.startsWith("image/");
+  if (partnerExtensionOf(name) === "pdf") return !type || type === "application/pdf";
+  return false;
+}
+
+/**
+ * Where a file's rendered preview lives: beside the original, under
+ * `previews/`, so it shares the `{companyId}/{jobId}/` prefix every bucket
+ * policy keys on. Derived from the storage path alone, so there is no column
+ * to keep in step and every place that deletes an original can delete its
+ * preview without a second lookup.
+ */
+export function partnerPreviewPath(storagePath: string): string {
+  const slash = storagePath.lastIndexOf("/");
+  return `${storagePath.slice(0, slash + 1)}previews/${storagePath.slice(slash + 1)}.webp`;
+}
+
+/**
+ * Originals plus their previews, for a Storage `remove()`. Removing a preview
+ * that was never rendered is a no-op, so this is safe for every file type.
+ */
+export function withPartnerPreviewPaths(paths: string[]): string[] {
+  return paths.flatMap((path) => [path, partnerPreviewPath(path)]);
+}
+
+/**
  * Strip directories and unusual characters from an uploaded filename. Path
  * separators go first, so `../` can never survive; everything outside
  * [A-Za-z0-9_.-] then collapses to `_`.

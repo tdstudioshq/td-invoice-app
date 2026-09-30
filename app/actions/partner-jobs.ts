@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { getPartnerContext, partnerHomePath } from "@/lib/auth";
 import { recordPartnerJobEvent } from "@/lib/partner-jobs/events";
+import { renderPartnerPreviewsAfterResponse } from "@/lib/partner-jobs/previews";
 import {
   discardPartnerUploadsSchema,
   mintPartnerUploadsSchema,
@@ -314,6 +315,8 @@ export async function submitPartnerJobAction(
       files: verified.length,
     },
   });
+
+  renderPartnerPreviewsAfterResponse(verified.map((file) => file.storage_path));
 
   revalidatePath(partnerHomePath(partner.companySlug));
   revalidatePath("/partner-jobs");

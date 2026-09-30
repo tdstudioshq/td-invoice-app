@@ -32,7 +32,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { reportError, summarizePaths } from "@/lib/observability/report-error";
 import type { DesignJobFile, DesignJobItem } from "@/lib/types/database";
-import { previewKind } from "@/lib/portal";
 import {
   itemNotesSchema,
   jobNameSchema,
@@ -66,6 +65,7 @@ import {
   PARTNER_ACCEPT_ATTRIBUTE,
   PARTNER_TYPES_LABEL,
   formatPartnerBytes,
+  hasPartnerWebPreview,
   isPreviewableImage,
   partnerExtensionOf,
   validatePartnerUploadFile,
@@ -195,16 +195,17 @@ function StoredFileRow({
   busy: boolean;
   onToggle: () => void;
 }) {
-  const isImage = previewKind(file.mime_type) === "image";
+  // A 44px box: the 640px grid thumbnail, never the original (up to 13 MB).
+  const hasPreview = hasPartnerWebPreview(file.original_filename, file.mime_type);
   return (
     <li
       data-removed={removed}
       className="border-glass-border flex items-center gap-3 rounded-[8px] border px-3 py-2.5 data-[removed=true]:opacity-45"
     >
       <span className="border-glass-border bg-glass-highlight/10 flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-[6px] border">
-        {isImage ? (
+        {hasPreview ? (
           <img
-            src={`/api/partner-job-files/${file.id}?inline=1`}
+            src={`/api/partner-job-files/${file.id}?thumb=1`}
             alt=""
             loading="lazy"
             decoding="async"

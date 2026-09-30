@@ -1,5 +1,6 @@
 import type {
   DesignJobStatus,
+  JobPaymentMethod,
   PartnerJobEventType,
   PartnerProductFinish,
   PartnerProductType,
@@ -332,6 +333,8 @@ export const PARTNER_JOB_EVENT_TYPES = [
   "file.added",
   "file.removed",
   "job.deleted",
+  "payment.recorded",
+  "payment.removed",
 ] as const satisfies readonly PartnerJobEventType[];
 
 /** Short label for a timeline row. The detail sits in the event's metadata. */
@@ -343,6 +346,8 @@ export const PARTNER_JOB_EVENT_LABEL: Record<PartnerJobEventType, string> = {
   "file.added": "Artwork added",
   "file.removed": "Artwork removed",
   "job.deleted": "Job deleted",
+  "payment.recorded": "Payment recorded",
+  "payment.removed": "Payment removed",
 };
 
 export function partnerJobEventLabel(value: string): string {
@@ -370,6 +375,8 @@ export const NOTIFIABLE_PARTNER_JOB_EVENTS = [
   "file.added",
   "file.removed",
   "job.deleted",
+  "payment.recorded",
+  "payment.removed",
 ] as const satisfies readonly PartnerJobEventType[];
 
 export function isNotifiableEvent(type: PartnerJobEventType): boolean {
@@ -393,3 +400,36 @@ export function splitJobsByCompletion<T extends { status: DesignJobStatus }>(
   for (const job of jobs) (isJobDone(job) ? complete : inProgress).push(job);
   return { inProgress, complete };
 }
+
+// ---------------------------------------------------------------------------
+// Job payments (migration 20260930024624)
+// ---------------------------------------------------------------------------
+
+/**
+ * How a payment was made. Mirrors the `check` on design_job_payments.method and
+ * `JobPaymentMethod` in lib/types/database.ts — widen all three together.
+ */
+export const JOB_PAYMENT_METHODS = [
+  "zelle",
+  "cash_app",
+  "cash",
+  "venmo",
+  "check",
+  "card",
+  "bank_transfer",
+  "other",
+] as const satisfies readonly JobPaymentMethod[];
+
+export const JOB_PAYMENT_METHOD_LABEL: Record<JobPaymentMethod, string> = {
+  zelle: "Zelle",
+  cash_app: "Cash App",
+  cash: "Cash",
+  venmo: "Venmo",
+  check: "Check",
+  card: "Card",
+  bank_transfer: "Bank transfer",
+  other: "Other",
+};
+
+export const MAX_JOB_PAYMENT_AMOUNT = 9_999_999.99;
+export const MAX_JOB_PAYMENT_NOTE_LENGTH = 500;

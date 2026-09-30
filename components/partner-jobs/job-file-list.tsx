@@ -3,7 +3,11 @@ import { DownloadSimpleIcon, EyeIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
-import { formatPartnerBytes, partnerExtensionOf } from "@/lib/partner-jobs/uploads";
+import {
+  formatPartnerBytes,
+  hasPartnerWebPreview,
+  partnerExtensionOf,
+} from "@/lib/partner-jobs/uploads";
 import { previewKind } from "@/lib/portal";
 import type { DesignJobFile } from "@/lib/types/database";
 
@@ -15,11 +19,15 @@ import type { DesignJobFile } from "@/lib/types/database";
  * public URL to render, so a storage path never reaches the browser. That holds
  * for the thumbnails too: the `<img>` follows the same authorized redirect.
  *
- * Raster images get a real thumbnail; PDF/AI/PSD/EPS/SVG get a labelled tile,
- * because there is no document conversion anywhere in this app and an inline
- * SVG can carry script. `previewKind()` draws that line, and "View" is offered
- * on exactly the types it approves — for a PDF (and an .ai, which carries a PDF
- * payload) that opens the real thing in a new tab, which is the preview.
+ * Images and PDFs get a WEB-SIZED preview (`?preview=1`, a 1600px WebP of a
+ * few hundred KB) rather than the original — production artwork runs to 13 MB,
+ * which is what made this page slow. A PDF's preview is its first page,
+ * rendered once on the server. AI/PSD/EPS/SVG get a labelled tile: nothing to
+ * draw, and an inline SVG can carry script. "View" is offered on exactly the
+ * types `previewKind()` approves: an image opens the same web-sized preview,
+ * a PDF (and an .ai, which carries a PDF payload) opens the real document in a
+ * new tab, since a zoomable vector original is the point of viewing one. The
+ * original of anything is always one click away on Download.
  *
  * A plain `<img>` rather than `next/image`: these are short-lived signed URLs
  * behind an auth redirect, and the production image optimizer is not in this
@@ -57,7 +65,7 @@ export function JobFileList({
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {files.map((file) => {
         const kind = previewKind(file.mime_type);
-        const isImage = kind === "image";
+        const hasPreview = hasPartnerWebPreview(file.original_filename, file.mime_type);
         const ext = partnerExtensionOf(file.original_filename).toUpperCase();
         const href = `/api/partner-job-files/${file.id}`;
 
@@ -67,9 +75,9 @@ export function JobFileList({
             className="border-glass-border overflow-hidden rounded-[8px] border"
           >
             <div className="bg-glass-highlight/10 flex aspect-[4/3] items-center justify-center overflow-hidden">
-              {isImage ? (
+              {hasPreview ? (
                 <img
-                  src={`${href}?inline=1`}
+                  src={`${href}?preview=1`}
                   alt={file.original_filename}
                   loading="lazy"
                   decoding="async"
@@ -97,7 +105,7 @@ export function JobFileList({
                   {kind !== null ? (
                     <Button asChild variant="ghost" size="icon" className="size-11 md:size-8">
                       <a
-                        href={`${href}?inline=1`}
+                        href={kind === "image" ? `${href}?preview=1` : `${href}?inline=1`}
                         target="_blank"
                         rel="noreferrer"
                         aria-label={`View ${file.original_filename}`}

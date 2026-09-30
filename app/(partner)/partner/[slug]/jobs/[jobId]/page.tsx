@@ -9,6 +9,7 @@ import { JobActivity } from "@/components/partner-jobs/job-activity";
 import { DownloadAllFilesButton } from "@/components/partner-jobs/download-all-files-button";
 import { JobFileList } from "@/components/partner-jobs/job-file-list";
 import { JobInvoiceList } from "@/components/partner-jobs/job-invoice-list";
+import { JobPayments } from "@/components/partner-jobs/job-payments";
 import { JobProductList } from "@/components/partner-jobs/job-product-list";
 import { JobStatusBadge } from "@/components/partner-jobs/job-status-badge";
 import {
@@ -29,8 +30,13 @@ import { getInvoicesForJob } from "@/lib/queries/invoices";
 import {
   getPartnerJob,
   getPartnerJobEvents,
+  getPartnerJobPayments,
   getPartnerTeamNames,
 } from "@/lib/partner-jobs/queries";
+import {
+  deletePartnerJobPaymentAction,
+  recordPartnerJobPaymentAction,
+} from "@/app/actions/partner-job-payments";
 
 export const metadata = { title: "Job" };
 
@@ -64,7 +70,10 @@ export default async function PartnerJobDetailPage({
     getPartnerTeamNames(),
     getPartnerCompanyBySlug(slug),
   ]);
-  const invoices = company?.invoices_enabled ? await getInvoicesForJob(jobId) : [];
+  // Billing (invoices + the job payment log) is on per company — TNT, not Zaza.
+  const [invoices, payments] = company?.invoices_enabled
+    ? await Promise.all([getInvoicesForJob(jobId), getPartnerJobPayments(jobId)])
+    : [[], []];
   // A submitter who is not on the company's team is the studio, which can file
   // jobs for the company too (admin_create_design_job).
   const submittedBy =
@@ -188,6 +197,29 @@ export default async function PartnerJobDetailPage({
                 invoices={invoices}
                 invoiceHref={partnerHref(basePath, "/invoices")}
                 emptyNote="No invoice on this job yet."
+              />
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {company?.invoices_enabled ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Payments
+                <span className="text-muted-foreground ml-2 font-normal">
+                  {payments.length}
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <JobPayments
+                jobId={job.id}
+                payments={payments}
+                viewer="partner"
+                companyName={company.name}
+                recordAction={recordPartnerJobPaymentAction}
+                deleteAction={deletePartnerJobPaymentAction}
               />
             </CardContent>
           </Card>

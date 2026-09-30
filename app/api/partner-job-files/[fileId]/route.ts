@@ -1,14 +1,20 @@
 import { getPartnerContext, getUser, isAdminEmail } from "@/lib/auth";
+import { ensurePartnerPdfPreview } from "@/lib/partner-jobs/previews";
 import { getPartnerJobFile } from "@/lib/partner-jobs/queries";
+import { hasPartnerWebPreview, partnerExtensionOf } from "@/lib/partner-jobs/uploads";
 import { previewKind } from "@/lib/portal";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const BUCKET = "partner-job-files";
 
-// GET /api/partner-job-files/[fileId]          — download
-// GET /api/partner-job-files/[fileId]?inline=1 — inline preview (images & PDFs)
-// GET /api/partner-job-files/[fileId]?thumb=1  — small WebP preview (raster only)
+// pdf.js + @napi-rs/canvas render PDF previews in this route (native, Node-only).
+export const runtime = "nodejs";
+
+// GET /api/partner-job-files/[fileId]            — download
+// GET /api/partner-job-files/[fileId]?inline=1   — the original, inline (images & PDFs)
+// GET /api/partner-job-files/[fileId]?thumb=1    — 640px square WebP (the jobs grid)
+// GET /api/partner-job-files/[fileId]?preview=1  — 1600px WebP (file tiles, "View" on an image)
 //
 // The `partner-job-files` bucket is private, so a raw object URL is worthless
 // and the only way to the bytes is a short-lived signed URL minted here.
@@ -38,10 +44,17 @@ const BUCKET = "partner-job-files";
 // it returns OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED in production, which is
 // also why the grid uses plain <img> rather than next/image.)
 //
+// PDFs, which the transform cannot read, get a first-page WebP rendered once on
+// the server and stored beside the original (lib/partner-jobs/previews.ts). The
+// route renders it on the first request that finds it missing, so PDFs filed
+// before previews existed need no backfill; after that it is one signed URL.
+// ?preview=1 serves that WebP as-is and ?thumb=1 runs it through the same
+// transform as any image.
+//
 // Two consequences worth keeping in step:
-//   * the transform endpoint needs a real raster image, so a thumb request for a
-//     PDF/AI/PSD/EPS — or an SVG, which previewKind() excludes — is a 404 rather
-//     than a fallback to the full file. The grid never asks for one.
+//   * a thumb/preview request for anything hasPartnerWebPreview() refuses —
+//     AI/PSD/EPS, or an SVG, which can carry script — is a 404 rather than a
+//     fallback to the full file. The UI never asks for one.
 //   * the redirect is CACHED by the browser (THUMB_CACHE_SECONDS), which is what
 //     stops a scroll back up the page re-invoking this function per image. The
 //     signed URL therefore has to outlive that cache window, or a replayed
@@ -60,13 +73,59 @@ const THUMB_SIGNED_SECONDS = 60 * 60;
 const THUMB_CACHE_SECONDS = 30 * 60;
 
 const THUMB_TRANSFORM = {
-  transform: {
-    width: THUMB_SIZE,
-    height: THUMB_SIZE,
-    resize: "cover",
-    quality: THUMB_QUALITY,
-  },
+  width: THUMB_SIZE,
+  height: THUMB_SIZE,
+  resize: "cover",
+  quality: THUMB_QUALITY,
 } as const;
+
+/** Long edge of a detail-view preview — matches PREVIEW_LONG_EDGE for PDFs. */
+const PREVIEW_SIZE = 1600;
+const PREVIEW_TRANSFORM = {
+  width: PREVIEW_SIZE,
+  height: PREVIEW_SIZE,
+  resize: "contain",
+  quality: 75,
+} as const;
+
+type WebSize = "thumb" | "preview";
+
+/**
+ * The signed URL for a web-sized rendition, or a Response saying why there is
+ * none. `supabase` is whichever client authorized the row read, so the signing
+ * is held to the same rule as the read was. A PDF's preview object is rendered
+ * (service role, see previews.ts) only after that read has succeeded.
+ */
+async function webSizedUrl(
+  supabase: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>,
+  file: { storage_path: string; original_filename: string; mime_type: string | null },
+  size: WebSize,
+): Promise<string | Response> {
+  if (!hasPartnerWebPreview(file.original_filename, file.mime_type)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  let path = file.storage_path;
+  let transform: typeof THUMB_TRANSFORM | typeof PREVIEW_TRANSFORM | undefined =
+    size === "thumb" ? THUMB_TRANSFORM : PREVIEW_TRANSFORM;
+
+  if (partnerExtensionOf(file.original_filename) === "pdf") {
+    const previewPath = await ensurePartnerPdfPreview(file.storage_path);
+    if (!previewPath) return new Response("Preview unavailable", { status: 404 });
+    path = previewPath;
+    // Already a PREVIEW_SIZE WebP; transforming it again would only re-encode.
+    if (size === "preview") transform = undefined;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(path, THUMB_SIGNED_SECONDS, transform ? { transform } : {});
+  if (error || !data?.signedUrl) {
+    console.error("partner job web-sized url", error?.message);
+    return new Response("Could not generate preview", { status: 500 });
+  }
+  return data.signedUrl;
+}
 
 /**
  * 302 to the signed URL, telling the browser it may replay this redirect.
@@ -92,8 +151,13 @@ export async function GET(
 
   const { fileId } = await ctx.params;
   const params = new URL(req.url).searchParams;
-  const thumbRequested = params.get("thumb") === "1";
-  const inlineRequested = thumbRequested || params.get("inline") === "1";
+  const webSize: WebSize | null =
+    params.get("thumb") === "1"
+      ? "thumb"
+      : params.get("preview") === "1"
+        ? "preview"
+        : null;
+  const inlineRequested = params.get("inline") === "1";
 
   const admin = isAdminEmail(user.email);
   if (!admin) {
@@ -108,18 +172,9 @@ export async function GET(
       .maybeSingle();
     if (!file) return new Response("Not found", { status: 404 });
 
-    if (thumbRequested) {
-      if (previewKind(file.mime_type) !== "image") {
-        return new Response("Not found", { status: 404 });
-      }
-      const { data: thumb, error: thumbError } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(file.storage_path, THUMB_SIGNED_SECONDS, THUMB_TRANSFORM);
-      if (thumbError || !thumb?.signedUrl) {
-        console.error("partner job thumb", thumbError?.message);
-        return new Response("Could not generate preview", { status: 500 });
-      }
-      return thumbRedirect(thumb.signedUrl);
+    if (webSize) {
+      const url = await webSizedUrl(supabase, file, webSize);
+      return typeof url === "string" ? thumbRedirect(url) : url;
     }
 
     const canInline = inlineRequested && previewKind(file.mime_type) !== null;
@@ -145,18 +200,9 @@ export async function GET(
 
   const supabase = createAdminClient();
 
-  if (thumbRequested) {
-    if (previewKind(file.mime_type) !== "image") {
-      return new Response("Not found", { status: 404 });
-    }
-    const { data: thumb, error: thumbError } = await supabase.storage
-      .from(BUCKET)
-      .createSignedUrl(file.storage_path, THUMB_SIGNED_SECONDS, THUMB_TRANSFORM);
-    if (thumbError || !thumb?.signedUrl) {
-      console.error("partner job thumb (admin)", thumbError?.message);
-      return new Response("Could not generate preview", { status: 500 });
-    }
-    return thumbRedirect(thumb.signedUrl);
+  if (webSize) {
+    const url = await webSizedUrl(supabase, file, webSize);
+    return typeof url === "string" ? thumbRedirect(url) : url;
   }
 
   const canInline = inlineRequested && previewKind(file.mime_type) !== null;

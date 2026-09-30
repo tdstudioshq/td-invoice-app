@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { partnerHomePath, requireAdmin } from "@/lib/auth";
 import { PARTNER_JOB_BUCKET as BUCKET } from "@/lib/partner-jobs/action-constants";
 import { recordPartnerJobEvent } from "@/lib/partner-jobs/events";
+import { renderPartnerPreviewsAfterResponse } from "@/lib/partner-jobs/previews";
 import {
   deletePartnerJobSchema,
   discardPartnerUploadsSchema,
@@ -23,6 +24,7 @@ import {
   partnerExtensionOf,
   resolvePartnerContentType,
   validatePartnerUploadFile,
+  withPartnerPreviewPaths,
 } from "@/lib/partner-jobs/uploads";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import type {
@@ -273,6 +275,8 @@ export async function adminSubmitPartnerJobAction(
     metadata: { products: submission.items.length, files: checked.files.length },
   });
 
+  renderPartnerPreviewsAfterResponse(checked.files.map((file) => file.storage_path));
+
   revalidateJobViews(company, created.job_id);
   return { jobId: created.job_id, jobNumber: created.job_number };
 }
@@ -383,7 +387,9 @@ export async function adminUpdatePartnerJobAction(
   }
   const orphaned = [...removePaths, ...cascadePaths];
   if (orphaned.length > 0) {
-    const { error: objError } = await supabase.storage.from(BUCKET).remove(orphaned);
+    const { error: objError } = await supabase.storage
+      .from(BUCKET)
+      .remove(withPartnerPreviewPaths(orphaned));
     if (objError) console.error("adminUpdatePartnerJobAction storage remove", objError.message);
   }
 
@@ -405,6 +411,8 @@ export async function adminUpdatePartnerJobAction(
     summary: changes.length > 0 ? `artwork ${changes.join(", ")}` : "products and details saved",
     metadata: { filesAdded, filesRemoved, products: edit.items.length },
   });
+
+  renderPartnerPreviewsAfterResponse(checked.files.map((file) => file.storage_path));
 
   revalidateJobViews(company, edit.jobId);
   return { jobId: saved.job_id, jobNumber: saved.job_number };
@@ -441,7 +449,7 @@ export async function adminDeletePartnerJobAction(
     .select("id, job_number, job_name");
   if (error) {
     if (error.code === "23503") {
-      return { error: "This job has an invoice attached. Detach the invoice first." };
+      return { error: "This job has an invoice or payments on it. Detach the invoice and remove its payments first." };
     }
     console.error("adminDeletePartnerJobAction", error.message);
     return { error: "We couldn't delete that job. Try again." };
@@ -449,7 +457,9 @@ export async function adminDeletePartnerJobAction(
   if (!deleted || deleted.length === 0) return { error: "That job couldn't be found." };
 
   if (paths.length > 0) {
-    const { error: objError } = await supabase.storage.from(BUCKET).remove(paths);
+    const { error: objError } = await supabase.storage
+      .from(BUCKET)
+      .remove(withPartnerPreviewPaths(paths));
     if (objError) console.error("adminDeletePartnerJobAction storage", objError.message);
   }
 

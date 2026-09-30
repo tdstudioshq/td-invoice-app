@@ -81,7 +81,21 @@ export type PartnerJobEventType =
   | "job.done_changed"
   | "file.added"
   | "file.removed"
-  | "job.deleted";
+  | "job.deleted"
+  // Job payment log (20260930024624).
+  | "payment.recorded"
+  | "payment.removed";
+
+// How a job payment was made (20260930024624). Text + check, like the rest.
+export type JobPaymentMethod =
+  | "cash"
+  | "zelle"
+  | "cash_app"
+  | "venmo"
+  | "check"
+  | "card"
+  | "bank_transfer"
+  | "other";
 
 export type CustomDesignType = "Bag design" | "Jar design" | "Other";
 export type CustomDesignRequestStatus =
@@ -1095,6 +1109,41 @@ export interface Database {
         >;
         Relationships: [];
       };
+      // Money recorded against a partner job, by either side (20260930024624).
+      // Company-scoped, no owner_id: reps select/insert/delete their own
+      // company's rows (delete only rows a rep recorded); the studio goes
+      // through the service role. company_id and the recorder are DERIVED by a
+      // trigger, so they are optional on Insert and never trusted from a rep.
+      design_job_payments: {
+        Row: {
+          id: string;
+          job_id: string;
+          company_id: string;
+          amount: number;
+          paid_on: string;
+          method: JobPaymentMethod;
+          note: string | null;
+          recorded_by: string | null;
+          recorded_by_studio: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          company_id?: string;
+          amount: number;
+          paid_on?: string;
+          method: JobPaymentMethod;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_by_studio?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["design_job_payments"]["Insert"]
+        >;
+        Relationships: [];
+      };
       // Normalized activity log for the partner portal (20260829000000).
       // Written ONLY through log_partner_job_event() or the service role — reps
       // have a SELECT policy and nothing else, so the record of what they did is
@@ -1431,6 +1480,8 @@ export type DesignJobItem =
   Database["public"]["Tables"]["design_job_items"]["Row"];
 export type DesignJobFile =
   Database["public"]["Tables"]["design_job_files"]["Row"];
+export type DesignJobPayment =
+  Database["public"]["Tables"]["design_job_payments"]["Row"];
 
 /** A dashboard row: the job plus how many products it holds. */
 /**

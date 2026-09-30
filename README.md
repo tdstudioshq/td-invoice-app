@@ -608,7 +608,8 @@ change its password in Supabase and update the env var.
 | File a job | ✅ (own company only) | ✅ for any company (`20260926120000`) |
 | Edit / delete their own job | ✅ (`20260826000000`) | ✅ any job |
 | See invoices on their jobs | ✅ read-only, non-draft, invoiced companies only | ✅ |
-| Create invoices / record payments | ❌ **a trigger refuses the write** | ✅ |
+| Create invoices / record invoice payments | ❌ **a trigger refuses the write** | ✅ |
+| Record a payment on a job (`20260930024624`) | ✅ own company, invoiced companies only; may remove only entries a rep recorded | ✅ any job; may remove any entry |
 | Change job **status** | ❌ **a trigger forces it back** | ✅ |
 | Mark a job **complete** | ✅ shared field — `-> completed` / `completed -> in_progress` only | ✅ (any status) |
 | Download job files | ✅ own company only | ✅ |
