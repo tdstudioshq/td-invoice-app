@@ -44,6 +44,12 @@ export interface PortfolioImage {
   path: string;
   /** Public URL served straight from the public bucket. */
   url: string;
+  /**
+   * Optional smaller copy for the grid tile; the lightbox always uses `url`.
+   * Only set by galleries whose bucket carries a `thumbs/` twin per image
+   * (see `scripts/upload-gallery-images.ts`).
+   */
+  thumbUrl?: string;
   /** Derived category id; `all` when no keyword matches. */
   category: PortfolioCategoryId;
 }

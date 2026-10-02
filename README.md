@@ -162,6 +162,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/portfolio`                    | Portfolio gallery                               |
 | `/premadedesigns`               | Premade designs gallery (keypad-gated, DB manifest) |
 | `/gso`                          | GSO gallery                                     |
+| `/ap`                           | AP gallery (WebP + thumbnails via `gallery:upload`) |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/mafiaterpz`, `/martyig` | Keypad-gated pages (signed cookie, private buckets) |
 | `/mylar`                        | Static single-file mylar shop (`public/mylar/`) |
@@ -238,7 +239,7 @@ The migrations also create most of the Storage buckets the app needs, all
 private: `client-files` (25 MB/file), `design-requests`, and `mylar-artwork`
 (50 MB/file). The gallery buckets are **not** created by any migration and must
 be added by hand in the Supabase dashboard: the public ones (`custom-work`,
-`GSO`) and the **private** ones — `TASTE BUDZ`, `MAFIA terpz` and
+`GSO`; `AP` is created by `npm run gallery:upload`) and the **private** ones — `TASTE BUDZ`, `MAFIA terpz` and
 `premade-designs` — which their keypad-gated pages read through short-lived
 signed URLs (`/premadedesigns` additionally goes through a database manifest
 RPC). **The bucket's access must match the page's gate:** a keypad over a
@@ -279,6 +280,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run premade:sync`        | Upload only new SHA-256 designs                 |
 | `npm run premade:sync:verify` | Dry run that re-hashes every Storage object     |
 | `npm run admin:sync`          | Audit `workspace_admins` against `ADMIN_EMAILS` (read-only; `-- --adopt --prune` to write) |
+| `npm run gallery:upload -- <bucket> <folder>` | Publish a folder as WebP + `thumbs/` to a public gallery bucket |
 | `npm run client:create-marty` | Idempotent portal-client bootstrap             |
 
 `next lint` was removed in Next 16 — use `npm run lint`.

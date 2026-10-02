@@ -41,6 +41,7 @@ const PUBLIC_PATHS = new Set<string>([
   "/whiteash",
   "/taste-budz",
   "/gso",
+  "/ap",
   "/martyig",
   "/mafiaterpz",
   "/tools/cutline-generator",

@@ -74,8 +74,25 @@ export async function getMafiaTerpzImages(): Promise<PortfolioImage[]> {
   return listPrivateBucketImages(MAFIA_TERPZ_BUCKET);
 }
 
+/**
+ * The public `AP` bucket backing the `/ap` gallery. Unlike the other public
+ * galleries its objects are pre-optimized WebP with a `thumbs/` twin each,
+ * published by `npm run gallery:upload -- AP <folder>` — upload through that
+ * script, not the dashboard, or a tile's thumbnail will be missing.
+ */
+export const AP_BUCKET = "AP";
+
+export async function getApImages(): Promise<PortfolioImage[]> {
+  return listPublicBucketImages(AP_BUCKET, { thumbFolder: "thumbs" });
+}
+
+/**
+ * `thumbFolder` pairs each root object with `<thumbFolder>/<name>` as its grid
+ * thumbnail. Listing is root-only, so the thumbs never appear as images.
+ */
 async function listPublicBucketImages(
   bucket: string,
+  options: { thumbFolder?: string } = {},
 ): Promise<PortfolioImage[]> {
   const storage = isSupabaseAdminConfigured()
     ? createAdminClient().storage
@@ -109,6 +126,10 @@ async function listPublicBucketImages(
         title: prettifyName(object.name),
         path,
         url: pub.publicUrl,
+        thumbUrl: options.thumbFolder
+          ? storage.from(bucket).getPublicUrl(`${options.thumbFolder}/${path}`)
+              .data.publicUrl
+          : undefined,
         category: categorizeImage(path),
       });
     }

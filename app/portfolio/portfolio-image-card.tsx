@@ -71,7 +71,7 @@ export function PortfolioImageCard({
             routed through next/image (no optimization config, 100+ images). */}
         <img
           ref={imgRef}
-          src={image.url}
+          src={image.thumbUrl ?? image.url}
           alt={image.title}
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}

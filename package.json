@@ -14,7 +14,8 @@
     "premade:sync:verify": "bun run --env-file=.env.local scripts/sync-premade-designs.ts --dry-run --verify-storage --no-cache",
     "client:create-marty": "node --env-file=.env.local scripts/create-marty-client.ts",
     "admin:sync": "node --env-file=.env.local scripts/sync-workspace-admins.ts",
-    "smoke:routes": "node scripts/smoke-routes.mjs"
+    "smoke:routes": "node scripts/smoke-routes.mjs",
+    "gallery:upload": "node --env-file=.env.local scripts/upload-gallery-images.ts"
   },
   "dependencies": {
     "@developer-hub/liquid-glass": "^1.2.3",
