@@ -86,6 +86,13 @@ export async function getApImages(): Promise<PortfolioImage[]> {
   return listPublicBucketImages(AP_BUCKET, { thumbFolder: "thumbs" });
 }
 
+/** Public Halloween gallery, published with gallery:upload like AP. */
+export const HALLOWEEN_BUCKET = "HALLOWEEN";
+
+export async function getHalloweenImages(): Promise<PortfolioImage[]> {
+  return listPublicBucketImages(HALLOWEEN_BUCKET, { thumbFolder: "thumbs" });
+}
+
 /**
  * `thumbFolder` pairs each root object with `<thumbFolder>/<name>` as its grid
  * thumbnail. Listing is root-only, so the thumbs never appear as images.

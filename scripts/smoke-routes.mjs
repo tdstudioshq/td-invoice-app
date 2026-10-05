@@ -36,6 +36,7 @@ const CHECKS = [
   ["/portfolio", 200],
   ["/gso", 200],
   ["/ap", 200],
+  ["/halloween", 200],
   ["/premadedesigns", 200],
   ["/taste-budz", 200],
   ["/mafiaterpz", 200],
