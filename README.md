@@ -163,6 +163,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/premadedesigns`               | Premade designs gallery (keypad-gated, DB manifest) |
 | `/gso`                          | GSO gallery                                     |
 | `/ap`                           | AP gallery (WebP + thumbnails via `gallery:upload`) |
+| `/halloween`                    | Halloween gallery (WebP + thumbnails via `gallery:upload`) |
 | `/whiteash`                     | White Ash Farms client proof gallery (noindex)   |
 | `/taste-budz`, `/mafiaterpz`, `/martyig` | Keypad-gated pages (signed cookie, private buckets) |
 | `/mylar`                        | Static single-file mylar shop (`public/mylar/`) |
@@ -737,7 +738,7 @@ Transactional email is sent via [Resend](https://resend.com) for four flows:
 - **Portal invites** — creating a portal login emails a set-password link
   (`createPortalUserAction`).
 - **Mylar printing inquiries** — a new quote request notifies the `ADMIN_EMAILS`
-  addresses.
+  addresses, plus any receive-only addresses in `MYLAR_INQUIRY_EMAILS`.
 - **Custom design requests** — a new request notifies the same addresses, with
   30-day signed links to any reference files.
 
@@ -806,6 +807,7 @@ Supabase project with the anon key and existing RLS only. See
    | `SUPABASE_SECRET_KEY` | ✅ | **server-only**, never expose |
    | `SUPABASE_JWKS_URL` | ✅ | JWT verification |
    | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | optional | email; degrades gracefully |
+   | `MYLAR_INQUIRY_EMAILS` | optional | extra mylar-request recipients, comma-separated; no admin access |
    | `NEXT_PUBLIC_SITE_URL` | optional | custom domain; otherwise `VERCEL_URL` is used |
    | `QR_SCAN_SALT` | optional | salts hashed IPs; a default is used when unset |
    | `PREMADE_GALLERY_COOKIE_SECRET` | optional | signs the `/premadedesigns` keypad cookie; falls back to `SUPABASE_SECRET_KEY` |

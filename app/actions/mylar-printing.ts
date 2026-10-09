@@ -548,7 +548,13 @@ async function notifyStudio(
     back: VerifiedArtwork | null;
   }[],
 ) {
-  const recipients = getAdminEmails();
+  // MYLAR_INQUIRY_EMAILS adds receive-only recipients (e.g. the print partner)
+  // without putting them in ADMIN_EMAILS, which would also grant the dashboard.
+  const extraRecipients = (process.env.MYLAR_INQUIRY_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  const recipients = [...new Set([...getAdminEmails(), ...extraRecipients])];
   if (!isResendConfigured() || recipients.length === 0) return;
 
   // One line per design so the studio can see the split and which files belong
