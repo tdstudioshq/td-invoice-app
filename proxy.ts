@@ -203,9 +203,13 @@ function finish(
   }
 
   // --- Main site -----------------------------------------------------------
-  // `/q/<slug>` is the public dynamic-QR redirect — it must be reachable
-  // without a session.
-  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/q/");
+  // `/q/<slug>` is the public dynamic-QR redirect, and `/mylar-share/<id>` is
+  // the emailed mylar-request link (its signed key is checked by the page) —
+  // both must be reachable without a session.
+  const isPublic =
+    PUBLIC_PATHS.has(pathname) ||
+    pathname.startsWith("/q/") ||
+    pathname.startsWith("/mylar-share/");
 
   if (!signedIn && !isPublic) {
     const loginUrl = new URL("/login", request.url);

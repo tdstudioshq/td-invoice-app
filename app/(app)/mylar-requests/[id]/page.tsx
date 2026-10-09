@@ -10,6 +10,7 @@ import {
   Phone,
 } from "lucide-react";
 
+import { updateMylarInquiryStatusAction } from "@/app/actions/mylar-requests";
 import { PageHeader } from "@/components/layout/page-header";
 import { CopyReference } from "@/components/mylar-requests/copy-reference";
 import { MylarStatusBadge } from "@/components/mylar-requests/status-badge";
@@ -396,7 +397,11 @@ export default async function MylarRequestDetailPage(
               <CardTitle>Update</CardTitle>
             </CardHeader>
             <CardContent>
-              <MylarStatusForm id={inquiry.id} status={inquiry.status} />
+              <MylarStatusForm
+                id={inquiry.id}
+                status={inquiry.status}
+                action={updateMylarInquiryStatusAction}
+              />
             </CardContent>
           </Card>
         </div>

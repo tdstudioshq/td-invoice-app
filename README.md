@@ -152,6 +152,7 @@ Locally (and before the subdomain is attached) the same portal is at
 | `/login`, `/sign-up`            | Sign in; customer self-signup                   |
 | `/reset-password`               | Password recovery                               |
 | `/q/<slug>`                     | Dynamic QR redirect + scan logging              |
+| `/mylar-share/<id>?key=…`        | Emailed no-login mylar request link: details, artwork, status (signed, 90 days) |
 | `/mylar-printing`               | Custom Mylar Printing quote wizard              |
 | `/custom-design-request`        | Custom design request form (stored)             |
 | `/tools/cutline-generator`      | Cutline Generator                               |
@@ -738,7 +739,9 @@ Transactional email is sent via [Resend](https://resend.com) for four flows:
 - **Portal invites** — creating a portal login emails a set-password link
   (`createPortalUserAction`).
 - **Mylar printing inquiries** — a new quote request notifies the `ADMIN_EMAILS`
-  addresses, plus any receive-only addresses in `MYLAR_INQUIRY_EMAILS`.
+  addresses, plus any receive-only addresses in `MYLAR_INQUIRY_EMAILS`. The
+  email carries signed, no-login links (90 days) to download the artwork and to
+  view the request and update its status at `/mylar-share/<id>`.
 - **Custom design requests** — a new request notifies the same addresses, with
   30-day signed links to any reference files.
 

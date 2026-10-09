@@ -1,5 +1,6 @@
 import { getUser, isAdminEmail } from "@/lib/auth";
 import { getMylarArtworkFile } from "@/lib/mylar-printing/queries";
+import { verifyMylarShareKey } from "@/lib/mylar-printing/share-link";
 import { previewKind } from "@/lib/portal";
 import { createAdminClient, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
@@ -13,7 +14,12 @@ const BUCKET = "mylar-artwork";
 // longer identifies a file. The inquiry id stays in the path so the lookup can
 // prove the file belongs to it — see getMylarArtworkFile.
 //
-// ADMIN ONLY. The `mylar-artwork` bucket is private with no storage.objects
+// GET /api/mylar-artwork/[inquiryId]?file=<artworkFileId>&key=<shareKey> — from
+//   the emailed share link (lib/mylar-printing/share-link.ts), no session.
+//
+// ADMIN, OR A VALID SHARE KEY FOR THIS INQUIRY. The key is checked against the
+// inquiry id in the path, and the file is then proven to belong to that same
+// inquiry, so a key opens one request's files and no others. The `mylar-artwork` bucket is private with no storage.objects
 // policies, so a raw object URL is worthless and the only way to the bytes is a
 // signed URL minted here. Mirrors app/api/files/[fileId]/route.ts, with one
 // difference that matters: that route can lean on RLS to scope the row, while
@@ -27,15 +33,18 @@ export async function GET(
   req: Request,
   ctx: RouteContext<"/api/mylar-artwork/[inquiryId]">,
 ) {
-  const user = await getUser();
-  if (!user) return new Response("Unauthorized", { status: 401 });
-  if (!isAdminEmail(user.email)) return new Response("Not found", { status: 404 });
+  const { inquiryId } = await ctx.params;
+  const params = new URL(req.url).searchParams;
+
+  if (!verifyMylarShareKey(inquiryId, params.get("key"))) {
+    const user = await getUser();
+    if (!user) return new Response("Unauthorized", { status: 401 });
+    if (!isAdminEmail(user.email)) return new Response("Not found", { status: 404 });
+  }
   if (!isSupabaseAdminConfigured()) {
     return new Response("Not configured", { status: 500 });
   }
 
-  const { inquiryId } = await ctx.params;
-  const params = new URL(req.url).searchParams;
   const fileId = params.get("file");
   if (!fileId) return new Response("Bad request", { status: 400 });
 

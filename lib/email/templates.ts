@@ -184,12 +184,14 @@ Open request: ${adminUrl}`;
 
 /**
  * Internal notification for a new Custom Mylar Printing quote request
- * (/mylar-printing). Goes to TD Studios, never to the customer — so it carries
- * the full request, including the admin deep link.
+ * (/mylar-printing). Goes to TD Studios and the receive-only
+ * MYLAR_INQUIRY_EMAILS (the print partner), never to the customer — so it
+ * carries the full request, the admin deep link, and a signed no-login share
+ * link (lib/mylar-printing/share-link.ts) for recipients without a login.
  *
- * Artwork is referenced, never attached: the files live in the private
- * `mylar-artwork` bucket and are reachable only through the admin-guarded
- * /api/mylar-artwork route, which mints a 60-second signed URL per view. A
+ * Artwork is linked, never attached: the files live in the private
+ * `mylar-artwork` bucket and are reachable only through /api/mylar-artwork
+ * (admin session or share key), which mints a 60-second signed URL per click. A
  * production PSD would also blow past Resend's attachment ceiling.
  */
 export function mylarInquiryEmail(params: {
@@ -208,6 +210,10 @@ export function mylarInquiryEmail(params: {
   artworkSummary: string;
   notes: string | null;
   adminUrl: string;
+  /** Signed no-login link (view + status) — null when no secret is configured. */
+  shareUrl: string | null;
+  /** One signed download link per artwork file. */
+  artworkLinks: { label: string; url: string }[];
 }): EmailContent {
   const {
     referenceNumber,
@@ -223,6 +229,8 @@ export function mylarInquiryEmail(params: {
     artworkSummary,
     notes,
     adminUrl,
+    shareUrl,
+    artworkLinks,
   } = params;
 
   const subject = `New Mylar Printing Request — ${referenceNumber}`;
@@ -261,6 +269,15 @@ export function mylarInquiryEmail(params: {
       )}</p>`
     : "";
 
+  const artworkHtml = artworkLinks.length
+    ? `<p style="margin:0 0 20px;font-size:13px;line-height:1.8;color:#3f3f46;"><strong style="color:#71717a;font-weight:600;">Download artwork</strong><br>${artworkLinks
+        .map(
+          ({ label, url }) =>
+            `<a href="${url}" style="color:#18181b;">${escapeHtml(label)}</a>`,
+        )
+        .join("<br>")}</p>`
+    : "";
+
   const html = shell(`
     <h1 style="margin:0 0 12px;font-size:20px;">New printing request</h1>
     <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#3f3f46;">
@@ -270,20 +287,29 @@ export function mylarInquiryEmail(params: {
       ${rowsHtml}
     </table>
     ${notesHtml}
-    <p style="margin:0 0 20px;">${button(adminUrl, "Open request")}</p>
-    <p style="margin:0;font-size:13px;color:#71717a;">
-      Artwork is stored with the request — open it in the dashboard to view or
-      download the files.
-    </p>
+    ${artworkHtml}
+    <p style="margin:0 0 12px;">${button(shareUrl ?? adminUrl, shareUrl ? "View & update status" : "Open request")}</p>
+    ${
+      shareUrl
+        ? `<p style="margin:0;font-size:13px;line-height:1.6;color:#71717a;">
+      No login needed: the button and file links work for anyone with this email
+      and expire after 90 days. TD Studios admins can also
+      <a href="${adminUrl}" style="color:#71717a;">open it in the dashboard</a>.
+    </p>`
+        : ""
+    }
   `);
 
   const text = `New Mylar Printing Request — ${referenceNumber}
 
 ${rows.map(([label, value]) => `${label}: ${value}`).join("\n")}
 ${notes ? `\nNotes:\n${notes}\n` : ""}
-Open request: ${adminUrl}
-
-Artwork is stored with the request — open it in the dashboard to view or download the files.`;
+${
+  artworkLinks.length
+    ? `\nDownload artwork:\n${artworkLinks.map(({ label, url }) => `${label}: ${url}`).join("\n")}\n`
+    : ""
+}${shareUrl ? `\nView & update status (no login, expires in 90 days): ${shareUrl}\n` : ""}
+Dashboard (TD Studios admins): ${adminUrl}`;
 
   return { subject, html, text };
 }

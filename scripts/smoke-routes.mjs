@@ -52,6 +52,11 @@ const CHECKS = [
   ["/sign-up", 200],
 
   // Signed out, the admin app must bounce to /login rather than render.
+  // The emailed share link must render its own "expired" state for a bad key —
+  // never bounce to /login (proxy prefix) and never leak a request.
+  ["/mylar-share/00000000-0000-0000-0000-000000000000?key=bad", 200],
+  ["/api/mylar-artwork/00000000-0000-0000-0000-000000000000?file=x&key=bad", 401],
+
   ["/dashboard", 307, "/login"],
 ];
 

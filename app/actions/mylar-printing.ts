@@ -34,6 +34,12 @@ import {
   type MylarContactMethod,
 } from "@/lib/mylar-printing/types";
 import { getAdminEmails } from "@/lib/auth";
+import { getMylarInquiry } from "@/lib/mylar-printing/queries";
+import {
+  createMylarShareKey,
+  mylarShareArtworkPath,
+  mylarSharePageUrl,
+} from "@/lib/mylar-printing/share-link";
 import {
   EMAIL_FROM,
   getResend,
@@ -578,6 +584,23 @@ async function notifyStudio(
         )
         .join("\n");
 
+  // Signed, no-login links for recipients outside ADMIN_EMAILS. The artwork
+  // rows are re-read for their ids (the insert above doesn't return them); a
+  // failed read just leaves the per-file links out — the share page lists them.
+  const shareKey = createMylarShareKey(submission.inquiryId);
+  const artworkLinks: { label: string; url: string }[] = [];
+  if (shareKey) {
+    const stored = await getMylarInquiry(submission.inquiryId);
+    for (const design of stored?.designs ?? []) {
+      for (const file of design.artwork) {
+        artworkLinks.push({
+          label: `Design ${design.design_number} ${file.side}: ${file.file_name}`,
+          url: `${getSiteUrl()}${mylarShareArtworkPath(submission.inquiryId, file.id, shareKey)}`,
+        });
+      }
+    }
+  }
+
   const email = mylarInquiryEmail({
     referenceNumber,
     bagType: bagTypeLabel(submission.bagType),
@@ -594,6 +617,8 @@ async function notifyStudio(
     artworkSummary,
     notes: submission.notes || null,
     adminUrl: `${getSiteUrl()}/mylar-requests/${submission.inquiryId}`,
+    shareUrl: shareKey ? mylarSharePageUrl(submission.inquiryId, shareKey) : null,
+    artworkLinks,
   });
 
   try {
