@@ -8,7 +8,7 @@ import { getSiteUrl } from "@/lib/email/client";
  * Signed, expiring links to ONE mylar inquiry, for the request email.
  *
  * The email goes to `ADMIN_EMAILS` plus the receive-only `MYLAR_INQUIRY_EMAILS`
- * (the print partner), and those recipients have no login. The key in the link
+ * (outside collaborators), and those recipients have no login. The key in the link
  * is the whole authorization for `/mylar-share/[id]` (view + status change) and
  * for `/api/mylar-artwork/[inquiryId]?key=` (downloads): an HMAC over the
  * inquiry id and an expiry, so it opens that request and nothing else, and it

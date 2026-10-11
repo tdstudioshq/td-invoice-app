@@ -554,7 +554,7 @@ async function notifyStudio(
     back: VerifiedArtwork | null;
   }[],
 ) {
-  // MYLAR_INQUIRY_EMAILS adds receive-only recipients (e.g. the print partner)
+  // MYLAR_INQUIRY_EMAILS adds receive-only recipients (outside collaborators)
   // without putting them in ADMIN_EMAILS, which would also grant the dashboard.
   const extraRecipients = (process.env.MYLAR_INQUIRY_EMAILS ?? "")
     .split(",")

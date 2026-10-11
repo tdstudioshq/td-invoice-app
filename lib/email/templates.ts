@@ -185,7 +185,7 @@ Open request: ${adminUrl}`;
 /**
  * Internal notification for a new Custom Mylar Printing quote request
  * (/mylar-printing). Goes to TD Studios and the receive-only
- * MYLAR_INQUIRY_EMAILS (the print partner), never to the customer — so it
+ * MYLAR_INQUIRY_EMAILS (outside collaborators), never to the customer — so it
  * carries the full request, the admin deep link, and a signed no-login share
  * link (lib/mylar-printing/share-link.ts) for recipients without a login.
  *
