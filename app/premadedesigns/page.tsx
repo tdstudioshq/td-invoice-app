@@ -1,4 +1,3 @@
-import { HomeLogoLink } from "@/components/layout/home-logo";
 import {
   LockKeyOpenIcon,
   LockSimpleIcon,
@@ -10,7 +9,9 @@ import {
   hasPremadeDesignsAccess,
   lockPremadeDesignsAction,
 } from "@/app/premadedesigns/access";
+import { COLLECTION_PARAM } from "@/app/premadedesigns/collection-url";
 import { DesignsGallery } from "@/app/premadedesigns/gallery";
+import { PremadeHeaderLogo } from "@/app/premadedesigns/header-logo";
 import { TasteBudzKeypad } from "@/app/taste-budz/keypad";
 import {
   buildPremadeCollections,
@@ -31,7 +32,9 @@ export const metadata = {
 // No filenames or signed image URLs reach the browser until the keypad unlocks.
 export const dynamic = "force-dynamic";
 
-export default async function PremadeDesignsPage() {
+export default async function PremadeDesignsPage({
+  searchParams,
+}: PageProps<"/premadedesigns">) {
   const unlocked = await hasPremadeDesignsAccess();
 
   if (!unlocked) {
@@ -74,26 +77,56 @@ export default async function PremadeDesignsPage() {
     designs.map((design) => design.contentHash),
   ).size;
 
-  // Sign only what the first screen shows. With more than one collection that
-  // is the index's cover images; with a single collection the gallery opens
-  // straight into its designs, so sign those instead.
+  // Sign only what the first screen shows: the index's cover images, or — when
+  // the URL names a collection (a reload or shared link) or there is only one —
+  // the first page of that collection's designs.
+  const requested = (await searchParams)[COLLECTION_PARAM];
+  const openFolder =
+    collections.length <= 1
+      ? (collections[0]?.value ?? null)
+      : typeof requested === "string" &&
+          collections.some((collection) => collection.value === requested)
+        ? requested
+        : null;
   const initialPaths =
-    collections.length > 1
+    openFolder === null
       ? collections
           .slice(0, PREMADE_COLLECTIONS_PAGE_SIZE)
           .map((collection) => collection.cover.path)
-      : designs.slice(0, PREMADE_DESIGNS_PAGE_SIZE).map((design) => design.path);
+      : designs
+          .filter((design) => design.folder === openFolder)
+          .slice(0, PREMADE_DESIGNS_PAGE_SIZE)
+          .map((design) => design.path);
   const initialSigned = await signPremadeDesignUrls(initialPaths).catch(() => ({
     urls: {},
     expiresAt: 0,
   }));
+
+  const lockControl = (
+    <form action={lockPremadeDesignsAction}>
+      <button
+        type="submit"
+        className="text-on-photo -mx-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-white/60 transition-colors hover:text-white md:text-xs"
+      >
+        <LockSimpleIcon weight="bold" className="size-3.5" />
+        Lock gallery
+      </button>
+    </form>
+  );
 
   return (
     <main className="public-page on-glass relative flex min-h-svh flex-col items-center overflow-hidden">
       <AnimatedBackground />
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="text-on-photo flex flex-col items-center gap-3 text-center">
-          <HomeLogoLink />
+          <PremadeHeaderLogo
+            // A single collection has no index to return to.
+            collections={
+              collections.length > 1
+                ? collections.map((collection) => collection.value)
+                : []
+            }
+          />
           <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-xs font-semibold tracking-[0.18em] text-white/75 uppercase backdrop-blur-md md:text-[0.65rem]">
             <LockKeyOpenIcon weight="fill" className="size-3.5" />
             Gallery unlocked
@@ -113,25 +146,26 @@ export default async function PremadeDesignsPage() {
         </header>
 
         {designs.length === 0 ? (
-          <p className="text-muted-foreground text-center text-base md:text-sm">
-            No designs available yet. Check back soon.
-          </p>
+          <>
+            <p className="text-muted-foreground text-center text-base md:text-sm">
+              No designs available yet. Check back soon.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <BackToStudiosLink className="mx-auto" />
+              {lockControl}
+            </div>
+          </>
         ) : (
-          <DesignsGallery designs={designs} initialSigned={initialSigned} />
+          // The footer moves inside the gallery: only it knows whether a
+          // collection is open, which decides "Back to All Collections" vs
+          // "Back to TD Studios".
+          <DesignsGallery
+            designs={designs}
+            initialSigned={initialSigned}
+            homeLink={<BackToStudiosLink className="mx-auto" />}
+            footerActions={lockControl}
+          />
         )}
-
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          <BackToStudiosLink className="mx-auto" />
-          <form action={lockPremadeDesignsAction}>
-            <button
-              type="submit"
-              className="text-on-photo -mx-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm text-white/60 transition-colors hover:text-white md:text-xs"
-            >
-              <LockSimpleIcon weight="bold" className="size-3.5" />
-              Lock gallery
-            </button>
-          </form>
-        </div>
       </div>
     </main>
   );

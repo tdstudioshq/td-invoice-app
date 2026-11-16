@@ -9,6 +9,7 @@ import {
   useTransition,
 } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeftIcon,
@@ -21,6 +22,10 @@ import {
 } from "@phosphor-icons/react";
 
 import { getPremadeDesignUrlsAction } from "@/app/premadedesigns/actions";
+import {
+  COLLECTION_PARAM,
+  pushCollection,
+} from "@/app/premadedesigns/collection-url";
 import {
   buildPremadeCollections,
   PREMADE_COLLECTIONS_PAGE_SIZE,
@@ -44,9 +49,21 @@ type CachedUrl = { url: string; expiresAt: number };
 export function DesignsGallery({
   designs,
   initialSigned,
+  homeLink,
+  footerActions,
 }: {
   designs: PremadeDesign[];
   initialSigned: SignedPremadeDesignUrls;
+  /**
+   * The "Back to TD Studios" link. Only the collections index shows it: inside
+   * a collection the way out is "Back to All Collections", so a customer is
+   * never sent to the homepage when they meant to go up one level. It is a
+   * prop (not rendered by the page) because which view is on screen is state
+   * that only this component holds.
+   */
+  homeLink: React.ReactNode;
+  /** Footer controls shown in both views (the lock-gallery form). */
+  footerActions?: React.ReactNode;
 }) {
   const galleryTop = useRef<HTMLDivElement>(null);
 
@@ -59,12 +76,39 @@ export function DesignsGallery({
   const singleCollection = collections.length <= 1;
   const onlyFolder = collections[0]?.value ?? "";
 
-  const [activeFolder, setActiveFolder] = useState<string | null>(
-    singleCollection ? onlyFolder : null,
-  );
+  // The open collection is URL state (see collection-url.ts), so Back/Forward
+  // and a reload restore it. An unknown folder falls back to the index.
+  const searchParams = useSearchParams();
+  const requestedFolder = searchParams.get(COLLECTION_PARAM);
+  const requestedIsValid =
+    requestedFolder !== null &&
+    collections.some((entry) => entry.value === requestedFolder);
+  const activeFolder = singleCollection
+    ? onlyFolder
+    : requestedIsValid
+      ? requestedFolder
+      : null;
+
+  // A stale `?collection=` (renamed folder, bad link) is deliberately left in
+  // the address bar rather than stripped on mount: a replaceState that early
+  // runs before Next has patched the history API, leaving an entry its router
+  // doesn't recognise. The header logo applies the same validity test.
+
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  // Every change of view — a click, Back, Forward — starts the new view on a
+  // clean search, page 1, lightbox closed. Adjusted during render (React's
+  // "storing information from previous renders" pattern) so the stale search
+  // never paints for a frame.
+  const [shownFolder, setShownFolder] = useState(activeFolder);
+  if (shownFolder !== activeFolder) {
+    setShownFolder(activeFolder);
+    setQuery("");
+    setPage(1);
+    setLightboxIndex(null);
+  }
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [urlCache, setUrlCache] = useState<Record<string, CachedUrl>>(() =>
@@ -184,21 +228,18 @@ export function DesignsGallery({
     );
   }, []);
 
-  const openCollection = (value: string) => {
-    setActiveFolder(value);
-    setQuery("");
-    setPage(1);
-    setLightboxIndex(null);
+  // Scroll back to the gallery whenever the view changes, however it changed
+  // (button, header logo, Back/Forward) — but not on first load.
+  const lastScrolledFolder = useRef(activeFolder);
+  useEffect(() => {
+    if (lastScrolledFolder.current === activeFolder) return;
+    lastScrolledFolder.current = activeFolder;
     scrollToTop();
-  };
+  }, [activeFolder, scrollToTop]);
 
-  const backToCollections = () => {
-    setActiveFolder(null);
-    setQuery("");
-    setPage(1);
-    setLightboxIndex(null);
-    scrollToTop();
-  };
+  // Both only write the URL; the render above derives the view from it.
+  const openCollection = (value: string) => pushCollection(value);
+  const backToCollections = () => pushCollection(null);
 
   const updateQuery = (next: string) => {
     setQuery(next);
@@ -226,7 +267,7 @@ export function DesignsGallery({
             className="mb-3 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm font-medium text-white/80 transition hover:border-white/30 hover:bg-white/[0.12] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:min-h-0 md:py-1.5 md:text-xs"
           >
             <ArrowLeftIcon weight="bold" className="size-4 md:size-3.5" />
-            All collections
+            Back to All Collections
           </button>
         ) : null}
 
@@ -355,6 +396,22 @@ export function DesignsGallery({
           </PageButton>
         </nav>
       ) : null}
+
+      <div className="flex flex-wrap items-center justify-center gap-4 pt-3">
+        {activeCollection && !singleCollection ? (
+          <button
+            type="button"
+            onClick={backToCollections}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 bg-black/35 px-5 text-sm font-medium text-white/85 backdrop-blur-md transition hover:border-white/30 hover:bg-white/[0.12] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 md:text-xs"
+          >
+            <ArrowLeftIcon weight="bold" className="size-4 md:size-3.5" />
+            Back to All Collections
+          </button>
+        ) : (
+          homeLink
+        )}
+        {footerActions}
+      </div>
 
       <DesignLightbox
         designs={pageDesigns}

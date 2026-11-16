@@ -9,12 +9,26 @@ import { cn } from "@/lib/utils";
  * routes any authenticated visitor on to their role home. The admin and portal
  * shells use their own brand marks (`Brand`, `PortalBrand`) linking to their
  * respective dashboards instead.
+ *
+ * `href`/`label`/`onClick` default to the home link; `/premadedesigns` points
+ * the same mark at its collections index while a collection is open.
  */
-export function HomeLogoLink({ className }: { className?: string }) {
+export function HomeLogoLink({
+  className,
+  href = "/",
+  label = "TD Studios home",
+  onClick,
+}: {
+  className?: string;
+  href?: string;
+  label?: string;
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+}) {
   return (
     <Link
-      href="/"
-      aria-label="TD Studios home"
+      href={href}
+      aria-label={label}
+      onClick={onClick}
       className={cn(
         "rounded-full transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40",
         className,
